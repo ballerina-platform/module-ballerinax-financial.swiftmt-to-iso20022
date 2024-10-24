@@ -2,9 +2,9 @@
 
 ## Overview
 
-The DataMapper Library is a comprehensive toolkit designed to transform SWIFT MT FIN messages into ISO 20022 XML within Ballerina applications. It simplifies the process of mapping SWIFT MT fields to their corresponding ISO 20022 elements, leveraging predefined records and parsers from the SWIFT MT and ISO 20022 libraries. This enables developers to seamlessly convert financial messages from the flat, text-based SWIFT format into the structured ISO 20022 XML standard, ensuring accurate and efficient data transformation.
+The DataMapper Library is a comprehensive toolkit designed to convert SWIFT MT FIN messages into ISO 20022 XML within Ballerina applications. It simplifies the process of mapping SWIFT MT fields to their corresponding ISO 20022 elements, leveraging predefined records and parsers from the SWIFT MT and ISO 20022 libraries. This enables developers to seamlessly convert financial messages from the flat, text-based SWIFT format into the structured ISO 20022 XML standard, ensuring accurate and efficient data conversion.
 
-## Supported Transformations
+## Supported Conversions
 
 - SWIFT MT 1XX Category to ISO 20022
 - SWIFT MT 2XX Category to ISO 20022
@@ -12,7 +12,7 @@ The DataMapper Library is a comprehensive toolkit designed to transform SWIFT MT
 
 ## Usage
 
-### Conversion of SWIFT fin message to ISO 20022 Standard Xml
+### Conversion of SWIFT fin message to ISO 20022 Xml Standard
 
 ```ballerina
 import ballerina/io;
