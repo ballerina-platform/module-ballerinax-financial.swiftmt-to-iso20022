@@ -14,9 +14,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/data.xmldata;
+import ballerina/time;
+
 import ballerinax/financial.iso20022.cash_management as isorecord;
 import ballerinax/financial.swift.mt as swiftmt;
-import ballerina/data.xmldata;
 
 # Transforms an MT104 message to its corresponding ISO 20022 message format in XML.
 # The function checks the instruction code (MT23E) within the message to determine the
@@ -25,17 +27,16 @@ import ballerina/data.xmldata;
 # + message - The MT104 SWIFT message to be transformed.
 # + return - Returns the transformed XML message or an error if transformation fails.
 isolated function getMT104TransformFunction(swiftmt:MT104Message message) returns xml|error {
-    do {
-        if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("AUTH") || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("NAUT") || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("OTHR") {
-            return xmldata:toXml(check transformMT104DrctDbt(message));
-        }
-        if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("RFDD") {
-            return xmldata:toXml(check transformMT104ReqDbtTrf(message));
-        }
-        return error("Return direct debit transfer message is not supported.");
-    } on fail {
+    if message.block4.MT23E?.InstrnCd?.content is () {
         return error("Instruction code is required to identify ISO 20022 message type.");
     }
+    if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("AUTH") || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("NAUT") || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("OTHR") {
+        return xmldata:toXml(check transformMT104DrctDbt(message));
+    }
+    if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("RFDD") {
+        return xmldata:toXml(check transformMT104ReqDbtTrf(message));
+    }
+    return error("Return direct debit transfer message is not supported.");
 }
 
 # Converts the given `Amnt` or `Rt` content to a `decimal` value, handling the conversion from a string representation
@@ -47,10 +48,10 @@ isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns deci
     do {
         if value is swiftmt:Rt|swiftmt:Amnt {
             if check (value.content.lastIndexOf(",")).ensureType(int) == value.content.length() - 1 {
-                    return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat("00"));
+                return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat("00"));
             }
             return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat(value.content.substring(check (value.content.lastIndexOf(",")).ensureType(int) + 1)));
-        } 
+        }
     } on fail {
         return error("Provide decimal value in string for exchange rate and transaction amounts.");
     }
@@ -66,10 +67,10 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
     do {
         if value is swiftmt:Rt|swiftmt:Amnt {
             if check (value.content.lastIndexOf(",")).ensureType(int) == value.content.length() - 1 {
-                    return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat("00"));
+                return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat("00"));
             }
             return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat(value.content.substring(check (value.content.lastIndexOf(",")).ensureType(int) + 1)));
-        } 
+        }
     } on fail {
         return error("Provide decimal value in string for exchange rate and transaction amounts.");
     }
@@ -81,16 +82,12 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
 # and the other for remittance narrative.
 #
 # + remmitanceInfo - The optional `MT70` object containing remittance information.
-# + return - Returns a string array where the first element is the remittance code and the second is the remittance narrative.
-# If the remittance code is "Roc", it appears in the first element; otherwise, the narrative appears in the second element.
-isolated function getRemmitanceInformation(swiftmt:MT70? remmitanceInfo) returns string[] {
+# + return - Returns remmitance information as a string or an empty string if no remmitance information was found.
+isolated function getRemmitanceInformation(swiftmt:MT70? remmitanceInfo) returns string {
     if remmitanceInfo is swiftmt:MT70 {
-        if remmitanceInfo.Nrtv.content.substring(1, 4).equalsIgnoreCaseAscii("Roc") {
-            return [remmitanceInfo.Nrtv.content, ""];
-        }
-        return ["", remmitanceInfo.Nrtv.content];
+        return remmitanceInfo.Nrtv.content;
     }
-    return ["", ""];
+    return "";
 }
 
 # Extracts and returns the content of the provided field if it is of type string.
@@ -114,8 +111,8 @@ isolated function getMandatoryFields(string? content) returns string {
 # + address2 - An optional array of `AdrsLine` that may also contain address lines (default is `null`).
 # + return - Returns an array of strings representing the address lines if any address lines are found;
 # otherwise, returns `null`.
-isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]?|null address2 = null) returns string[7]? {
-    string[7] addressArray = [];
+isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]?|null address2 = null) returns string[]? {
+    string[] addressArray = [];
     int count = 0;
     swiftmt:AdrsLine[] finalAddress;
     if address1 is swiftmt:AdrsLine[] {
@@ -138,15 +135,18 @@ isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[
 #
 # + code - An optional `Cd` object that contains the code to be looked up.
 # + return - Returns the details charge description associated with the provided code;
-# returns an empty string if the code is not found or if there is an error reading the CSV file.
-isolated function getDetailsChargesCd(swiftmt:Cd code) returns string|error {
-    string[][] csvContent1 = DETAILS_CHRGS;
-    foreach string[] line in csvContent1 {
-        if line[0].equalsIgnoreCaseAscii(code.content) {
-            return line[1];
+# Otherwise an error.
+isolated function getDetailsChargesCd(swiftmt:Cd? code) returns string|error {
+    string[][] chargesCodeArray = DETAILS_CHRGS;
+    if code is swiftmt:Cd {
+        foreach string[] line in chargesCodeArray {
+            if line[0].equalsIgnoreCaseAscii(code.content) {
+                return line[1];
+            }
         }
+        return error("Details of charges code is invalid.");
     }
-    return error ("Details of charges code is invalid.");
+    return error("Details of charges code is madatory.");
 }
 
 # Extracts and returns regulatory reporting details from the provided `MT77B` object.
@@ -159,24 +159,28 @@ isolated function getDetailsChargesCd(swiftmt:Cd code) returns string|error {
 isolated function getRegulatoryReporting(swiftmt:MT77B? rgltyRptg) returns isorecord:RegulatoryReporting3[10]? {
     if rgltyRptg is swiftmt:MT77B {
         if rgltyRptg.Nrtv.content.substring(1, 9).equalsIgnoreCaseAscii("BENEFRES") || rgltyRptg.Nrtv.content.substring(1, 9).equalsIgnoreCaseAscii("ORDERRES") {
-            return [{
+            return [
+                {
+                    Dtls: [
+                        {
+                            Cd: rgltyRptg.Nrtv.content.substring(1, 9),
+                            Ctry: rgltyRptg?.Nrtv.content.substring(10, 12),
+                            Inf: [rgltyRptg.Nrtv.content.substring(14)]
+                        }
+                    ]
+                }
+            ];
+        }
+        return [
+            {
                 Dtls: [
                     {
-                        Cd: rgltyRptg.Nrtv.content.substring(1, 9),
-                        Ctry: rgltyRptg?.Nrtv.content.substring(10, 12),
-                        Inf: [rgltyRptg.Nrtv.content.substring(14)]
+                        Inf: [rgltyRptg.Nrtv.content.substring(1)]
                     }
                 ]
-            }];
-        } 
-        return [{
-            Dtls: [
-                {
-                    Inf: [rgltyRptg.Nrtv.content.substring(1)]
-                }
-            ]
-        }];
-        
+            }
+        ];
+
     }
     return null;
 }
@@ -193,21 +197,21 @@ isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc = nu
     if prtyIdnOrAcc is swiftmt:PrtyIdn && prtyIdnOrAcc.content.length() > 1 {
         if prtyIdnOrAcc.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
             return [null, ...validateAccountNumber(prtyIdn = prtyIdnOrAcc), null, null];
-        } 
+        }
         if prtyIdnOrAcc.content.startsWith("CUST") || prtyIdnOrAcc.content.startsWith("DRLC") || prtyIdnOrAcc.content.startsWith("EMPL") {
             if fields.equalsIgnoreCaseAscii("id") {
                 return [prtyIdnOrAcc.content.toString().substring(18), null, null, null, null];
-            } 
+            }
             if fields.equalsIgnoreCaseAscii("cd") {
                 return [null, null, null, prtyIdnOrAcc.content.toString().substring(0, 4), null];
-            } 
+            }
             return [null, null, null, null, prtyIdnOrAcc.content.toString().substring(5, 17)];
-        } 
+        }
         if fields.equalsIgnoreCaseAscii("id") {
             return [prtyIdnOrAcc.content.toString().substring(8), null, null, null, null];
-        } 
+        }
         return [null, null, null, prtyIdnOrAcc.content.toString().substring(0, 4), null];
-    } 
+    }
     return [null, null, null, null, null];
 }
 
@@ -223,19 +227,19 @@ isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc = nu
 isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1 = null, swiftmt:PrtyIdn? prtyIdn2 = null, swiftmt:PrtyIdn? prtyIdn3 = null) returns string?[] {
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 && !(prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn1.content, null, null];
-    } 
+    }
     if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 && !(prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn2.content, null, null];
-    } 
+    }
     if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 && !(prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn3.content, null, null];
-    } 
+    }
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 && prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
         return [null, ...validateAccountNumber(prtyIdn = prtyIdn1)];
-    } 
+    }
     if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 && prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
         return [null, ...validateAccountNumber(prtyIdn = prtyIdn2)];
-    } 
+    }
     if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 && prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
         return [null, ...validateAccountNumber(prtyIdn = prtyIdn3)];
     }
@@ -282,10 +286,10 @@ isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns string?[
         if cntyNTw[0].content.length() > 3 {
             cntyNTwArray.push(cntyNTw[0].content.substring(3));
             return cntyNTwArray;
-        } 
+        }
         cntyNTwArray.push(null);
         return cntyNTwArray;
-    } 
+    }
     return [null, null];
 }
 
@@ -332,7 +336,7 @@ isolated function validateAccountNumber(swiftmt:Acc?|null acc1 = null, swiftmt:P
 isolated function getPartyIdentifier(swiftmt:PrtyIdn? identifier1, swiftmt:PrtyIdn? identifier2 = null, swiftmt:PrtyIdn? identifier3 = null, swiftmt:PrtyIdn? identifier4 = null) returns string? {
     if identifier1 is swiftmt:PrtyIdn && (identifier1.content).length() > 1 {
         return identifier1?.content;
-    } 
+    }
     if identifier2 is swiftmt:PrtyIdn && (identifier2.content).length() > 1 {
         return identifier2?.content;
     }
@@ -341,7 +345,7 @@ isolated function getPartyIdentifier(swiftmt:PrtyIdn? identifier1, swiftmt:PrtyI
     }
     if identifier4 is swiftmt:PrtyIdn && (identifier4.content).length() > 1 {
         return identifier4?.content;
-    } 
+    }
     return null;
 }
 
@@ -359,7 +363,7 @@ isolated function getInstructedAmount(swiftmt:MT32B? transAmnt = null, swiftmt:M
             return 0;
         }
         return convertToDecimalMandatory(instrdAmnt.Amnt);
-    } 
+    }
     if transAmnt is swiftmt:MT32B {
         if convertToDecimal(transAmnt.Amnt) is null {
             return 0;
@@ -388,11 +392,11 @@ isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = null
             return 0;
         }
         return convertToDecimalMandatory(sumAmnt.Amnt);
-    } 
+    }
     if stlmntAmnt is swiftmt:MT32A|swiftmt:MT32B {
         if convertToDecimal(stlmntAmnt.Amnt) is null {
             return 0;
-        } 
+        }
         return convertToDecimalMandatory(stlmntAmnt.Amnt);
     }
     return 0;
@@ -411,9 +415,9 @@ isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = null
 isolated function getSchemaCode(swiftmt:Acc? account1 = null, swiftmt:Acc? account2 = null, swiftmt:Acc? account3 = null, swiftmt:PrtyIdn? prtyIdn1 = null, swiftmt:PrtyIdn? prtyIdn2 = null, swiftmt:PrtyIdn? prtyIdn3 = null) returns string? {
     if !(validateAccountNumber(account1)[1] is null) || !(validateAccountNumber(account2)[1] is null) || !(validateAccountNumber(account3)[1] is null) || !(getPartyIdentifierOrAccount(prtyIdn1)[2] is null) || !(getPartyIdentifierOrAccount(prtyIdn2)[2] is null) || !(getPartyIdentifierOrAccount(prtyIdn3)[2] is null) {
         return "BBAN";
-    } 
+    }
     return null;
-    
+
 }
 
 # Returns the account ID or party identifier based on the provided inputs.
@@ -443,7 +447,7 @@ isolated function getAccountId(string? account, string? prtyIdn) returns string?
 # The function uses helper methods `convertToDecimalMandatory` to convert the amount and `getMandatoryFields` to fetch the currency.
 isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G? rcvsChrgs) returns isorecord:Charges16[]?|error {
     isorecord:Charges16[] chrgsInf = [];
-    if sndsChrgs is swiftmt:MT71F{
+    if sndsChrgs is swiftmt:MT71F {
         chrgsInf.push({
             Amt: {
                 ActiveOrHistoricCurrencyAndAmount_SimpleType: {
@@ -518,7 +522,7 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
                 if sndRcvInfo.Cd.content.substring(5, 11).matches(re `^[A-Z]+$`) && sndRcvInfo.Cd.content.substring(11).matches(re `^[A-Z2-9]+$`) && sndRcvInfo.Cd.content.substring(12).matches(re `^[A-NP-Z0-9]+$`) {
                     if sndRcvInfo.Cd.content.substring(5).length() == 11 && sndRcvInfo.Cd.content.substring(13).matches(re `^[A-Z0-9]+$`) {
                         return [null, null, null, null, sndRcvInfo.Cd.content.substring(5), null];
-                    } 
+                    }
                     if sndRcvInfo.Cd.content.substring(5).length() == 8 {
                         return [null, null, null, null, sndRcvInfo.Cd.content.substring(5), null];
                     }
@@ -545,19 +549,19 @@ isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
                 return [null, null, "ACC", sndRcvInfo.Cd.content.substring(5), null, null];
             }
         }
-        match (sndRcvInfo.Cd.content.substring(1,5)){
+        match (sndRcvInfo.Cd.content.substring(1, 5)) {
             "PHON"|"TELE" => {
-                return [sndRcvInfo.Cd.content.substring(1,5), sndRcvInfo.Cd.content.substring(6), null, null, null, null];
+                return [sndRcvInfo.Cd.content.substring(1, 5), sndRcvInfo.Cd.content.substring(6), null, null, null, null];
             }
         }
-        match (sndRcvInfo.Cd.content.substring(1,5)){
+        match (sndRcvInfo.Cd.content.substring(1, 5)) {
             "PHONIBK"|"TELEIBK" => {
-                return [null, null,sndRcvInfo.Cd.content.substring(1,8), sndRcvInfo.Cd.content.substring(6), null, null];
+                return [null, null, sndRcvInfo.Cd.content.substring(1, 8), sndRcvInfo.Cd.content.substring(6), null, null];
             }
         }
-        return [null,null,null,null,null,null];
+        return [null, null, null, null, null, null];
     }
-    return [null,null,null,null,null,null];
+    return [null, null, null, null, null, null];
 }
 
 # Determines the settlement method based on the input MT53A, MT53B, or MT53D record.
@@ -576,7 +580,7 @@ isolated function getSettlementMethod(swiftmt:MT53A? mt53A = null, swiftmt:MT53B
                 return isorecord:INDA;
             }
         }
-    } 
+    }
     if mt53A is swiftmt:MT53A || mt53D is swiftmt:MT53D {
         return isorecord:COVE;
     }
@@ -696,7 +700,7 @@ isolated function getMT101RepeatingFields(swiftmt:MT101Message message, swiftmt:
 # + date - A `swiftmt:Dt` object containing the date in the format YYMMDD.
 # + return - Returns the date in ISO 20022 format (YYYY-MM-DD). 
 isolated function convertToISOStandardDate(swiftmt:Dt date) returns string {
-    return "20" + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6);
+    return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6);
 }
 
 # Converts a given date in SWIFT MT format to an ISO 20022 standard date format (YYYY-MM-DD).
@@ -704,17 +708,21 @@ isolated function convertToISOStandardDate(swiftmt:Dt date) returns string {
 # + date - A `swiftmt:Dt` object containing the date in the format YYMMDD.
 # + return - Returns the date in ISO 20022 format (YYYY-MM-DD).
 isolated function convertToISOStandardDateMandatory(swiftmt:Dt date) returns string {
-    return "20" + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6);
+    return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6);
 }
 
 # Converts a SWIFT MT date and time to an ISO 20022 standard date-time format.
 #
 # + date - The date component of the SWIFT MT message in the format YYMMDD.
 # + time - The time component of the SWIFT MT message in the format HHMM.
+# + isCreationDateTime - The indicator to identify whether it is creation date and time.
 # + return - A string containing the date-time in ISO 20022 format, or null if the input is not valid.
-isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? time) returns string?{
+isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? time, boolean isCreationDateTime = false) returns string?{
     if date is swiftmt:Dt && time is swiftmt:Tm{
-        return "20" + date.content.substring(0,2) + "-" + date.content.substring(2,4) + "-" + date.content.substring(4,6) + "T" + time.content.substring(0,2) + ":" + time.content.substring(2,4) + ":00";
+        return YEAR_PREFIX + date.content.substring(0,2) + "-" + date.content.substring(2,4) + "-" + date.content.substring(4,6) + "T" + time.content.substring(0,2) + ":" + time.content.substring(2,4) + ":00";
+    }
+    if isCreationDateTime {
+        return time:utcToString(time:utcNow());
     }
     return null;
 }
@@ -730,7 +738,7 @@ isolated function getMT102STPRepeatingFields(swiftmt:MT102STPMessage message, sw
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
-            } 
+            }
             if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
                 return content;
             }
@@ -773,10 +781,10 @@ isolated function getMT102STPRepeatingFields(swiftmt:MT102STPMessage message, sw
 isolated function getMT103REMITEnvelopeContent(swiftmt:MT77T envelopeContent) returns string?[] {
     if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("SWIF") {
         return [envelopeContent.EnvCntnt.content.substring(6), null, null];
-    } 
+    }
     if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("IXML") {
         return ["", envelopeContent.EnvCntnt.content.substring(6), null];
-    } 
+    }
     if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("NARR") {
         return ["", null, envelopeContent.EnvCntnt.content.substring(6)];
     }
@@ -795,7 +803,7 @@ isolated function getMT102RepeatingFields(swiftmt:MT102Message message, swiftmt:
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
-            } 
+            }
             if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
                 return content;
             }
@@ -974,38 +982,42 @@ isolated function getMT203RepeatingFields(swiftmt:MT203Message message, swiftmt:
 #
 # + floorLimit - An optional array of MT34F objects, each representing a floor limit.
 # + return - Returns an array of Limit2 objects for ISO 20022, or an error if conversion fails.
-isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns isorecord:Limit2[]?|error { 
+isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns isorecord:Limit2[]?|error {
     if floorLimit is swiftmt:MT34F[] {
-        if floorLimit.length()>1 {
-            return [{
-                Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[0].Amnt), 
-                        Ccy: floorLimit[0].Ccy.content
-                    }
-                }, 
-                CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[0].Cd)
-            },
+        if floorLimit.length() > 1 {
+            return [
+                {
+                    Amt: {
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: {
+                            ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[0].Amnt),
+                            Ccy: floorLimit[0].Ccy.content
+                        }
+                    },
+                    CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[0].Cd)
+                },
+                {
+                    Amt: {
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: {
+                            ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[1].Amnt),
+                            Ccy: floorLimit[1].Ccy.content
+                        }
+                    },
+                    CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[1].Cd)
+                }
+            ];
+        }
+        return [
             {
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[1].Amnt), 
-                        Ccy: floorLimit[1].Ccy.content
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[0].Amnt),
+                        Ccy: floorLimit[0].Ccy.content
                     }
-                }, 
-                CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[1].Cd)
-            }];
-        }
-        return [{
-            Amt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[0].Amnt), 
-                    Ccy: floorLimit[0].Ccy.content
-                }
-            }, 
-            CdtDbtInd: isorecord:BOTH
-        }];
-    } 
+                },
+                CdtDbtInd: isorecord:BOTH
+            }
+        ];
+    }
     return null;
 }
 
@@ -1013,13 +1025,13 @@ isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns isorecord:L
 #
 # + code - The optional SWIFT MT Cd element containing the credit or debit indicator.
 # + return - Returns the ISO 20022 `FloorLimitType1Code`, which can be either DEBT (debit) or CRED (credit).
-isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns isorecord:FloorLimitType1Code{
+isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns isorecord:FloorLimitType1Code {
     if code is swiftmt:Cd {
         if code.content.equalsIgnoreCaseAscii("D") {
             return isorecord:DEBT;
-        } 
+        }
         return isorecord:CRED;
-    } 
+    }
     return isorecord:DEBT;
 }
 
@@ -1043,7 +1055,7 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns isorecord:Report
                 CdtDbtInd: convertDbtOrCrdToISOStandard(stmtLine),
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(stmtLine.Amnt), 
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(stmtLine.Amnt),
                         Ccy: getMandatoryFields(stmtLine.FndCd?.content)
                     }
                 },
@@ -1065,14 +1077,14 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns isorecord:Report
 # Converts the credit/debit indicator from the SWIFT MT message into the ISO 20022 `CreditDebitCode`.
 #
 # + content - The SWIFT MT message content (MT60F, MT62F, MT65, MT64, MT60M, MT62M, or MT61) which contains 
-#             the credit or debit indicator.
+# the credit or debit indicator.
 # + return - Returns the ISO 20022 `CreditDebitCode`, either `CRDT` or `DBIT`.
 isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swiftmt:MT65|swiftmt:MT64|swiftmt:MT60M|swiftmt:MT62M|swiftmt:MT61 content) returns isorecord:CreditDebitCode {
     if content.Cd.content.equalsIgnoreCaseAscii("C") || content.Cd.content.equalsIgnoreCaseAscii("RD") {
         return isorecord:CRDT;
-    } 
+    }
     return isorecord:DBIT;
-    
+
 }
 
 # Retrieves and converts the balance information from multiple SWIFT MT message types (MT60F, MT62F, MT64, MT60M, MT62M, and MT65) 
@@ -1089,13 +1101,13 @@ isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swift
 # + InmdCloseBalance - The intraday closing balances (MT62M[]), defaults to null if not provided.
 # + ForwardAvailableBalance - The forward available balances (MT65[]), defaults to null if not provided.
 # + return - Returns an array of `CashBalance8` objects representing the balances in ISO 20022 format or an error if any conversion fails.
-isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]? CloseAvailableBalance, swiftmt:MT60M[]? InmdOpenBalance=null, swiftmt:MT62M[]? InmdCloseBalance=null, swiftmt:MT65[]? ForwardAvailableBalance=null) returns isorecord:CashBalance8[]|error {
+isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]? CloseAvailableBalance, swiftmt:MT60M[]? InmdOpenBalance = null, swiftmt:MT62M[]? InmdCloseBalance = null, swiftmt:MT65[]? ForwardAvailableBalance = null) returns isorecord:CashBalance8[]|error {
     isorecord:CashBalance8[] BalArray = [];
-    if firstOpenBalance is swiftmt:MT60F{
+    if firstOpenBalance is swiftmt:MT60F {
         BalArray.push({
             Amt: {
                 ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(firstOpenBalance.Amnt), 
+                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(firstOpenBalance.Amnt),
                     Ccy: firstOpenBalance.Ccy.content
                 }
             },
@@ -1104,7 +1116,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             Tp: {
                 CdOrPrtry: {
                     Cd: "PRCD"
-                } 
+                }
             }
         });
     }
@@ -1113,7 +1125,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(inmdOpnBal.Amnt), 
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(inmdOpnBal.Amnt),
                         Ccy: inmdOpnBal.Ccy.content
                     }
                 },
@@ -1131,7 +1143,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
         BalArray.push({
             Amt: {
                 ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(firstCloseBalance.Amnt), 
+                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(firstCloseBalance.Amnt),
                     Ccy: firstCloseBalance.Ccy.content
                 }
             },
@@ -1149,7 +1161,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(inmdClsBal.Amnt), 
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(inmdClsBal.Amnt),
                         Ccy: inmdClsBal.Ccy.content
                     }
                 },
@@ -1168,7 +1180,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(clsAvblBal.Amnt), 
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(clsAvblBal.Amnt),
                         Ccy: clsAvblBal.Ccy.content
                     }
                 },
@@ -1177,7 +1189,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
                 Tp: {
                     CdOrPrtry: {
                         Cd: "CLAV"
-                    }   
+                    }
                 }
             });
         }
@@ -1187,7 +1199,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(fwdAvblBal.Amnt), 
+                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(fwdAvblBal.Amnt),
                         Ccy: fwdAvblBal.Ccy.content
                     }
                 },
@@ -1196,7 +1208,7 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
                 Tp: {
                     CdOrPrtry: {
                         Cd: "FWAV"
-                    }   
+                    }
                 }
             });
         }
@@ -1223,8 +1235,8 @@ isolated function getInfoToAccOwnr(swiftmt:MT86[]? infoToAccOwnr) returns string
                 }
             }
         }
-        return finalInfo; 
-    } 
+        return finalInfo;
+    }
     return null;
 }
 
@@ -1319,7 +1331,7 @@ isolated function getUnderlyingCustomerTransactionFields(swiftmt:MT202COVMessage
             return message.block4.MT72;
         }
     }
-    return  null;
+    return null;
 }
 
 # Retrieves the intermediary agent identification information from the provided MT56A, MT56D, MT57A, MT57B, and MT57D messages.
@@ -1333,26 +1345,30 @@ isolated function getUnderlyingCustomerTransactionFields(swiftmt:MT202COVMessage
 # + inmd57B - Optional intermediary message of type MT57B.
 # + inmd57D - Optional intermediary message of type MT57D.
 # + return - Returns a BranchAndFinancialInstitutionIdentification8 record or null if no matching messages are found.
-isolated function getIntermediaryAgent1(swiftmt:MT56A? inmd56A, swiftmt:MT56D? inmd56D, swiftmt:MT57A? inmd57A, swiftmt:MT57B? inmd57B, swiftmt:MT57D? inmd57D) returns isorecord:BranchAndFinancialInstitutionIdentification8?{
-    if inmd56A is swiftmt:MT56A || inmd56D is swiftmt:MT56D{
-        return {FinInstnId: {
-                    BICFI: inmd56A?.IdnCd?.content,
-                    LEI: getPartyIdentifier(inmd56A?.PrtyIdn, inmd56D?.PrtyIdn),
-                    Nm: getName(inmd56D?.Nm),
-                    PstlAdr: {
-                        AdrLine: getAddressLine(inmd56D?.AdrsLine)
-                    }
-                }};
-    } 
-    if inmd57A is swiftmt:MT57A || inmd57B is swiftmt:MT57B || inmd57D is swiftmt:MT57D{
-        return {FinInstnId: {
-                    BICFI: inmd57A?.IdnCd?.content,
-                    LEI: getPartyIdentifier(inmd57A?.PrtyIdn,inmd57B?.PrtyIdn, inmd57D?.PrtyIdn),
-                    Nm: getName(inmd57D?.Nm),
-                    PstlAdr: {
-                        AdrLine: getAddressLine(inmd57D?.AdrsLine)
-                    }
-                }};
+isolated function getIntermediaryAgent1(swiftmt:MT56A? inmd56A, swiftmt:MT56D? inmd56D, swiftmt:MT57A? inmd57A, swiftmt:MT57B? inmd57B, swiftmt:MT57D? inmd57D) returns isorecord:BranchAndFinancialInstitutionIdentification8? {
+    if inmd56A is swiftmt:MT56A || inmd56D is swiftmt:MT56D {
+        return {
+            FinInstnId: {
+                BICFI: inmd56A?.IdnCd?.content,
+                LEI: getPartyIdentifier(inmd56A?.PrtyIdn, inmd56D?.PrtyIdn),
+                Nm: getName(inmd56D?.Nm),
+                PstlAdr: {
+                    AdrLine: getAddressLine(inmd56D?.AdrsLine)
+                }
+            }
+        };
+    }
+    if inmd57A is swiftmt:MT57A || inmd57B is swiftmt:MT57B || inmd57D is swiftmt:MT57D {
+        return {
+            FinInstnId: {
+                BICFI: inmd57A?.IdnCd?.content,
+                LEI: getPartyIdentifier(inmd57A?.PrtyIdn, inmd57B?.PrtyIdn, inmd57D?.PrtyIdn),
+                Nm: getName(inmd57D?.Nm),
+                PstlAdr: {
+                    AdrLine: getAddressLine(inmd57D?.AdrsLine)
+                }
+            }
+        };
     }
     return null;
 }
@@ -1368,34 +1384,36 @@ isolated function getIntermediaryAgent1(swiftmt:MT56A? inmd56A, swiftmt:MT56D? i
 # + inmd57B - Optional intermediary message of type MT57B.
 # + inmd57D - Optional intermediary message of type MT57D.
 # + return - Returns a BranchAndFinancialInstitutionIdentification8 record or null if no matching messages are found.
-isolated function getIntermediaryAgent2(swiftmt:MT56A? inmd56A, swiftmt:MT56D? inmd56D, swiftmt:MT57A? inmd57A, swiftmt:MT57B? inmd57B, swiftmt:MT57D? inmd57D) returns isorecord:BranchAndFinancialInstitutionIdentification8?{
-    if inmd56A is swiftmt:MT56A || inmd56D is swiftmt:MT56D && (inmd57A is swiftmt:MT57A || inmd57B is swiftmt:MT57B || inmd57D is swiftmt:MT57D){
-        return {FinInstnId: {
-                    BICFI: inmd57A?.IdnCd?.content,
-                    LEI: getPartyIdentifier(inmd57A?.PrtyIdn,inmd57B?.PrtyIdn, inmd57D?.PrtyIdn),
-                    Nm: getName(inmd57D?.Nm),
-                    PstlAdr: {
-                        AdrLine: getAddressLine(inmd57D?.AdrsLine)
-                    }
-                }};
-    } 
+isolated function getIntermediaryAgent2(swiftmt:MT56A? inmd56A, swiftmt:MT56D? inmd56D, swiftmt:MT57A? inmd57A, swiftmt:MT57B? inmd57B, swiftmt:MT57D? inmd57D) returns isorecord:BranchAndFinancialInstitutionIdentification8? {
+    if inmd56A is swiftmt:MT56A || inmd56D is swiftmt:MT56D && (inmd57A is swiftmt:MT57A || inmd57B is swiftmt:MT57B || inmd57D is swiftmt:MT57D) {
+        return {
+            FinInstnId: {
+                BICFI: inmd57A?.IdnCd?.content,
+                LEI: getPartyIdentifier(inmd57A?.PrtyIdn, inmd57B?.PrtyIdn, inmd57D?.PrtyIdn),
+                Nm: getName(inmd57D?.Nm),
+                PstlAdr: {
+                    AdrLine: getAddressLine(inmd57D?.AdrsLine)
+                }
+            }
+        };
+    }
     return null;
 }
 
 # Retrieves sender to receiver information from an MT72 message.
 #
 # This function analyzes the `Cd` field of an MT72 message and returns relevant information based on its content.
-# 
+#
 # + sndRcvInfo - An optional MT72 message containing sender to receiver information.
 # + return - Returns an array of strings or nulls based on the analyzed content of the `Cd` field.
 isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns string?[] {
     if sndRcvInfo is swiftmt:MT72 {
-        if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("ACC")  {
+        if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("ACC") {
             return ["ACC", sndRcvInfo.Cd.content.substring(5)];
-        } 
-        if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("BNF"){
+        }
+        if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("BNF") {
             return [null, null];
-        } 
+        }
         return [sndRcvInfo.Cd.content];
     }
     return [null, null];
@@ -1406,17 +1424,17 @@ isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
 # + envelopeContent - The envelope content of type `swiftmt:MT77T`.
 # + return - An array of strings containing the main content extracted from the envelope and 
 # additional content depending on the envelope type, or null if not applicable.
-isolated function getEnvelopeContent(swiftmt:MT77T envelopeContent) returns string?[]{
-    if envelopeContent.EnvCntnt.content.substring(1,5).equalsIgnoreCaseAscii("SWIF"){
+isolated function getEnvelopeContent(swiftmt:MT77T envelopeContent) returns string?[] {
+    if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("SWIF") {
         return [envelopeContent.EnvCntnt.content.substring(6), null, null];
-    } else if envelopeContent.EnvCntnt.content.substring(1,5).equalsIgnoreCaseAscii("IXML"){
+    } else if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("IXML") {
         do {
-	        return ["", envelopeContent.EnvCntnt.content.substring(6), null];
-        } on fail  {
-        	return ["",null,null];
+            return ["", envelopeContent.EnvCntnt.content.substring(6), null];
+        } on fail {
+            return ["", null, null];
         }
-    } else if envelopeContent.EnvCntnt.content.substring(1,5).equalsIgnoreCaseAscii("NARR") {
+    } else if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("NARR") {
         return ["", null, envelopeContent.EnvCntnt.content.substring(6)];
-    } 
-    return ["",null,null];
+    }
+    return ["", null, null];
 }
