@@ -46,7 +46,7 @@ isolated function getMT104TransformFunction(swiftmt:MT104Message message) return
 #
 # + value - The optional `Amnt` or `Rt` content containing the string value to be converted to a decimal.
 # + return - Returns the converted decimal value or `null` in case of an error.
-isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns decimal?|error {
+isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns decimal|error? {
     do {
         if value is swiftmt:Rt|swiftmt:Amnt {
             if check (value.content.lastIndexOf(",")).ensureType(int) == value.content.length() - 1 {
@@ -54,10 +54,10 @@ isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns deci
             }
             return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat(value.content.substring(check (value.content.lastIndexOf(",")).ensureType(int) + 1)));
         }
+        return ();
     } on fail {
         return error("Provide decimal value in string for exchange rate and transaction amounts.");
     }
-    return ();
 }
 
 # Converts the given `Amnt` or `Rt` content to a `decimal` value, handling the conversion from a string representation
@@ -73,10 +73,10 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
             }
             return check decimal:fromString(value.content.substring(0, check (value.content.lastIndexOf(",")).ensureType(int)).concat(".").concat(value.content.substring(check (value.content.lastIndexOf(",")).ensureType(int) + 1)));
         }
+        return 0;
     } on fail {
         return error("Provide decimal value in string for exchange rate and transaction amounts.");
     }
-    return 0;
 }
 
 # Extracts and returns the remittance information from the provided `MT70` message.
@@ -114,8 +114,6 @@ isolated function getMandatoryFields(string? content) returns string {
 # + return - Returns an array of strings representing the address lines if any address lines are found;
 # otherwise, returns `null`.
 isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]? address2 = ()) returns string[]? {
-    string[] addressArray = [];
-    int count = 0;
     swiftmt:AdrsLine[] finalAddress;
     if address1 is swiftmt:AdrsLine[] {
         finalAddress = address1;
@@ -124,11 +122,7 @@ isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[
     } else {
         return ();
     }
-    foreach swiftmt:AdrsLine adrsLine in finalAddress {
-        addressArray[count] = adrsLine.content;
-        count += 1;
-    }
-    return addressArray;
+    return from swiftmt:AdrsLine adrsLine in finalAddress select adrsLine.content;
 }
 
 # Retrieves the details charges code based on the provided `Cd` code.
@@ -166,6 +160,9 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns isorecord:Re
             if rgltyRptg.length() > 14 {
                 foreach int i in 14 ... rgltyRptg.length()-1 {
                     if rgltyRptg.substring(i,i+1).equalsIgnoreCaseAscii("/") {
+                        continue;
+                    }
+                    if rgltyRptg.substring(i,i+1).equalsIgnoreCaseAscii("\n") {
                         additionalInfo += " ";
                         continue;
                     }
@@ -194,14 +191,13 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns isorecord:Re
 }
 
 # Extracts and returns different parts of a party identifier based on its format.
-# The function handles different formats of the party identifier and returns an array with specific substrings
+# The function handles different formats of the party identifier and returns a tuple with specific substrings
 # or `null` values depending on the conditions.
 #
 # + prtyIdnOrAcc - An optional `PrtyIdn` object containing the party identifier information.
-# + return - Returns an array of strings and/or null values based on the party identifier content and the `fields` 
+# + return - Returns a tuple of strings and/or null values based on the party identifier content and the `fields` 
 # parameter.
-# The array contains specific substrings of the identifier or null values.
-isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) returns string?[] {
+isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) returns [string?,string?,string?,string?,string?] {
     if prtyIdnOrAcc is swiftmt:PrtyIdn && prtyIdnOrAcc.content.length() > 1 {
         if prtyIdnOrAcc.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
             return [(), ...validateAccountNumber(prtyIdn = prtyIdnOrAcc), (), ()];
@@ -228,15 +224,14 @@ isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) ret
 # Extracts and returns different parts of a party identifier or account information based on its content.
 # The function checks three optional `PrtyIdn` objects (`prtyIdn1`, `prtyIdn2`, and `prtyIdn3`) and determines if they 
 # contain
-# valid identifiers or account numbers. It returns an array of strings where the first element represents the party 
-# identifier, 
-# and the subsequent elements correspond to the account number validation results.
+# valid identifiers or account numbers. It returns a tuple of strings where the first element represents the party 
+# identifier, and the subsequent elements correspond to the account number validation results.
 #
 # + prtyIdn1 - An optional `PrtyIdn` object that may contain a party identifier or account number.
 # + prtyIdn2 - A second optional `PrtyIdn` object that may contain a party identifier or account number.
 # + prtyIdn3 - A third optional `PrtyIdn` object that may contain a party identifier or account number.
-# + return - Returns an array of strings and/or null values based on the party identifier content.
-isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns string?[] {
+# + return - Returns a tuple of strings and/or null values based on the party identifier content.
+isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns [string?,string?,string?] {
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 && 
        !(prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn1.content, (), ()];
@@ -296,17 +291,17 @@ isolated function getName(swiftmt:Nm[]? name1, swiftmt:Nm[]? name2 = ()) returns
 # and the town is extracted from the remaining part of the string if present.
 #
 # + cntyNTw - An optional array of `CntyNTw` elements that contains country and town information.
-# + return - Returns an array with two elements: the country (first two characters) and the town 
+# + return - Returns a tuple with two elements: the country (first two characters) and the town 
 # (remainder of the string), or `[null, null]` if the input is invalid.
-isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns string?[] {
-    string?[] cntyNTwArray = [];
+isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?,string?] {
+    [string?,string?] cntyNTwArray = [];
     if cntyNTw is swiftmt:CntyNTw[] {
-        cntyNTwArray.push(cntyNTw[0].content.substring(0, 2));
+        cntyNTwArray[0] = cntyNTw[0].content.substring(0, 2);
         if cntyNTw[0].content.length() > 3 {
-            cntyNTwArray.push(cntyNTw[0].content.substring(3));
+            cntyNTwArray[1] = cntyNTw[0].content.substring(3);
             return cntyNTwArray;
         }
-        cntyNTwArray.push(());
+        cntyNTwArray[1] = ();
         return cntyNTwArray;
     }
     return [(), ()];
@@ -318,9 +313,9 @@ isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns string?[
 # + acc2 - Optional account number inputs to consider.
 # + acc3 - Optional account number inputs to consider.
 # + prtyIdn - Optional party identifier that may contain an account number.
-# + return - Returns an array where the first element is the valid IBAN account number or `null`, 
+# + return - Returns a tuple where the first element is the valid IBAN account number or `null`, 
 # and the second element is the invalid IBAN account number or `null`.
-isolated function validateAccountNumber(swiftmt:Acc? acc1 = (), swiftmt:PrtyIdn? prtyIdn = (), swiftmt:Acc? acc2 = (), swiftmt:Acc? acc3 = ()) returns string?[] {
+isolated function validateAccountNumber(swiftmt:Acc? acc1 = (), swiftmt:PrtyIdn? prtyIdn = (), swiftmt:Acc? acc2 = (), swiftmt:Acc? acc3 = ()) returns [string?,string?] {
     string finalAccount = "";
     if acc1 is swiftmt:Acc {
         finalAccount = acc1.content;
@@ -430,10 +425,10 @@ isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account
 # + prtyIdn - A string that may represent a party identifier.
 # + return - Returns the `account` if it is not null; otherwise, returns `prtyIdn` if it is not null.
 isolated function getAccountId(string? account, string? prtyIdn) returns string? {
-    if !(account is ()) {
+    if account !is () {
         return account;
     }
-    if !(prtyIdn is ()) {
+    if prtyIdn !is () {
         return prtyIdn;
     }
     return ();
@@ -489,9 +484,9 @@ isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G?
 # Extracts and returns the time indication based on the provided `MT13C` message.
 #
 # + tmInd - An optional `swiftmt:MT13C` record containing the time indication information.
-# + return - Returns an array with the time in "HH:MM:SS" format based on the content of `tmInd`.
-# - If no code matches, it returns an array of `null` values.
-isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns string?[] {
+# + return - Returns a tuple with the time in "HH:MM:SS" format based on the content of `tmInd`.
+# - If no code matches, it returns a tuple of `null` values.
+isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?,string?,string?] {
     if tmInd is swiftmt:MT13C {
         match (tmInd.Cd.content) {
             "CLSTIME" => {
@@ -511,9 +506,9 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns string?[] {
 # Extracts and returns specific sender-to-receiver information from the provided MT72 record.
 #
 # + sndRcvInfo - An optional `swiftmt:MT72` that contains the sender-to-receiver information.
-# + return - Returns an array with extracted information based on the content of `sndRcvInfo`. 
-# - If no conditions match, it returns an array of `null` values.
-isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns string?[] {
+# + return - Returns a tuple with extracted information based on the content of `sndRcvInfo`. 
+# - If no conditions match, it returns a tuple of `null` values.
+isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?,string?,string?,string?,string?,string?] {
     if sndRcvInfo is swiftmt:MT72 {
         match (sndRcvInfo.Cd.content.substring(1, 4)) {
             "INT" => {
@@ -542,9 +537,9 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
 # Extracts the Sender to Receiver Information (MT72) from the given SWIFT MT2XX message.
 #
 # + sndRcvInfo - The SWIFT MT2XX `swiftmt:MT72` structure containing sender-to-receiver information.
-# + return - A string array with specific values extracted based on the message content, or nulls 
+# + return - A string tuple with specific values extracted based on the message content, or nulls 
 # if no match.
-isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns string?[] {
+isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?,string?,string?,string?,string?,string?] {
     if sndRcvInfo is swiftmt:MT72 {
         match (sndRcvInfo.Cd.content.substring(1, 4)) {
             "INT" => {
@@ -599,75 +594,75 @@ isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? 
 #
 # + instnCd - An optional array of `swiftmt:MT23E` objects containing instruction codes and additional information.
 # + num - An integer specifying the category of instruction code to retrieve:
-# + return - Returns an array of up to 8 elements where the relevant instruction code and additional info are populated 
+# + return - Returns a tuple of up to 8 elements where the relevant instruction code and additional info are populated 
 # based on the category number.
-# If no match is found or `instnCd` is null, returns an array with all elements set to `null`.
-isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns string?[] {
+# If no match is found or `instnCd` is null, returns a tuple with all elements set to `null`.
+isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?,string?] {
     if instnCd is swiftmt:MT23E[] {
         foreach swiftmt:MT23E instruction in instnCd {
             match (instruction.InstrnCd.content) {
                 "REPA"|"PHON"|"TELE"|"PHOI"|"TELI" => {
                     if num == 1 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: (), (), (), (), (), (), ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
                 "CHQB"|"HOLD"|"PHOB"|"TELB" => {
                     if num == 2 {
-                        return [(), (), instruction.InstrnCd.content, instruction.AddInfo?.content ?: (), (), (), (), ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
                 "SDVA" => {
                     if num == 3 {
-                        return [(), (), (), (), instruction.InstrnCd.content, instruction.AddInfo?.content ?: (), (), ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
                 "INTC"|"CORT" => {
                     if num == 4 {
-                        return [(), (), (), (), (), (), instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
             }
         }
     }
-    return [(), (), (), (), (), (), (), ()];
+    return [(), ()];
 }
 
 # Extracts and returns specific instruction codes and additional information from the provided `MT23E` array
 # based on the given `num` parameter. The function checks the instruction codes and returns a tuple with values
-# based on predefined patterns and the value of `num`. If no matching instruction code is found, it returns a default array.
+# based on predefined patterns and the value of `num`. If no matching instruction code is found, it returns a default tuple.
 #
 # + instnCd - An optional array of `MT23E` objects that contain instruction codes and additional information.
 # + num - An integer indicating which set of values to return based on the instruction code.
-# + return - Returns an array of strings and/or null values corresponding to the instruction code and additional information.
-# The structure of the array depends on the `num` parameter and the matched instruction code.
-isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns string?[] {
+# + return - Returns a tuple of strings and/or null values corresponding to the instruction code and additional information.
+# The structure of the tuple depends on the `num` parameter and the matched instruction code.
+isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?,string?] {
     if instnCd is swiftmt:MT23E[] {
         foreach swiftmt:MT23E instruction in instnCd {
             match (instruction.InstrnCd.content) {
                 "CMTO"|"CMSW"|"CMZB"|"REPA" => {
                     if num == 1 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: (), (), (), "", (), "", ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
                 "CHQB"|"PHON"|"EQUI" => {
                     if num == 2 {
-                        return [(), (), instruction.InstrnCd.content, instruction.AddInfo?.content ?: (), "", (), "", ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
                 "URGP" => {
                     if num == 3 {
-                        return [(), (), (), (), instruction.InstrnCd.content, instruction.AddInfo?.content ?: (), "", ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
                 "CORT"|"INTC" => {
                     if num == 4 {
-                        return [(), (), (), (), "", (), instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
+                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
                     }
                 }
             }
         }
     }
-    return [(), (), (), (), "", (), "", ()];
+    return [(), ()];
 }
 
 # Retrieves a specific MT101 repeating field from a given transaction set or message based on the `typeName` provided.
@@ -789,17 +784,20 @@ isolated function getMT102STPRepeatingFields(swiftmt:MT102STPMessage message, sw
 # Extracts and returns the content from the `MT77T` envelope based on the envelope content type.
 #
 # + envelopeContent - A `swiftmt:MT77T` object containing the envelope content in the `EnvCntnt` field.
-# + return - Returns an array of strings
-# Handles errors during extraction by returning an array of empty or null values.
-isolated function getMT103REMITEnvelopeContent(swiftmt:MT77T envelopeContent) returns string?[] {
-    if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("SWIF") {
-        return [envelopeContent.EnvCntnt.content.substring(6), (), ()];
-    }
-    if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("IXML") {
-        return ["", envelopeContent.EnvCntnt.content.substring(6), ()];
-    }
-    if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("NARR") {
-        return ["", (), envelopeContent.EnvCntnt.content.substring(6)];
+# + return - Returns a tuple of strings
+# Handles errors during extraction by returning a tuple of empty or null values.
+isolated function getEnvelopeContent(string envelopeContent) returns [string, string?, string?] {
+    if envelopeContent.length() >= 7 {
+        if envelopeContent.substring(1, 5).equalsIgnoreCaseAscii("SWIF") {
+            return [envelopeContent.substring(6), (), ()];
+        }
+        if envelopeContent.substring(1, 5).equalsIgnoreCaseAscii("IXML") {
+            return ["", envelopeContent.substring(6), ()];
+        }
+        if envelopeContent.substring(1, 5).equalsIgnoreCaseAscii("NARR") {
+            return ["", (), envelopeContent.substring(6)];
+        }
+        return ["", (), ()];
     }
     return ["", (), ()];
 }
@@ -1069,7 +1067,7 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns isorecord:Report
             names.push({
                 NtryRef: stmtLine.RefAccOwn.content,
                 ValDt: {
-                    Dt: stmtLine.ValDt.content
+                    Dt: convertToISOStandardDate(stmtLine.ValDt)
                 },
                 CdtDbtInd: convertDbtOrCrdToISOStandard(stmtLine),
                 Amt: {
@@ -1116,12 +1114,12 @@ isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swift
 #
 # + firstOpenBalance - The first opening balance (MT60F).
 # + firstCloseBalance - The first closing balance (MT62F).
-# + CloseAvailableBalance - The available closing balances (MT64[]).
-# + InmdOpenBalance - The intraday opening balances (MT60M[]), defaults to null if not provided.
-# + InmdCloseBalance - The intraday closing balances (MT62M[]), defaults to null if not provided.
-# + ForwardAvailableBalance - The forward available balances (MT65[]), defaults to null if not provided.
+# + closeAvailableBalance - The available closing balances (MT64[]).
+# + inmdOpenBalance - The intraday opening balances (MT60M[]), defaults to null if not provided.
+# + inmdCloseBalance - The intraday closing balances (MT62M[]), defaults to null if not provided.
+# + forwardAvailableBalance - The forward available balances (MT65[]), defaults to null if not provided.
 # + return - Returns an array of `CashBalance8` objects representing the balances in ISO 20022 format or an error if any conversion fails.
-isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]? CloseAvailableBalance, swiftmt:MT60M[]? InmdOpenBalance = (), swiftmt:MT62M[]? InmdCloseBalance = (), swiftmt:MT65[]? ForwardAvailableBalance = ()) returns isorecord:CashBalance8[]|error {
+isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]? closeAvailableBalance, swiftmt:MT60M[]? inmdOpenBalance = (), swiftmt:MT62M[]? inmdCloseBalance = (), swiftmt:MT65[]? forwardAvailableBalance = ()) returns isorecord:CashBalance8[]|error {
     isorecord:CashBalance8[] BalArray = [];
     if firstOpenBalance is swiftmt:MT60F {
         BalArray.push({
@@ -1140,8 +1138,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             }
         });
     }
-    if InmdOpenBalance is swiftmt:MT60M[] {
-        foreach swiftmt:MT60M inmdOpnBal in InmdOpenBalance {
+    if inmdOpenBalance is swiftmt:MT60M[] {
+        foreach swiftmt:MT60M inmdOpnBal in inmdOpenBalance {
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
@@ -1176,8 +1174,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             }
         });
     }
-    if InmdCloseBalance is swiftmt:MT62M[] {
-        foreach swiftmt:MT62M inmdClsBal in InmdCloseBalance {
+    if inmdCloseBalance is swiftmt:MT62M[] {
+        foreach swiftmt:MT62M inmdClsBal in inmdCloseBalance {
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
@@ -1195,8 +1193,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             });
         }
     }
-    if CloseAvailableBalance is swiftmt:MT64[] {
-        foreach swiftmt:MT64 clsAvblBal in CloseAvailableBalance {
+    if closeAvailableBalance is swiftmt:MT64[] {
+        foreach swiftmt:MT64 clsAvblBal in closeAvailableBalance {
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
@@ -1214,8 +1212,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
             });
         }
     }
-    if ForwardAvailableBalance is swiftmt:MT65[] {
-        foreach swiftmt:MT65 fwdAvblBal in ForwardAvailableBalance {
+    if forwardAvailableBalance is swiftmt:MT65[] {
+        foreach swiftmt:MT65 fwdAvblBal in forwardAvailableBalance {
             BalArray.push({
                 Amt: {
                     ActiveOrHistoricCurrencyAndAmount_SimpleType: {
@@ -1427,8 +1425,8 @@ isolated function getIntermediaryAgent2(swiftmt:MT56A? inmd56A, swiftmt:MT56D? i
 # This function analyzes the `Cd` field of an MT72 message and returns relevant information based on its content.
 #
 # + sndRcvInfo - An optional MT72 message containing sender to receiver information.
-# + return - Returns an array of strings or nulls based on the analyzed content of the `Cd` field.
-isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns string?[] {
+# + return - Returns a tuple of strings or nulls based on the analyzed content of the `Cd` field.
+isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?, string?] {
     if sndRcvInfo is swiftmt:MT72 {
         if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("ACC") {
             return ["ACC", sndRcvInfo.Cd.content.substring(5)];
@@ -1439,24 +1437,4 @@ isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
         return [sndRcvInfo.Cd.content];
     }
     return [(), ()];
-}
-
-# Extracts the content from a SWIFT MT77T envelope based on its type.
-#
-# + envelopeContent - The envelope content of type `swiftmt:MT77T`.
-# + return - An array of strings containing the main content extracted from the envelope and 
-# additional content depending on the envelope type, or null if not applicable.
-isolated function getEnvelopeContent(swiftmt:MT77T envelopeContent) returns string?[] {
-    if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("SWIF") {
-        return [envelopeContent.EnvCntnt.content.substring(6), (), ()];
-    } else if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("IXML") {
-        do {
-            return ["", envelopeContent.EnvCntnt.content.substring(6), ()];
-        } on fail {
-            return ["", (), ()];
-        }
-    } else if envelopeContent.EnvCntnt.content.substring(1, 5).equalsIgnoreCaseAscii("NARR") {
-        return ["", (), envelopeContent.EnvCntnt.content.substring(6)];
-    }
-    return ["", (), ()];
 }
