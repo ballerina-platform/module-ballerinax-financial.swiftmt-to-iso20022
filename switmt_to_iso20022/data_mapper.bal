@@ -16,7 +16,6 @@
 
 import ballerina/data.xmldata;
 import ballerina/uuid;
-
 import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
 import ballerinax/financial.iso20022.payment_initiation as painIsoRecord;
 import ballerinax/financial.iso20022.payments_clearing_and_settlement as pacsIsoRecord;
@@ -60,7 +59,7 @@ public isolated function toIso20022Xml(string finMessage) returns xml|error {
 isolated function transformMT101(record {} message) returns record {}|error {
     if message !is swiftmt:MT101Message {
         return error("Coversion of SWIFT MT 101 to ISO 20022 xml failed.");
-    } 
+    }
     painIsoRecord:Pain001Document document = {
         CstmrCdtTrfInitn: {
             GrpHdr: {
@@ -117,7 +116,7 @@ isolated function getPaymentInformation(swiftmt:MT101Message message) returns pa
                         }
                     },
                     PmtId: {
-                        EndToEndId: transaxion.MT21.Ref.content,
+                        EndToEndId: getEndToEndId(message.block4.MT21R?.Ref?.content, transaxion.MT70?.Nrtv?.content, transaxion.MT21.Ref.content),
                         InstrId: message.block4.MT20.msgId.content,
                         UETR: message.block3?.NdToNdTxRef?.value
                     },
@@ -179,7 +178,7 @@ isolated function getPaymentInformation(swiftmt:MT101Message message) returns pa
                         }
                     ],
                     RgltryRptg: getRegulatoryReporting(transaxion.MT77B?.Nrtv?.content),
-                    RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70)], Strd: []}
+                    RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []}
                 }
             ],
             PmtTpInf: {
@@ -267,7 +266,7 @@ isolated function getPaymentInformation(swiftmt:MT101Message message) returns pa
 isolated function transformMT102STP(record {} message) returns record {}|error {
     if message !is swiftmt:MT102STPMessage {
         return error("Coversion of SWIFT MT 102 STP to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs008Document document = {
         FIToFICstmrCdtTrf: {
@@ -384,7 +383,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPMessa
             },
 
             PmtId: {
-                EndToEndId: transaxion.MT21.Ref.content,
+                EndToEndId: getEndToEndId(remmitanceInfo = transaxion.MT70?.Nrtv?.content, transactionId = transaxion.MT21.Ref.content),
                 InstrId: message.block4.MT20.msgId.content,
                 UETR: message.block3?.NdToNdTxRef?.value,
                 TxId: transaxion.MT21.Ref.content
@@ -454,7 +453,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPMessa
             },
             ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
-            RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70)], Strd: []},
+            RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []},
             InstrForNxtAgt: [
                 {
                     Cd: getMT1XXSenderToReceiverInformation(message.block4.MT72)[0],
@@ -486,7 +485,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPMessa
 isolated function transformMT102(record {} message) returns record {}|error {
     if message !is swiftmt:MT102Message {
         return error("Coversion of SWIFT MT 102 to ISO 20022 xml failed.");
-    } 
+    }
     pacsIsoRecord:Pacs008Document document = {
         FIToFICstmrCdtTrf: {
             GrpHdr: {
@@ -603,7 +602,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Message mes
                 }
             },
             PmtId: {
-                EndToEndId: transaxion.MT21.Ref.content,
+                EndToEndId: getEndToEndId(remmitanceInfo = transaxion.MT70?.Nrtv?.content, transactionId = transaxion.MT21.Ref.content),
                 InstrId: message.block4.MT20.msgId.content,
                 UETR: message.block3?.NdToNdTxRef?.value,
                 TxId: transaxion.MT21.Ref.content
@@ -679,7 +678,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Message mes
             },
             ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
-            RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70)], Strd: []},
+            RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []},
             InstrForNxtAgt: [
                 {
                     Cd: getMT1XXSenderToReceiverInformation(message.block4.MT72)[0],
@@ -711,7 +710,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Message mes
 isolated function transformMT103REMIT(record {} message) returns record {}|error {
     if message !is swiftmt:MT103REMITMessage {
         return error("Coversion of SWIFT MT 103 REMIT to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs008Document document = {
         FIToFICstmrCdtTrf: {
@@ -973,7 +972,7 @@ isolated function transformMT103REMIT(record {} message) returns record {}|error
 isolated function transformMT103STP(record {} message) returns record {}|error {
     if message !is swiftmt:MT103STPMessage {
         return error("Coversion of SWIFT MT 103 STP to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs008Document document = {
         FIToFICstmrCdtTrf: {
@@ -1070,7 +1069,7 @@ isolated function transformMT103STP(record {} message) returns record {}|error {
                         }
                     },
                     PmtId: {
-                        EndToEndId: "",
+                        EndToEndId: getEndToEndId(remmitanceInfo = message.block4.MT70?.Nrtv?.content),
                         InstrId: message.block4.MT20.msgId.content,
                         UETR: message.block3?.NdToNdTxRef?.value
                     },
@@ -1155,7 +1154,7 @@ isolated function transformMT103STP(record {} message) returns record {}|error {
                     },
                     ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
                     RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
-                    RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.MT70)], Strd: []},
+                    RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.MT70?.Nrtv?.content)], Strd: []},
                     InstrForNxtAgt: [
                         {
                             Cd: getMT103InstructionCode(message.block4.MT23E, 1)[0],
@@ -1197,7 +1196,7 @@ isolated function transformMT103STP(record {} message) returns record {}|error {
 isolated function transformMT103(record {} message) returns record {}|error {
     if message !is swiftmt:MT103Message {
         return error("Coversion of SWIFT MT 103 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs008Document document = {
         FIToFICstmrCdtTrf: {
@@ -1310,7 +1309,7 @@ isolated function transformMT103(record {} message) returns record {}|error {
                         }
                     },
                     PmtId: {
-                        EndToEndId: "",
+                        EndToEndId: getEndToEndId(remmitanceInfo = message.block4.MT70?.Nrtv?.content),
                         InstrId: message.block4.MT20.msgId.content,
                         UETR: message.block3?.NdToNdTxRef?.value
                     },
@@ -1409,7 +1408,7 @@ isolated function transformMT103(record {} message) returns record {}|error {
                     },
                     ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
                     RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
-                    RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.MT70)], Strd: []},
+                    RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.MT70?.Nrtv?.content)], Strd: []},
                     InstrForNxtAgt: [
                         {
                             Cd: getMT103InstructionCode(message.block4.MT23E, 1)[0],
@@ -1556,7 +1555,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Message messag
                 }
             },
             PmtId: {
-                EndToEndId: transaxion.MT21.Ref.content,
+                EndToEndId: getEndToEndId(message.block4.MT21R?.Ref?.content, transaxion.MT70?.Nrtv?.content, transaxion.MT21.Ref.content),
                 InstrId: message.block4.MT20.msgId.content,
                 UETR: message.block3?.NdToNdTxRef?.value,
                 TxId: transaxion.MT21.Ref.content
@@ -1610,7 +1609,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Message messag
             },
             RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),
             RmtInf: {
-                Ustrd: [getRemmitanceInformation(transaxion.MT70)],
+                Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)],
                 Strd: []
             }
         }
@@ -1714,7 +1713,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Message message) ret
                     }
                 }
             },
-            PmtInfId: transaxion.MT21.Ref.content,
+            PmtInfId: getEndToEndId(message.block4.MT21R?.Ref?.content, transaxion.MT70?.Nrtv?.content, transaxion.MT21.Ref.content),
             PmtTpInf: {
                 CtgyPurp: {
                     Cd: message.block4.MT23E?.InstrnCd?.content
@@ -1772,7 +1771,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Message message) ret
                         }
                     },
                     RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),
-                    RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70)], Strd: []},
+                    RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []},
                     Purp: {
                         Cd: getMandatoryFields(trnsTp?.Typ?.content)
                     }
@@ -1795,7 +1794,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Message message) ret
 isolated function transformMT107(record {} message) returns record {}|error {
     if message !is swiftmt:MT107Message {
         return error("Coversion of SWIFT MT 107 to ISO 20022 xml failed.");
-    } 
+    }
     if message.block4.MT23E?.InstrnCd?.content is () {
         return error("Instruction code is required to identify ISO 20022 message type.");
     }
@@ -1819,7 +1818,7 @@ isolated function transformMT107(record {} message) returns record {}|error {
 }
 
 # Processes an MT107 direct debit message and extracts direct debit transaction information into ISO 20022 format.
-# 
+#
 # The function iterates over each transaction within the message, extracts relevant fields, and maps them 
 # to the `DirectDebitTransactionInformation31` ISO record structure. It handles various transaction fields 
 # such as party identifiers, account information, settlement details, and remittance information.
@@ -1839,7 +1838,7 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Message messag
         swiftmt:MT52D? accWthInstn52D = <swiftmt:MT52D?>getMT107RepeatingFields(message, transaxion.MT52D, "52D");
         swiftmt:MT71A? dtlsOfChrgs = <swiftmt:MT71A?>getMT107RepeatingFields(message, transaxion.MT71A, "71A");
         swiftmt:MT77B? rgltryRptg = <swiftmt:MT77B?>getMT107RepeatingFields(message, transaxion.MT77B, "77B");
-        
+
         drctDbtTxInfArray.push({
             Cdtr: {
                 Id: {
@@ -1904,7 +1903,7 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Message messag
                 }
             },
             PmtId: {
-                EndToEndId: transaxion.MT21.Ref.content,
+                EndToEndId: getEndToEndId(remmitanceInfo = transaxion.MT70?.Nrtv?.content, transactionId = transaxion.MT21.Ref.content),
                 InstrId: message.block4.MT20.msgId.content,
                 UETR: message.block3?.NdToNdTxRef?.value,
                 TxId: transaxion.MT21.Ref.content
@@ -1958,7 +1957,7 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Message messag
             },
             RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),
             RmtInf: {
-                Ustrd: [getRemmitanceInformation(transaxion.MT70)],
+                Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)],
                 Strd: []
             }
         }
@@ -1975,7 +1974,7 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Message messag
 isolated function transformMT200ToPacs009(record {} message) returns record {}|error {
     if message !is swiftmt:MT200Message {
         return error("Coversion of SWIFT MT 200 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -2066,7 +2065,7 @@ isolated function transformMT200ToPacs009(record {} message) returns record {}|e
 isolated function transformMT200ToCamt050(record {} message) returns record {}|error {
     if message !is swiftmt:MT200Message {
         return error("Coversion of SWIFT MT 200 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt050Document document = {
         LqdtyCdtTrf: {
@@ -2103,7 +2102,7 @@ isolated function transformMT200ToCamt050(record {} message) returns record {}|e
 isolated function transformMT201(record {} message) returns record {}|error {
     if message !is swiftmt:MT201Message {
         return error("Coversion of SWIFT MT 201 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -2208,7 +2207,7 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Message message)
 isolated function transformMT202(record {} message) returns record {}|error {
     if message !is swiftmt:MT202Message {
         return error("Coversion of SWIFT MT 202 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -2351,7 +2350,7 @@ isolated function transformMT202(record {} message) returns record {}|error {
 isolated function transformMT202COV(record {} message) returns record {}|error {
     if message !is swiftmt:MT202COVMessage {
         return error("Coversion of SWIFT MT 202 COV to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -2575,7 +2574,7 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message) ret
                     InstrInf: getMT2XXSenderToReceiverInformation(message.block4.MT72)[3]
                 }
             ],
-            RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.UndrlygCstmrCdtTrf.MT70)], Strd: []}
+            RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content)], Strd: []}
         }
     });
     return cdtTrfTxInfArray;
@@ -2589,7 +2588,7 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message) ret
 isolated function transformMT203(record {} message) returns record {}|error {
     if message !is swiftmt:MT203Message {
         return error("Coversion of SWIFT MT 203 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -2722,7 +2721,7 @@ isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Message mes
 isolated function transformMT204(record {} message) returns record {}|error {
     if message !is swiftmt:MT204Message {
         return error("Coversion of SWIFT MT 204 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs010Document document = {
         FIDrctDbt: {
@@ -2820,7 +2819,7 @@ isolated function getMT204CreditTransferTransactionInfo(swiftmt:MT204Message mes
 isolated function transformMT205(record {} message) returns record {}|error {
     if message !is swiftmt:MT205Message {
         return error("Coversion of SWIFT MT 205 to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -2942,7 +2941,7 @@ isolated function transformMT205(record {} message) returns record {}|error {
 isolated function transformMT205COV(record {} message) returns record {}|error {
     if message !is swiftmt:MT205COVMessage {
         return error("Coversion of SWIFT MT 205 COV to ISO 20022 xml failed.");
-    } 
+    }
 
     pacsIsoRecord:Pacs009Document document = {
         FICdtTrf: {
@@ -3145,7 +3144,7 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVMessage message) ret
                     InstrInf: getMT2XXSenderToReceiverInformation(message.block4.MT72)[3]
                 }
             ],
-            RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.UndrlygCstmrCdtTrf.MT70)], Strd: []}
+            RmtInf: {Ustrd: [getRemmitanceInformation(message.block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content)], Strd: []}
         }
     });
     return cdtTrfTxInfArray;
@@ -3158,7 +3157,7 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVMessage message) ret
 isolated function transformMT210(record {} message) returns record {}|error {
     if message !is swiftmt:MT210Message {
         return error("Coversion of SWIFT MT 210 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt057Document document = {
         NtfctnToRcv: {
@@ -3253,7 +3252,7 @@ isolated function transformMT210(record {} message) returns record {}|error {
 isolated function transformMT900(record {} message) returns record {}|error {
     if message !is swiftmt:MT900Message {
         return error("Coversion of SWIFT MT 900 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt054Document document = {
         BkToCstmrDbtCdtNtfctn: {
@@ -3341,7 +3340,7 @@ isolated function transformMT900(record {} message) returns record {}|error {
 isolated function transformMT910(record {} message) returns record {}|error {
     if message !is swiftmt:MT910Message {
         return error("Coversion of SWIFT MT 910 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt054Document document = {
         BkToCstmrDbtCdtNtfctn: {
@@ -3478,7 +3477,7 @@ isolated function transformMT910(record {} message) returns record {}|error {
 isolated function transformMT920(record {} message) returns record {}|error {
     if message !is swiftmt:MT920Message {
         return error("Coversion of SWIFT MT 920 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt060Document document = {
         AcctRptgReq: {
@@ -3522,7 +3521,7 @@ isolated function transformMT920(record {} message) returns record {}|error {
 isolated function transformMT940(record {} message) returns record {}|error {
     if message !is swiftmt:MT940Message {
         return error("Coversion of SWIFT MT 940 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt053Document document = {
         BkToCstmrStmt: {
@@ -3566,7 +3565,7 @@ isolated function transformMT940(record {} message) returns record {}|error {
 isolated function transformMT941(record {} message) returns record {}|error {
     if message !is swiftmt:MT941Message {
         return error("Coversion of SWIFT MT 941 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt052Document document = {
         BkToCstmrAcctRpt: {
@@ -3621,7 +3620,7 @@ isolated function transformMT941(record {} message) returns record {}|error {
 isolated function transformMT942(record {} message) returns record {}|error {
     if message !is swiftmt:MT942Message {
         return error("Coversion of SWIFT MT 942 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt052Document document = {
         BkToCstmrAcctRpt: {
@@ -3676,7 +3675,7 @@ isolated function transformMT942(record {} message) returns record {}|error {
 isolated function transformMT950(record {} message) returns record {}|error {
     if message !is swiftmt:MT950Message {
         return error("Coversion of SWIFT MT 950 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt053Document document = {
         BkToCstmrStmt: {
@@ -3716,7 +3715,7 @@ isolated function transformMT950(record {} message) returns record {}|error {
 isolated function transformMT970(record {} message) returns record {}|error {
     if message !is swiftmt:MT970Message {
         return error("Coversion of SWIFT MT 970 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt053Document document = {
         BkToCstmrStmt: {
@@ -3756,7 +3755,7 @@ isolated function transformMT970(record {} message) returns record {}|error {
 isolated function transformMT971(record {} message) returns record {}|error {
     if message !is swiftmt:MT971Message {
         return error("Coversion of SWIFT MT 971 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt052Document document = {
         BkToCstmrAcctRpt: {
@@ -3810,7 +3809,7 @@ isolated function transformMT971(record {} message) returns record {}|error {
 isolated function transformMT972(record {} message) returns record {}|error {
     if message !is swiftmt:MT972Message {
         return error("Coversion of SWIFT MT 972 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt052Document document = {
         BkToCstmrAcctRpt: {
@@ -3850,7 +3849,7 @@ isolated function transformMT972(record {} message) returns record {}|error {
 isolated function transformMT973(record {} message) returns record {}|error {
     if message !is swiftmt:MT973Message {
         return error("Coversion of SWIFT MT 973 to ISO 20022 xml failed.");
-    } 
+    }
 
     camtIsoRecord:Camt060Document document = {
         AcctRptgReq: {

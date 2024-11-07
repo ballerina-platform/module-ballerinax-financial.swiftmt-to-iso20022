@@ -16,7 +16,6 @@
 
 import ballerina/data.xmldata;
 import ballerina/time;
-
 import ballerinax/financial.iso20022.cash_management as isorecord;
 import ballerinax/financial.swift.mt as swiftmt;
 
@@ -30,9 +29,9 @@ isolated function getMT104TransformFunction(swiftmt:MT104Message message) return
     if message.block4.MT23E?.InstrnCd?.content is () {
         return error("Instruction code is required to identify ISO 20022 message type.");
     }
-    if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("AUTH") 
-       || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("NAUT") 
-       || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("OTHR") {
+    if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("AUTH")
+        || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("NAUT")
+        || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("OTHR") {
         return xmldata:toXml(check transformMT104DrctDbt(message));
     }
     if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("RFDD") {
@@ -80,14 +79,16 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
 }
 
 # Extracts and returns the remittance information from the provided `MT70` message.
-# Depending on the content, it returns a string array with two elements: one for specific remittance code
-# and the other for remittance narrative.
+# Depending on the remmitance information code, it returns the remmitance information or an empty string.
 #
 # + remmitanceInfo - The optional `MT70` object containing remittance information.
 # + return - Returns remmitance information as a string or an empty string if no remmitance information was found.
-isolated function getRemmitanceInformation(swiftmt:MT70? remmitanceInfo) returns string {
-    if remmitanceInfo is swiftmt:MT70 {
-        return remmitanceInfo.Nrtv.content;
+isolated function getRemmitanceInformation(string? remmitanceInfo) returns string {
+    if remmitanceInfo is string {
+        if remmitanceInfo.substring(1, 4).equalsIgnoreCaseAscii("ROC") {
+            return "";
+        }
+        return remmitanceInfo;
     }
     return "";
 }
@@ -122,7 +123,8 @@ isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[
     } else {
         return ();
     }
-    return from swiftmt:AdrsLine adrsLine in finalAddress select adrsLine.content;
+    return from swiftmt:AdrsLine adrsLine in finalAddress
+        select adrsLine.content;
 }
 
 # Retrieves the details charges code based on the provided `Cd` code.
@@ -154,38 +156,42 @@ isolated function getDetailsChargesCd(swiftmt:Cd? code) returns string|error {
 # The details are based on the content of the `Nrtv` field within the `MT77B` object.
 isolated function getRegulatoryReporting(string? rgltyRptg) returns isorecord:RegulatoryReporting3[]? {
     if rgltyRptg is string {
-        if rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("BENEFRES") || 
-           rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("ORDERRES") {
+        if rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("BENEFRES") ||
+            rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("ORDERRES") {
             string additionalInfo = "";
             if rgltyRptg.length() > 14 {
-                foreach int i in 14 ... rgltyRptg.length()-1 {
-                    if rgltyRptg.substring(i,i+1).equalsIgnoreCaseAscii("/") {
+                foreach int i in 14 ... rgltyRptg.length() - 1 {
+                    if rgltyRptg.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
                         continue;
                     }
-                    if rgltyRptg.substring(i,i+1).equalsIgnoreCaseAscii("\n") {
+                    if rgltyRptg.substring(i, i + 1).equalsIgnoreCaseAscii("\n") {
                         additionalInfo += " ";
                         continue;
                     }
-                    additionalInfo += rgltyRptg.substring(i,i+1);
+                    additionalInfo += rgltyRptg.substring(i, i + 1);
                 }
             }
-            return [{
+            return [
+                {
+                    Dtls: [
+                        {
+                            Cd: rgltyRptg.substring(1, 9),
+                            Ctry: rgltyRptg.substring(10, 12),
+                            Inf: [additionalInfo]
+                        }
+                    ]
+                }
+            ];
+        }
+        return [
+            {
                 Dtls: [
                     {
-                        Cd: rgltyRptg.substring(1, 9),
-                        Ctry: rgltyRptg.substring(10, 12),
-                        Inf: [additionalInfo]
+                        Inf: [rgltyRptg.substring(0)]
                     }
                 ]
-            }];
-        } 
-        return [{
-            Dtls: [
-                {
-                    Inf: [rgltyRptg.substring(0)]
-                }
-            ]
-        }];
+            }
+        ];
     }
     return ();
 }
@@ -197,27 +203,32 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns isorecord:Re
 # + prtyIdnOrAcc - An optional `PrtyIdn` object containing the party identifier information.
 # + return - Returns a tuple of strings and/or null values based on the party identifier content and the `fields` 
 # parameter.
-isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) returns [string?,string?,string?,string?,string?] {
+isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) returns [string?, string?, string?, string?, string?] {
     if prtyIdnOrAcc is swiftmt:PrtyIdn && prtyIdnOrAcc.content.length() > 1 {
         if prtyIdnOrAcc.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
             return [(), ...validateAccountNumber(prtyIdn = prtyIdnOrAcc), (), ()];
-        } 
-        if prtyIdnOrAcc.content.startsWith("CUST") || prtyIdnOrAcc.content.startsWith("DRLC") 
-           || prtyIdnOrAcc.content.startsWith("EMPL") {
+        }
+        if prtyIdnOrAcc.content.startsWith("CUST") || prtyIdnOrAcc.content.startsWith("DRLC")
+            || prtyIdnOrAcc.content.startsWith("EMPL") {
             int count = 0;
-            foreach int i in 0... prtyIdnOrAcc.content.length()-1 {
-                if prtyIdnOrAcc.content.substring(i,i+1).equalsIgnoreCaseAscii("/") {
+            foreach int i in 0 ... prtyIdnOrAcc.content.length() - 1 {
+                if prtyIdnOrAcc.content.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
                     count += 1;
                 }
                 if count == 3 {
-                    return [prtyIdnOrAcc.content.substring(i + 1), (), (), 
-                    prtyIdnOrAcc.content.substring(0, 4), prtyIdnOrAcc.content.substring(8, i)];
+                    return [
+                        prtyIdnOrAcc.content.substring(i + 1),
+                        (),
+                        (),
+                        prtyIdnOrAcc.content.substring(0, 4),
+                        prtyIdnOrAcc.content.substring(8, i)
+                    ];
                 }
             }
             return [prtyIdnOrAcc.content.substring(8), (), (), prtyIdnOrAcc.content.substring(0, 4), ()];
-        } 
+        }
         return [prtyIdnOrAcc.content.toString().substring(8), (), (), prtyIdnOrAcc.content.toString().substring(0, 4), ()];
-    } 
+    }
     return [(), (), (), (), ()];
 }
 
@@ -231,29 +242,29 @@ isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) ret
 # + prtyIdn2 - A second optional `PrtyIdn` object that may contain a party identifier or account number.
 # + prtyIdn3 - A third optional `PrtyIdn` object that may contain a party identifier or account number.
 # + return - Returns a tuple of strings and/or null values based on the party identifier content.
-isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns [string?,string?,string?] {
-    if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 && 
-       !(prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
+isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns [string?, string?, string?] {
+    if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 &&
+        !(prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn1.content, (), ()];
     }
-    if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 && 
-       !(prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
+    if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 &&
+        !(prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn2.content, (), ()];
     }
-    if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 && 
-       !(prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
+    if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 &&
+        !(prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
         return [prtyIdn3.content, (), ()];
     }
-    if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 && 
-       prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
+    if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 &&
+        prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn1)];
     }
-    if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 && 
-       prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
+    if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 &&
+        prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn2)];
     }
-    if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 && 
-       prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
+    if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 &&
+        prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn3)];
     }
     return [(), (), ()];
@@ -280,7 +291,7 @@ isolated function getName(swiftmt:Nm[]? name1, swiftmt:Nm[]? name2 = ()) returns
         if index == nameArray.length() - 1 {
             finalName += nameArray[index].content;
             break;
-        } 
+        }
         finalName = finalName + nameArray[index].content + " ";
     }
     return finalName;
@@ -293,8 +304,8 @@ isolated function getName(swiftmt:Nm[]? name1, swiftmt:Nm[]? name2 = ()) returns
 # + cntyNTw - An optional array of `CntyNTw` elements that contains country and town information.
 # + return - Returns a tuple with two elements: the country (first two characters) and the town 
 # (remainder of the string), or `[null, null]` if the input is invalid.
-isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?,string?] {
-    [string?,string?] cntyNTwArray = [];
+isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?, string?] {
+    [string?, string?] cntyNTwArray = [];
     if cntyNTw is swiftmt:CntyNTw[] {
         cntyNTwArray[0] = cntyNTw[0].content.substring(0, 2);
         if cntyNTw[0].content.length() > 3 {
@@ -315,7 +326,7 @@ isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?
 # + prtyIdn - Optional party identifier that may contain an account number.
 # + return - Returns a tuple where the first element is the valid IBAN account number or `null`, 
 # and the second element is the invalid IBAN account number or `null`.
-isolated function validateAccountNumber(swiftmt:Acc? acc1 = (), swiftmt:PrtyIdn? prtyIdn = (), swiftmt:Acc? acc2 = (), swiftmt:Acc? acc3 = ()) returns [string?,string?] {
+isolated function validateAccountNumber(swiftmt:Acc? acc1 = (), swiftmt:PrtyIdn? prtyIdn = (), swiftmt:Acc? acc2 = (), swiftmt:Acc? acc3 = ()) returns [string?, string?] {
     string finalAccount = "";
     if acc1 is swiftmt:Acc {
         finalAccount = acc1.content;
@@ -409,9 +420,9 @@ isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = (), 
 # + prtyIdn3 - An optional `PrtyIdn` instance representing the party identifier.
 # + return - Returns "BBAN" if any valid account number or party identifier is found, otherwise returns null.
 isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (), swiftmt:Acc? account3 = (), swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns string? {
-    if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ()) 
-       || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount(prtyIdn1)[2] is ()) 
-       || !(getPartyIdentifierOrAccount(prtyIdn2)[2] is ()) || !(getPartyIdentifierOrAccount(prtyIdn3)[2] is ()) {
+    if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ())
+        || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount(prtyIdn1)[2] is ())
+        || !(getPartyIdentifierOrAccount(prtyIdn2)[2] is ()) || !(getPartyIdentifierOrAccount(prtyIdn3)[2] is ()) {
         return "BBAN";
     }
     return ();
@@ -486,7 +497,7 @@ isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G?
 # + tmInd - An optional `swiftmt:MT13C` record containing the time indication information.
 # + return - Returns a tuple with the time in "HH:MM:SS" format based on the content of `tmInd`.
 # - If no code matches, it returns a tuple of `null` values.
-isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?,string?,string?] {
+isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, string?, string?] {
     if tmInd is swiftmt:MT13C {
         match (tmInd.Cd.content) {
             "CLSTIME" => {
@@ -508,7 +519,7 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?,strin
 # + sndRcvInfo - An optional `swiftmt:MT72` that contains the sender-to-receiver information.
 # + return - Returns a tuple with extracted information based on the content of `sndRcvInfo`. 
 # - If no conditions match, it returns a tuple of `null` values.
-isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?,string?,string?,string?,string?,string?] {
+isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?, string?, string?, string?, string?, string?] {
     if sndRcvInfo is swiftmt:MT72 {
         match (sndRcvInfo.Cd.content.substring(1, 4)) {
             "INT" => {
@@ -539,7 +550,7 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
 # + sndRcvInfo - The SWIFT MT2XX `swiftmt:MT72` structure containing sender-to-receiver information.
 # + return - A string tuple with specific values extracted based on the message content, or nulls 
 # if no match.
-isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?,string?,string?,string?,string?,string?] {
+isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?, string?, string?, string?, string?, string?] {
     if sndRcvInfo is swiftmt:MT72 {
         match (sndRcvInfo.Cd.content.substring(1, 4)) {
             "INT" => {
@@ -597,7 +608,7 @@ isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? 
 # + return - Returns a tuple of up to 8 elements where the relevant instruction code and additional info are populated 
 # based on the category number.
 # If no match is found or `instnCd` is null, returns a tuple with all elements set to `null`.
-isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?,string?] {
+isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?, string?] {
     if instnCd is swiftmt:MT23E[] {
         foreach swiftmt:MT23E instruction in instnCd {
             match (instruction.InstrnCd.content) {
@@ -635,7 +646,7 @@ isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) ret
 # + num - An integer indicating which set of values to return based on the instruction code.
 # + return - Returns a tuple of strings and/or null values corresponding to the instruction code and additional information.
 # The structure of the tuple depends on the `num` parameter and the matched instruction code.
-isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?,string?] {
+isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?, string?] {
     if instnCd is swiftmt:MT23E[] {
         foreach swiftmt:MT23E instruction in instnCd {
             match (instruction.InstrnCd.content) {
@@ -723,9 +734,9 @@ isolated function convertToISOStandardDateMandatory(swiftmt:Dt date) returns str
 # + time - The time component of the SWIFT MT message in the format HHMM.
 # + isCreationDateTime - The indicator to identify whether it is creation date and time.
 # + return - A string containing the date-time in ISO 20022 format, or null if the input is not valid.
-isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? time, boolean isCreationDateTime = false) returns string?{
-    if date is swiftmt:Dt && time is swiftmt:Tm{
-        return YEAR_PREFIX + date.content.substring(0,2) + "-" + date.content.substring(2,4) + "-" + date.content.substring(4,6) + "T" + time.content.substring(0,2) + ":" + time.content.substring(2,4) + ":00";
+isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? time, boolean isCreationDateTime = false) returns string? {
+    if date is swiftmt:Dt && time is swiftmt:Tm {
+        return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" + time.content.substring(2, 4) + ":00";
     }
     if isCreationDateTime {
         return time:utcToString(time:utcNow());
@@ -1437,4 +1448,27 @@ isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
         return [sndRcvInfo.Cd.content];
     }
     return [(), ()];
+}
+
+# Retrieves the end-to-end identification string based on available identifiers.
+#
+# This function checks for the presence of three optional identifiers in the following
+# order: `cstmRefNum`, `remmitanceInfo`, and `transactionId`. It returns the first 
+# available non-empty identifier as the end-to-end ID.
+#
+# + cstmRefNum - An optional custom reference number for the transaction.
+# + remmitanceInfo - An optional remittance information reference.
+# + transactionId - An optional transaction ID.
+# + return - The first available identifier as a string, or an empty string if none are provided.
+isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo = (), string? transactionId = ()) returns string {
+    if cstmRefNum is string {
+        return cstmRefNum;
+    }
+    if remmitanceInfo is string && remmitanceInfo.substring(1, 4).equalsIgnoreCaseAscii("ROC") {
+        return remmitanceInfo.substring(5);
+    }
+    if transactionId is string {
+        return transactionId;
+    }
+    return "";
 }
