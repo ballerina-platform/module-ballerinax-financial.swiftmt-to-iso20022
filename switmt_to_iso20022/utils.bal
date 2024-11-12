@@ -27,17 +27,60 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns the transformed XML message or an error if transformation fails.
 isolated function getMT104TransformFunction(swiftmt:MT104Message message) returns xml|error {
     if message.block4.MT23E?.InstrnCd?.content is () {
+        foreach swiftmt:MT104Transaction transaxion in message.block4.Transaction {
+            if transaxion.MT23E is swiftmt:MT23E {
+                if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string)) {
+                    return xmldata:toXml(check transformMT104DrctDbt(message));
+                }
+                if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string), true) {
+                    return xmldata:toXml(check transformMT104ReqDbtTrf(message));
+                }
+            }
+        }
         return error("Instruction code is required to identify ISO 20022 message type.");
     }
-    if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("AUTH")
-        || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("NAUT")
-        || (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("OTHR") {
+    if isValidInstructionCode(check message.block4.MT23E?.InstrnCd?.content.ensureType(string)) {
         return xmldata:toXml(check transformMT104DrctDbt(message));
     }
-    if (check message.block4.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("RFDD") {
+    if isValidInstructionCode(check message.block4.MT23E?.InstrnCd?.content.ensureType(string), true) {
         return xmldata:toXml(check transformMT104ReqDbtTrf(message));
     }
     return error("Return direct debit transfer message is not supported.");
+}
+
+# Transforms an MTn96 message to the appropriate ISO 20022 XML format.
+#
+# This function evaluates the content of the MT76 narrative field within an MTn96 message to determine the
+# appropriate transformation. Depending on the message's purpose, it either converts the message to
+# `camt.031` or `camt.028` ISO 20022 XML format.
+#
+# + message - The `MTn96Message` record containing the original SWIFT MT message details.
+# + return - Returns the transformed message in ISO 20022 XML format or an error if the transformation fails.
+isolated function getMTn96TransformFunction(swiftmt:MTn96Message message) returns xml|error {
+    string answer = message.block4.MT76.Nrtv.content.substring(1, 5);
+    if answer.equalsIgnoreCaseAscii("CNCL") || answer.equalsIgnoreCaseAscii("PDCR") ||
+        answer.equalsIgnoreCaseAscii("RJCR") {
+        return xmldata:toXml(check transformMTn96ToCamt031(message));
+    }
+    return xmldata:toXml(check transformMTn96ToCamt028(message));
+}
+
+# Checks if the given instruction code is valid based on predefined codes.
+#
+# This function validates an instruction code against specified codes and optionally
+# considers additional criteria if `checkForRequest` is set to true.
+#
+# + code - The instruction code to validate.
+# + checkForRequest - A boolean flag indicating if additional request checks should be applied (defaults to `false`).
+# + return - Returns `true` if the code is valid; otherwise, returns `false`.
+isolated function isValidInstructionCode(string code, boolean checkForRequest = false) returns boolean {
+    if code.equalsIgnoreCaseAscii("AUTH") || code.equalsIgnoreCaseAscii("NAUT") || code.equalsIgnoreCaseAscii("OTHR") {
+        return true;
+    }
+    if code.equalsIgnoreCaseAscii("RFDD") && checkForRequest {
+        return true;
+    }
+    return false;
 }
 
 # Converts the given `Amnt` or `Rt` content to a `decimal` value, handling the conversion from a string representation
@@ -1471,4 +1514,210 @@ isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo 
         return transactionId;
     }
     return "";
+}
+
+# Retrieves the cancellation reason code from an MT79 narrative.
+#
+# This function checks the narrative content of an MT79 message to find and return a cancellation
+# reason code that matches a predefined set of reason codes (`REASON_CODE`).
+#
+# + narrative - An optional `swiftmt:MT79` record containing the narrative with possible reason codes.
+# + return - Returns the matching reason code as a `string` if found; otherwise, returns null.
+isolated function getCancellationReasonCode(swiftmt:MT79? narrative) returns string? {
+    if narrative is swiftmt:MT79 {
+        foreach string code in REASON_CODE {
+            if code.equalsIgnoreCaseAscii(narrative.Nrtv[0].content) {
+                return code;
+            }
+        }
+    }
+    return ();
+}
+
+# Retrieves additional cancellation information from an MT79 narrative.
+#
+# This function extracts additional information following the cancellation reason
+# code from an MT79 narrative by retrieving subsequent content in the `Nrtv` array.
+#
+# + narrative - An optional `swiftmt:MT79` record containing additional narrative information.
+# + return - Returns an array of `string` values with additional cancellation information, or null if none is found.
+isolated function getAdditionalCancellationInfo(swiftmt:MT79? narrative) returns string[]? {
+    string[] additionalInfo = [];
+    if narrative is swiftmt:MT79 {
+        foreach int i in 1 ... narrative.Nrtv.length() - 1 {
+            additionalInfo.push(narrative.Nrtv[i].content);
+        }
+        return additionalInfo;
+    }
+    return ();
+}
+
+# Retrieves the sender's logical terminal identifier from the message.
+#
+# This function retrieves the first eight characters of either the `mirLogicalTerminal`
+# or `logicalTerminal`, which represents the sender's identifier in an MT message.
+#
+# + logicalTerminal - An optional string representing the logical terminal ID of the sender.
+# + mirLogicalTerminal - An optional string representing the MIR logical terminal ID of the sender.
+# + return - Returns the sender's logical terminal identifier as a `string` or null if none is found.
+isolated function getMessageSender(string? logicalTerminal, string? mirLogicalTerminal) returns string? {
+    if mirLogicalTerminal is string {
+        return mirLogicalTerminal.substring(0, 8);
+    }
+    if logicalTerminal is string {
+        return logicalTerminal.substring(0, 8);
+    }
+    return ();
+}
+
+# Retrieves the receiver's logical terminal identifier from the message.
+#
+# This function retrieves the first eight characters of either the `receiverAddress`
+# or `logicalTerminal`, representing the receiver's identifier in an MT message.
+#
+# + logicalTerminal - An optional string representing the logical terminal ID of the receiver.
+# + receiverAddress - An optional string representing the address of the receiver.
+# + return - Returns the receiver's logical terminal identifier as a `string` or null if none is found.
+isolated function getMessageReceiver(string? logicalTerminal, string? receiverAddress) returns string? {
+    if receiverAddress is string {
+        return receiverAddress.substring(0, 8);
+    }
+    if logicalTerminal is string {
+        return logicalTerminal.substring(0, 8);
+    }
+    return ();
+}
+
+# Constructs a concatenated description from an array of narrative elements.
+#
+# This function concatenates the content of each narrative element in the provided array,
+# forming a complete description from the message's `Nrtv` array.
+#
+# + narrative - An optional array of `swiftmt:Nrtv` records containing narrative content.
+# + return - Returns a single concatenated string of all narratives or null if no narrative is provided.
+isolated function getDescriptionOfMessage(swiftmt:Nrtv[]? narrative) returns string? {
+    if narrative is swiftmt:Nrtv[] {
+        string description = "";
+        foreach swiftmt:Nrtv narration in narrative {
+            description += narration.content;
+        }
+        return description;
+    }
+    return ();
+}
+
+# Extracts justification reasons from a narration string for missing or incorrect data.
+#
+# This function parses a given narration string and identifies specific codes for missing or incorrect information
+# based on predefined lists (`MISSING_INFO_CODE` and `INCORRECT_INFO_CODE`). Each identified reason includes
+# an optional additional explanation.
+#
+# + narration - A `string` containing the narration to analyze.
+# + return - Returns an `isorecord:MissingOrIncorrectData1` record with arrays of missing and incorrect information reasons.
+isolated function getJustificationReason(string narration) returns isorecord:MissingOrIncorrectData1 {
+    isorecord:UnableToApplyMissing2[] missingInfoArray = [];
+    isorecord:UnableToApplyIncorrect2[] incorrectInfoArray = [];
+    string[] queriesArray = getQueriesArray(narration);
+
+    foreach int i in 0 ... queriesArray.length() - 1 {
+        boolean isMissingInfo = false;
+        string? additionalInfo = ();
+        if queriesArray[i].length() <= 2 {
+            if i != queriesArray.length() - 1 {
+                if queriesArray[i + 1].length() > 2 {
+                    additionalInfo = queriesArray[i + 1];
+                } else {
+                    additionalInfo = ();
+                }
+            } else {
+                additionalInfo = ();
+            }
+            foreach string code in MISSING_INFO_CODE {
+                if queriesArray[i].equalsIgnoreCaseAscii(code) {
+                    missingInfoArray.push({
+                        Tp: {
+                            Cd: code
+                        },
+                        AddtlMssngInf: additionalInfo
+                    });
+                    isMissingInfo = true;
+                    break;
+                }
+            }
+            if !isMissingInfo {
+                foreach string code in INCORRECT_INFO_CODE {
+                    if queriesArray[i].equalsIgnoreCaseAscii(code) {
+                        incorrectInfoArray.push({
+                            Tp: {
+                                Cd: code
+                            },
+                            AddtlIncrrctInf: additionalInfo
+                        });
+                    }
+                }
+            }
+        }
+    }
+    return {
+        MssngInf: missingInfoArray,
+        IncrrctInf: incorrectInfoArray
+    };
+}
+
+# Parses a narration string into an array of individual queries based on separator patterns.
+#
+# This function divides a narration string by recognizing sections marked by '/' characters,
+# capturing information into an array of strings.
+#
+# + narration - A `string` containing the narration to split.
+# + return - Returns an array of `string` values containing individual queries extracted from the narration.
+isolated function getQueriesArray(string narration) returns string[] {
+    string supplementaryInfo = "";
+    string[] queriesArray = [];
+    int count = 0;
+
+    foreach int i in 1 ... narration.length() - 1 {
+        if narration.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
+            if i == narration.length() - 1 {
+                queriesArray.push(supplementaryInfo);
+                break;
+            }
+            count += 1;
+            if count == 2 || narration.substring(i + 1, i + 2).equalsIgnoreCaseAscii("/") {
+                continue;
+            }
+            queriesArray.push(supplementaryInfo);
+            supplementaryInfo = "";
+            continue;
+        }
+        if count < 2 {
+            supplementaryInfo += narration.substring(i, i + 1);
+            if i == narration.length() - 1 {
+                queriesArray.push(supplementaryInfo);
+                break;
+            }
+            count = 0;
+            continue;
+        }
+        if count == 2 {
+            supplementaryInfo += " ".concat(narration.substring(i, i + 1));
+            count = 0;
+        }
+    }
+    return queriesArray;
+}
+
+# Retrieves a rejection reason code from a narration string.
+#
+# This function extracts a code from a specific part of the narration string and returns the corresponding
+# investigation rejection reason code if it matches a value in `INVTGTN_RJCT_RSN`.
+#
+# + narration - A `string` containing the narration with the rejection reason code.
+# + return - Returns the `isorecord:InvestigationRejection1Code` if found, or an error if the code is invalid.
+isolated function getRejectedReason(string narration) returns isorecord:InvestigationRejection1Code|error {
+    string? code = INVTGTN_RJCT_RSN[narration.substring(6, 10)];
+    if code is string {
+        return code.ensureType();
+    }
+    return error("Provide a valid rejection reason code.");
 }
