@@ -33,6 +33,9 @@ public isolated function toIso20022Xml(string finMessage) returns xml|error {
     if customizedMessage is swiftmt:MT104Message {
         return getMT104TransformFunction(customizedMessage);
     }
+    if customizedMessage is swiftmt:MTn96Message {
+        return getMTn96TransformFunction(customizedMessage);
+    }
     xml swiftMessageXml = check xmldata:toXml(customizedMessage);
     string messageType = (swiftMessageXml/**/<messageType>).data();
     string validationFlag = (swiftMessageXml/**/<ValidationFlag>/<value>).data();
@@ -3872,6 +3875,340 @@ isolated function transformMT973(record {} message) returns record {}|error {
                                 }
                             }
                         }
+                    }
+                }
+            ]
+        }
+    };
+    return document;
+}
+
+# This function transforms an MT192 SWIFT message to a camt.055 ISO 20022 XML document format.
+#
+# This function performs the conversion of an MT192 SWIFT message to the corresponding
+# ISO 20022 XML camt.055 format.
+# The relevant fields from the MT192 message are extracted and mapped to the corresponding ISO 20022 structure.
+#
+# + message - The MT192 message to be transformed, which should be in the `swiftmt:MTn92Message` format.
+# + return - Returns a record in `camtIsoRecord:Camt055Document` format if successful, otherwise returns an error.
+isolated function transformMT192ToCamt055(record {} message) returns record {}|error {
+    if message !is swiftmt:MTn92Message {
+        return error("Coversion of SWIFT MT to ISO 20022 xml failed.");
+    }
+    camtIsoRecord:Camt055Document document = {
+        CstmrPmtCxlReq: {
+            Assgnmt: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                Assgne: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    }
+                },
+                Id: ASSIGN_ID,
+                Assgnr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Case: {
+                Id: message.block4.MT20.msgId.content,
+                Cretr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Undrlyg: [
+                {
+                    OrgnlPmtInfAndCxl: [
+                        {
+                            OrgnlPmtInfId: message.block4.MT21.Ref.content,
+                            CxlRsnInf: [
+                                {
+                                    Rsn: {
+                                        Cd: getCancellationReasonCode(message.block4.MT79)
+                                    },
+                                    AddtlInf: getAdditionalCancellationInfo(message.block4.MT79)
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            SplmtryData: [
+                {
+                    Envlp: {
+                        CpOfOrgnlMsg: message.block4.MessageCopy.toJson()
+                    }
+                }
+            ]
+        }
+    };
+    return document;
+}
+
+# This function transforms an MT292 or MT992 SWIFT message to a camt.056 ISO 20022 XML document format.
+#
+# This function performs the conversion of an MT292 or MT992 SWIFT message to the corresponding
+# ISO 20022 XML camt.056 format.
+# The relevant fields from the MT292 or MT992 message are extracted and mapped to the corresponding ISO 20022 structure.
+#
+# + message - The MT292 or MT992 message to be transformed, which should be in the `swiftmt:MTn92Message` format.
+# + return - Returns a record in `camtIsoRecord:Camt056Document` format if successful, otherwise returns an error.
+isolated function transformMTn92ToCamt056(record {} message) returns record {}|error {
+    if message !is swiftmt:MTn92Message {
+        return error("Coversion of SWIFT MT to ISO 20022 xml failed.");
+    }
+    camtIsoRecord:Camt056Document document = {
+        FIToFIPmtCxlReq: {
+            Assgnmt: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                Assgne: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    }
+                },
+                Id: ASSIGN_ID,
+                Assgnr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Case: {
+                Id: message.block4.MT20.msgId.content,
+                Cretr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Undrlyg: [
+                {
+                    TxInf: [
+                        {
+                            OrgnlInstrId: message.block4.MT21.Ref.content,
+                            CxlRsnInf: [
+                                {
+                                    Rsn: {
+                                        Cd: getCancellationReasonCode(message.block4.MT79)
+                                    },
+                                    AddtlInf: getAdditionalCancellationInfo(message.block4.MT79)
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            SplmtryData: [
+                {
+                    Envlp: {
+                        CpOfOrgnlMsg: message.block4.MessageCopy.toJson()
+                    }
+                }
+            ]
+        }
+    };
+    return document;
+}
+
+# This function transforms an MTn95 SWIFT message to a camt.026 ISO 20022 XML document format.
+#
+# This function performs the conversion of an MTn95 SWIFT message to the corresponding
+# ISO 20022 XML camt.026 format.
+# The relevant fields from the MTn95 message are extracted and mapped to the corresponding ISO 20022 structure.
+#
+# + message - The MTn95 message to be transformed, which should be in the `swiftmt:MTn95Message` format.
+# + return - Returns a record in `camtIsoRecord:Camt026Document` format if successful, otherwise returns an error.
+isolated function transformMTn95ToCamt026(record {} message) returns record {}|error {
+    if message !is swiftmt:MTn95Message {
+        return error("Coversion of SWIFT MT to ISO 20022 xml failed.");
+    }
+    camtIsoRecord:Camt026Document document = {
+        UblToApply: {
+            Assgnmt: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                Assgne: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    }
+                },
+                Id: ASSIGN_ID,
+                Assgnr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Case: {
+                Id: message.block4.MT20.msgId.content,
+                Cretr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Undrlyg: {
+                Initn: {
+                    OrgnlInstrId: message.block4.MT21.Ref.content
+                }
+            },
+            Justfn: {
+                MssngOrIncrrctInf: getJustificationReason(message.block4.MT75.Nrtv.content)
+            },
+            SplmtryData: [
+                {
+                    Envlp: {
+                        CpOfOrgnlMsg: message.block4.MessageCopy.toJson(),
+                        Nrtv: getDescriptionOfMessage(message.block4.MT79?.Nrtv)
+                    }
+                }
+            ]
+        }
+    };
+    return document;
+}
+
+# This function transforms an MTn96 SWIFT message to a camt.028 ISO 20022 XML document format.
+#
+# This function performs the conversion of an MTn96 SWIFT message to the corresponding
+# ISO 20022 XML camt.028 format.
+# The relevant fields from the MTn96 message are extracted and mapped to the corresponding ISO 20022 structure.
+#
+# + message - The MTn96 message to be transformed, which should be in the `swiftmt:MTn96Message` format.
+# + return - Returns a record in `camtIsoRecord:Camt028Document` format if successful, otherwise returns an error.
+isolated function transformMTn96ToCamt028(record {} message) returns record {}|error {
+    if message !is swiftmt:MTn96Message {
+        return error("Coversion of SWIFT MT to ISO 20022 xml failed.");
+    }
+    camtIsoRecord:Camt028Document document = {
+        AddtlPmtInf: {
+            Assgnmt: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                Assgne: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    }
+                },
+                Id: ASSIGN_ID,
+                Assgnr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Case: {
+                Id: message.block4.MT20.msgId.content,
+                Cretr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Undrlyg: {
+                Initn: {
+                    OrgnlInstrId: message.block4.MT21.Ref.content
+                }
+            },
+            Inf: {},
+            SplmtryData: [
+                {
+                    Envlp: {
+                        CpOfOrgnlMsg: message.block4.MessageCopy.toJson(),
+                        Nrtv: getDescriptionOfMessage(message.block4.MT79?.Nrtv)
+                    }
+                },
+                {
+                    Envlp: {
+                        Nrtv: message.block4.MT76.Nrtv.content
+                    }
+                }
+            ]
+        }
+    };
+    return document;
+}
+
+# This function transforms an MTn96 SWIFT message to a camt.031 ISO 20022 XML document format.
+#
+# This function performs the conversion of an MTn96 SWIFT message to the corresponding
+# ISO 20022 XML camt.031 format.
+# The relevant fields from the MTn96 message are extracted and mapped to the corresponding ISO 20022 structure.
+#
+# + message - The MTn96 message to be transformed, which should be in the `swiftmt:MTn96Message` format.
+# + return - Returns a record in `camtIsoRecord:Camt031Document` format if successful, otherwise returns an error.
+isolated function transformMTn96ToCamt031(record {} message) returns record {}|error {
+    if message !is swiftmt:MTn96Message {
+        return error("Coversion of SWIFT MT to ISO 20022 xml failed.");
+    }
+    camtIsoRecord:Camt031Document document = {
+        RjctInvstgtn: {
+            Assgnmt: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                Assgne: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    }
+                },
+                Id: ASSIGN_ID,
+                Assgnr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Case: {
+                Id: message.block4.MT20.msgId.content,
+                Cretr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    }
+                }
+            },
+            Justfn: {
+                RjctnRsn: check getRejectedReason(message.block4.MT76.Nrtv.content)
+            },
+            SplmtryData: [
+                {
+                    Envlp: {
+                        CpOfOrgnlMsg: message.block4.MessageCopy.toJson(),
+                        Nrtv: getDescriptionOfMessage(message.block4.MT79?.Nrtv)
+                    }
+                },
+                {
+                    Envlp: {
+                        Nrtv: message.block4.MT76.Nrtv.content
                     }
                 }
             ]
