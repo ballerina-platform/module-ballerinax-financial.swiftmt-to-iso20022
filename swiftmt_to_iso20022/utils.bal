@@ -1320,7 +1320,7 @@ isolated function getInfoToAccOwnr(swiftmt:MT86[]? infoToAccOwnr) returns string
 # + creditEntryNum - Optional value representing the total number of credit entries.
 # + debitEntryNum - Optional value representing the total number of debit entries.
 # + return - Returns the total number of entries as a string, or an error if the values are not valid integers.
-isolated function getTotalNumOfEntries(swiftmt:TtlNum? creditEntryNum, swiftmt:TtlNum? debitEntryNum) returns string|error {
+isolated function getTotalNumOfEntries(swiftmt:TtlNum? creditEntryNum, swiftmt:TtlNum? debitEntryNum) returns string|error? {
     int total = 0;
     do {
         if creditEntryNum is swiftmt:TtlNum {
@@ -1329,10 +1329,10 @@ isolated function getTotalNumOfEntries(swiftmt:TtlNum? creditEntryNum, swiftmt:T
         if debitEntryNum is swiftmt:TtlNum {
             total += check int:fromString(debitEntryNum.content);
         }
+        return ();
     } on fail {
         return error("Provide integer for total number of credit and debit entries.");
     }
-    return total.toString();
 }
 
 # Calculates the total sum of credit and debit entry amounts.
@@ -1343,19 +1343,19 @@ isolated function getTotalNumOfEntries(swiftmt:TtlNum? creditEntryNum, swiftmt:T
 # + creditEntryAmnt - Optional value representing the total credit entry amount.
 # + debitEntryAmnt - Optional value representing the total debit entry amount.
 # + return - Returns the total sum of entries as a decimal, or an error if the values are not valid decimals.
-isolated function getTotalSumOfEntries(swiftmt:Amnt? creditEntryAmnt, swiftmt:Amnt? debitEntryAmnt) returns decimal|error {
+isolated function getTotalSumOfEntries(swiftmt:Amnt? creditEntryAmnt, swiftmt:Amnt? debitEntryAmnt) returns decimal|error? {
     decimal total = 0;
     do {
         if creditEntryAmnt is swiftmt:Amnt {
-            total += check decimal:fromString(creditEntryAmnt.content);
+            total += check convertToDecimalMandatory(creditEntryAmnt);
         }
         if debitEntryAmnt is swiftmt:Amnt {
-            total += check decimal:fromString(debitEntryAmnt.content);
+            total += check convertToDecimalMandatory(debitEntryAmnt);
         }
+        return ();
     } on fail {
         return error("Provide decimal value for sum of credit and debit entries.");
     }
-    return total;
 }
 
 # Retrieves the underlying customer transaction fields from a given MT202COV or MT205COV message
@@ -1508,7 +1508,7 @@ isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo 
         return cstmRefNum;
     }
     if remmitanceInfo is string && remmitanceInfo.substring(1, 4).equalsIgnoreCaseAscii("ROC") {
-        return remmitanceInfo.substring(5);
+        return remmitanceInfo;
     }
     if transactionId is string {
         return transactionId;

@@ -32,6 +32,7 @@ final readonly & map<isolated function (record {} message) returns record {}|err
     "910": transformMT910,
     "920": transformMT920,
     "940": transformMT940,
+    "941": transformMT941,
     "950": transformMT950,
     "970": transformMT970,
     "971": transformMT971,

@@ -2473,9 +2473,10 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message) ret
         },
         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
         PmtId: {
-            EndToEndId: message.block4.MT21.Ref.content,
+            EndToEndId: getEndToEndId(remmitanceInfo = message.block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content, transactionId = message.block4.MT21.Ref.content),
             InstrId: message.block4.MT20.msgId.content,
-            UETR: message.block3?.NdToNdTxRef?.value
+            UETR: message.block3?.NdToNdTxRef?.value,
+            TxId: message.block4.MT21.Ref.content
         },
         SttlmTmReq: {
             CLSTm: getTimeIndication(message.block4.MT13C)[0]
@@ -3043,9 +3044,10 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVMessage message) ret
         },
         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
         PmtId: {
-            EndToEndId: message.block4.MT21.Ref.content,
+            EndToEndId: getEndToEndId(remmitanceInfo = message.block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content, transactionId = message.block4.MT21.Ref.content),
             InstrId: message.block4.MT20.msgId.content,
-            UETR: message.block3?.NdToNdTxRef?.value
+            UETR: message.block3?.NdToNdTxRef?.value,
+            TxId: message.block4.MT21.Ref.content
         },
         SttlmTmReq: {
             CLSTm: getTimeIndication(message.block4.MT13C)[0]
