@@ -81,6 +81,12 @@ isolated function transformMT101(record {} message) returns record {}|error {
                         }
                     }
                 },
+                FwdgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        LEI: message.block4.MT51A?.PrtyIdn?.content
+                    }
+                },
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: uuid:createType4AsString().substring(0, 35)
             },
@@ -384,7 +390,6 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPMessa
                     Ccy: transaxion.MT32B.Ccy.content
                 }
             },
-
             PmtId: {
                 EndToEndId: getEndToEndId(remmitanceInfo = transaxion.MT70?.Nrtv?.content, transactionId = transaxion.MT21.Ref.content),
                 InstrId: message.block4.MT20.msgId.content,
@@ -530,6 +535,12 @@ isolated function transformMT102(record {} message) returns record {}|error {
                         }
                     }
                 },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        LEI: message.block4.MT51A?.PrtyIdn?.content
+                    }
+                },
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 TtlIntrBkSttlmAmt: {
                     ActiveCurrencyAndAmount_SimpleType: {
@@ -667,12 +678,6 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Message mes
                     TwnNm: getCountryAndTown(ordgCstm50F?.CntyNTw)[1]
                 }
             },
-            InstgAgt: {
-                FinInstnId: {
-                    BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
-                }
-            },
             PrvsInstgAgt1: {
                 FinInstnId: {
                     BICFI: getMT1XXSenderToReceiverInformation(message.block4.MT72)[4],
@@ -772,6 +777,12 @@ isolated function transformMT103REMIT(record {} message) returns record {}|error
                                 AdrLine: getAddressLine(message.block4.MT55D?.AdrsLine)
                             }
                         }
+                    }
+                },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        LEI: message.block4.MT51A?.PrtyIdn?.content
                     }
                 },
                 NbOfTxs: DEFAULT_NUM_OF_TX,
@@ -901,12 +912,6 @@ isolated function transformMT103REMIT(record {} message) returns record {}|error
                             TwnNm: getCountryAndTown(message.block4.MT50F?.CntyNTw)[1]
                         }
                     },
-                    InstgAgt: {
-                        FinInstnId: {
-                            BICFI: message.block4.MT51A?.IdnCd?.content,
-                            LEI: message.block4.MT51A?.PrtyIdn?.content
-                        }
-                    },
                     PrvsInstgAgt1: {
                         FinInstnId: {
                             BICFI: getMT1XXSenderToReceiverInformation(message.block4.MT72)[4],
@@ -982,20 +987,20 @@ isolated function transformMT103STP(record {} message) returns record {}|error {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
                 SttlmInf: {
-                    SttlmMtd: getSettlementMethod(message.block4.MT53A),
+                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B),
                     InstgRmbrsmntAgt: {
                         FinInstnId: {
                             BICFI: message.block4.MT53A?.IdnCd?.content,
-                            LEI: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn)[0]
+                            LEI: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn)[0]
                         }
                     },
                     InstgRmbrsmntAgtAcct: {
                         Id: {
-                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn)[1],
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn)[1],
                             Othr: {
-                                Id: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn)[2],
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn)[2],
                                 SchmeNm: {
-                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT53A?.PrtyIdn)
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT53A?.PrtyIdn, prtyIdn2 = message.block4.MT53B?.PrtyIdn)
                                 }
                             }
                         }
@@ -1260,6 +1265,12 @@ isolated function transformMT103(record {} message) returns record {}|error {
                         }
                     }
                 },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        LEI: message.block4.MT51A?.PrtyIdn?.content
+                    }
+                },
                 NbOfTxs: DEFAULT_NUM_OF_TX,
                 TtlIntrBkSttlmAmt: {
                     ActiveCurrencyAndAmount_SimpleType: {
@@ -1387,12 +1398,6 @@ isolated function transformMT103(record {} message) returns record {}|error {
                             TwnNm: getCountryAndTown(message.block4.MT50F?.CntyNTw)[1]
                         }
                     },
-                    InstgAgt: {
-                        FinInstnId: {
-                            BICFI: message.block4.MT51A?.IdnCd?.content,
-                            LEI: message.block4.MT51A?.PrtyIdn?.content
-                        }
-                    },
                     PrvsInstgAgt1: {
                         FinInstnId: {
                             BICFI: getMT1XXSenderToReceiverInformation(message.block4.MT72)[4],
@@ -1463,6 +1468,12 @@ isolated function transformMT104DrctDbt(swiftmt:MT104Message message) returns re
                     ActiveCurrencyAndAmount_SimpleType: {
                         ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
                         Ccy: message.block4.MT32B.Ccy.content
+                    }
+                },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        LEI: message.block4.MT51A?.PrtyIdn?.content
                     }
                 },
                 MsgId: uuid:createType4AsString().substring(0, 35)
@@ -1810,6 +1821,18 @@ isolated function transformMT107(record {} message) returns record {}|error {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
+                },
+                TtlIntrBkSttlmAmt: {
+                    ActiveCurrencyAndAmount_SimpleType: {
+                        ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+                        Ccy: message.block4.MT32B.Ccy.content
+                    }
+                },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        LEI: message.block4.MT51A?.PrtyIdn?.content
+                    }
                 },
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: uuid:createType4AsString().substring(0, 35)
