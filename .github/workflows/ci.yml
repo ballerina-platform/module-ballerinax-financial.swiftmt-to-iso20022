@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+env:
+  FILE_PATTERN: '*/*'
+  GITHUB_WORKFLOWS_DIR: '.github'
+  BALLERINA_VERSION: 2201.10.1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_OPTS: -Xmx4G
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set Up Ballerina
+        uses: ballerina-platform/setup-ballerina@v1.1.0
+        with:
+          version: $BALLERINA_VERSION
+
+      - name: Ballerina Build
+        run: |
+          pushd swiftmt_to_iso20022
+          bal pack
+          popd 
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_OPTS: -Xmx4G
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set Up Ballerina
+        uses: ballerina-platform/setup-ballerina@v1.1.0
+        with:
+          version: $BALLERINA_VERSION
+
+      - name: Ballerina Test
+        run: |
+          pushd swiftmt_to_iso20022
+          bal test --code-coverage
+          popd
+
+      - name: Read Ballerina Test Results
+        id: test_results
+        run: |
+          # echo "TEST_RESULTS_JSON=" >> $GITHUB_OUTPUT
+          echo "No test results file found."
