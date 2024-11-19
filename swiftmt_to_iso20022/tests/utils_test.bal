@@ -23,7 +23,7 @@ isolated function testGetMT104TransformFunction() returns error? {
         }
     };
     xml expected = xml `<Pacs003Document><FIToFICstmrDrctDbt><GrpHdr></GrpHdr><DrctDbtTxInf><PmtId><InstrId>${
-""}ABC/123</InstrId><EndToEndId>REF100</EndToEndId><TxId>REF100</TxId></PmtId><PmtTpInf><CtgyPurp/></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="USD"><ActiveCurrencyAndAmount_SimpleType>${
+""}ABC/123</InstrId><EndToEndId>REF100</EndToEndId><TxId>REF100</TxId></PmtId><PmtTpInf><CtgyPurp><Cd>AUTH</Cd></CtgyPurp></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="USD"><ActiveCurrencyAndAmount_SimpleType>${
 ""}1000.00</ActiveCurrencyAndAmount_SimpleType></ActiveCurrencyAndAmount_SimpleType></IntrBkSttlmAmt><IntrBkSttlmDt>${
 ""}2022-10-24</IntrBkSttlmDt><InstdAmt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="USD"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
 ""}1000.00</ActiveOrHistoricCurrencyAndAmount_SimpleType></ActiveOrHistoricCurrencyAndAmount_SimpleType></InstdAmt><ChrgBr>${

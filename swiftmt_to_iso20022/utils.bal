@@ -29,6 +29,9 @@ isolated function getMT104TransformFunction(swiftmt:MT104Message message) return
     if message.block4.MT23E?.InstrnCd?.content is () {
         foreach swiftmt:MT104Transaction transaxion in message.block4.Transaction {
             if transaxion.MT23E is swiftmt:MT23E {
+                if (check transaxion.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("RTND") {
+                    return error("Return direct debit transfer message is not supported.");
+                }
                 if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string)) {
                     return xmldata:toXml(check transformMT104DrctDbt(message));
                 }
@@ -46,6 +49,32 @@ isolated function getMT104TransformFunction(swiftmt:MT104Message message) return
         return xmldata:toXml(check transformMT104ReqDbtTrf(message));
     }
     return error("Return direct debit transfer message is not supported.");
+}
+
+# Transforms an MT107 message to its corresponding ISO 20022 message format in XML.
+# The function checks the instruction code (MT23E) within the message to determine the
+# appropriate ISO 20022 message type (General Direct Debit Transfer).
+#
+# + message - The MT107 SWIFT message to be transformed.
+# + return - Returns the transformed XML message or an error if transformation fails.
+isolated function getMT107TransformFunction(swiftmt:MT107Message message) returns xml|error {
+    if message.block4.MT23E?.InstrnCd?.content is () {
+        foreach swiftmt:MT107Transaction transaxion in message.block4.Transaction {
+            if transaxion.MT23E is swiftmt:MT23E {
+                if (check transaxion.MT23E?.InstrnCd?.content.ensureType(string)).equalsIgnoreCaseAscii("RTND") {
+                    return error("Return general direct debit transfer message is not supported.");
+                }
+                if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string)) {
+                    return xmldata:toXml(check transformMT107(message));
+                }
+            }
+        }
+        return xmldata:toXml(check transformMT107(message));
+    }
+    if isValidInstructionCode(check message.block4.MT23E?.InstrnCd?.content.ensureType(string)) {
+        return xmldata:toXml(check transformMT107(message));
+    }
+    return error("Return general direct debit transfer message is not supported.");
 }
 
 # Transforms an MTn96 message to the appropriate ISO 20022 XML format.
@@ -544,13 +573,13 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, stri
     if tmInd is swiftmt:MT13C {
         match (tmInd.Cd.content) {
             "CLSTIME" => {
-                return [tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00", (), ()];
+                return [tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2), (), ()];
             }
             "RNCTIME" => {
-                return [(), tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00", ()];
+                return [(), tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2), ()];
             }
             "SNDTIME" => {
-                return [(), (), tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00"];
+                return [(), (), tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2)];
             }
         }
     }
@@ -721,14 +750,14 @@ isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) ret
 
 # Retrieves a specific MT101 repeating field from a given transaction set or message based on the `typeName` provided.
 #
-# + message - The `swiftmt:MT101Message` object representing the main message block.
+# + block4 - The parsed block4 of MT101 SWIFT message containing multiple transactions.
 # + content - An optional field of one of the types `MT50C`, `MT50F`, `MT50G`, `MT50H`, `MT50L`, `MT52A`, or `MT52C` 
 # used as the return value if a match is found in the transaction set.
 # + typeName - A string that specifies the type of field to retrieve (e.g., "50F", "50G").
 # + return - Returns the `content` if a match is found in the transaction set; otherwise, returns the appropriate MT 
 # field from the `message` object based on `typeName`.
-isolated function getMT101RepeatingFields(swiftmt:MT101Message message, swiftmt:MT50C?|swiftmt:MT50F?|swiftmt:MT50G?|swiftmt:MT50H?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C? content, string typeName) returns swiftmt:MT50C?|swiftmt:MT50F?|swiftmt:MT50G?|swiftmt:MT50H?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C? {
-    foreach swiftmt:MT101Transaction transaxion in message.block4.Transaction {
+isolated function getMT101RepeatingFields(swiftmt:MT101Block4 block4, swiftmt:MT50C?|swiftmt:MT50F?|swiftmt:MT50G?|swiftmt:MT50H?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C? content, string typeName) returns swiftmt:MT50C?|swiftmt:MT50F?|swiftmt:MT50G?|swiftmt:MT50H?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C? {
+    foreach swiftmt:MT101Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
@@ -737,19 +766,19 @@ isolated function getMT101RepeatingFields(swiftmt:MT101Message message, swiftmt:
     }
     match (typeName) {
         "50F" => {
-            return message.block4.MT50F;
+            return block4.MT50F;
         }
         "50G" => {
-            return message.block4.MT50G;
+            return block4.MT50G;
         }
         "50H" => {
-            return message.block4.MT50H;
+            return block4.MT50H;
         }
         "52A" => {
-            return message.block4.MT52A;
+            return block4.MT52A;
         }
         "52C" => {
-            return message.block4.MT52C;
+            return block4.MT52C;
         }
     }
     return ();
@@ -789,14 +818,14 @@ isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? tim
 
 # Retrieves a specific MT101 repeating field from a given transaction set or message based on the `typeName` provided.
 #
-# + message - The `swiftmt:MT101Message` object representing the main message block.
+# + block4 - The parsed block4 of MT102 STP SWIFT message containing multiple transactions.
 # + content - An optional field of one of the types `MT26T`, `MT36`, `MT50A`, `MT50F`, `MT50K`, `MT52A`, `MT52B`, 
 # `MT52C`, `MT71A`, or `MT77B` used as the return value if a match is found in the transaction set.
 # + typeName - A string that specifies the type of field to retrieve (e.g., "50F", "50G").
 # + return - Returns the `content` if a match is found in the transaction set; otherwise, returns the appropriate MT 
 # field from the `message` object based on `typeName`.
-isolated function getMT102STPRepeatingFields(swiftmt:MT102STPMessage message, swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? {
-    foreach swiftmt:MT102STPTransaction transaxion in message.block4.Transaction {
+isolated function getMT102STPRepeatingFields(swiftmt:MT102STPBlock4 block4, swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? {
+    foreach swiftmt:MT102STPTransaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
@@ -808,28 +837,28 @@ isolated function getMT102STPRepeatingFields(swiftmt:MT102STPMessage message, sw
     }
     match (typeName) {
         "26T" => {
-            return message.block4.MT26T;
+            return block4.MT26T;
         }
         "36" => {
-            return message.block4.MT36;
+            return block4.MT36;
         }
         "50F" => {
-            return message.block4.MT50F;
+            return block4.MT50F;
         }
         "50A" => {
-            return message.block4.MT50A;
+            return block4.MT50A;
         }
         "50K" => {
-            return message.block4.MT50K;
+            return block4.MT50K;
         }
         "52A" => {
-            return message.block4.MT52A;
+            return block4.MT52A;
         }
         "71A" => {
-            return message.block4.MT71A;
+            return block4.MT71A;
         }
         "77B" => {
-            return message.block4.MT77B;
+            return block4.MT77B;
         }
     }
     return ();
@@ -859,14 +888,14 @@ isolated function getEnvelopeContent(string envelopeContent) returns [string, st
 # Retrieves the specific field from a list of MT102 transactions based on the provided type name.
 # If a matching type is found within the transaction set, the function returns the corresponding content.
 #
-# + message - The `swiftmt:MT102Message` object containing message blocks and fields.
+# + block4 - The parsed block4 of MT102 SWIFT message containing multiple transactions.
 # + content - The content related to the field type, which can be any of `swiftmt:MT26T`, `swiftmt:MT36`,
 # `swiftmt:MT50F`, etc.
 # + typeName - A string that specifies the field type name (e.g., "26T", "50A").
 # + return - Returns the content of the matching type if found in the transaction set or message block. Returns `null`
 # if no match is found.
-isolated function getMT102RepeatingFields(swiftmt:MT102Message message, swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? {
-    foreach swiftmt:MT102Transaction transaxion in message.block4.Transaction {
+isolated function getMT102RepeatingFields(swiftmt:MT102Block4 block4, swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? {
+    foreach swiftmt:MT102Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
@@ -878,34 +907,34 @@ isolated function getMT102RepeatingFields(swiftmt:MT102Message message, swiftmt:
     }
     match (typeName) {
         "26T" => {
-            return message.block4.MT26T;
+            return block4.MT26T;
         }
         "36" => {
-            return message.block4.MT36;
+            return block4.MT36;
         }
         "50F" => {
-            return message.block4.MT50F;
+            return block4.MT50F;
         }
         "50A" => {
-            return message.block4.MT50A;
+            return block4.MT50A;
         }
         "50K" => {
-            return message.block4.MT50K;
+            return block4.MT50K;
         }
         "52A" => {
-            return message.block4.MT52A;
+            return block4.MT52A;
         }
         "52B" => {
-            return message.block4.MT52B;
+            return block4.MT52B;
         }
         "52C" => {
-            return message.block4.MT52C;
+            return block4.MT52C;
         }
         "71A" => {
-            return message.block4.MT71A;
+            return block4.MT71A;
         }
         "77B" => {
-            return message.block4.MT77B;
+            return block4.MT77B;
         }
     }
     return ();
@@ -914,14 +943,14 @@ isolated function getMT102RepeatingFields(swiftmt:MT102Message message, swiftmt:
 # Retrieves the specific field from a list of MT104 transactions based on the provided type name.
 # If a matching type is found within the transaction set, the function returns the corresponding content.
 #
-# + message - The `swiftmt:MT104Message` object containing message blocks and fields.
+# + block4 - The parsed block4 of MT104 SWIFT message containing multiple transactions.
 # + content - The content related to the field type, which can be any of `swiftmt:MT26T`, `swiftmt:MT50C`, 
 # `swiftmt:MT50K`, etc.
 # + typeName - A string that specifies the field type name (e.g., "26T", "50A").
 # + return - Returns the content of the matching type if found in the transaction set or message block. Returns `null` 
 # if no match is found.
-isolated function getMT104RepeatingFields(swiftmt:MT104Message message, swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? {
-    foreach swiftmt:MT104Transaction transaxion in message.block4.Transaction {
+isolated function getMT104RepeatingFields(swiftmt:MT104Block4 block4, swiftmt:MT23E?|swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT23E?|swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? {
+    foreach swiftmt:MT104Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
@@ -929,35 +958,38 @@ isolated function getMT104RepeatingFields(swiftmt:MT104Message message, swiftmt:
         }
     }
     match (typeName) {
+        "23E" => {
+            return block4.MT23E;
+        }
         "26T" => {
-            return message.block4.MT26T;
+            return block4.MT26T;
         }
         "50A" => {
-            return message.block4.MT50A;
+            return block4.MT50A;
         }
         "50C" => {
-            return message.block4.MT50C;
+            return block4.MT50C;
         }
         "50K" => {
-            return message.block4.MT50K;
+            return block4.MT50K;
         }
         "50L" => {
-            return message.block4.MT50L;
+            return block4.MT50L;
         }
         "52A" => {
-            return message.block4.MT52A;
+            return block4.MT52A;
         }
         "52C" => {
-            return message.block4.MT52C;
+            return block4.MT52C;
         }
         "52D" => {
-            return message.block4.MT52D;
+            return block4.MT52D;
         }
         "71A" => {
-            return message.block4.MT71A;
+            return block4.MT71A;
         }
         "77B" => {
-            return message.block4.MT77B;
+            return block4.MT77B;
         }
     }
     return ();
@@ -966,14 +998,14 @@ isolated function getMT104RepeatingFields(swiftmt:MT104Message message, swiftmt:
 # Retrieves the specific field from a list of MT107 transactions based on the provided type name.
 # If a matching type is found within the transaction set, the function returns the corresponding content.
 #
-# + message - The `swiftmt:MT107Message` object containing message blocks and fields.
+# + block4 - The parsed block4 of MT107 SWIFT message containing multiple transactions.
 # + content - The content related to the field type, which can be any of `swiftmt:MT26T`, `swiftmt:MT50C`, 
 # `swiftmt:MT50K`, etc.
 # + typeName - A string that specifies the field type name (e.g., "26T", "50A").
 # + return - Returns the content of the matching type if found in the transaction set or message block. Returns `null` 
 # if no match is found.
-isolated function getMT107RepeatingFields(swiftmt:MT107Message message, swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? {
-    foreach swiftmt:MT107Transaction transaxion in message.block4.Transaction {
+isolated function getMT107RepeatingFields(swiftmt:MT107Block4 block4, swiftmt:MT23E?|swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? content, string typeName) returns swiftmt:MT23E?|swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? {
+    foreach swiftmt:MT107Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
@@ -981,35 +1013,38 @@ isolated function getMT107RepeatingFields(swiftmt:MT107Message message, swiftmt:
         }
     }
     match (typeName) {
+        "23E" => {
+            return block4.MT23E;
+        }
         "26T" => {
-            return message.block4.MT26T;
+            return block4.MT26T;
         }
         "50A" => {
-            return message.block4.MT50A;
+            return block4.MT50A;
         }
         "50C" => {
-            return message.block4.MT50C;
+            return block4.MT50C;
         }
         "50K" => {
-            return message.block4.MT50K;
+            return block4.MT50K;
         }
         "50L" => {
-            return message.block4.MT50L;
+            return block4.MT50L;
         }
         "52A" => {
-            return message.block4.MT52A;
+            return block4.MT52A;
         }
         "52C" => {
-            return message.block4.MT52C;
+            return block4.MT52C;
         }
         "52D" => {
-            return message.block4.MT52D;
+            return block4.MT52D;
         }
         "71A" => {
-            return message.block4.MT71A;
+            return block4.MT71A;
         }
         "77B" => {
-            return message.block4.MT77B;
+            return block4.MT77B;
         }
     }
     return ();
@@ -1017,36 +1052,36 @@ isolated function getMT107RepeatingFields(swiftmt:MT107Message message, swiftmt:
 
 # Retrieves the specified repeating fields (MT72) from the transactions in an MT201 SWIFT message.
 #
-# + message - The MT201 message containing the transaction data.
+# + block4 - The parsed block4 of MT201 SWIFT message containing multiple transactions.
 # + content - An optional MT72 content object, which can be returned if the matching field is found.
 # + typeName - A string representing the specific type code to match against in the transaction data.
 # + return - Returns the provided `content` if a matching field is found, or the MT72 block from the message if not.
-isolated function getMT201RepeatingFields(swiftmt:MT201Message message, swiftmt:MT72? content, string typeName) returns swiftmt:MT72? {
-    foreach swiftmt:MT201Transaction transaxion in message.block4.Transaction {
+isolated function getMT201RepeatingFields(swiftmt:MT201Block4 block4, swiftmt:MT72? content, string typeName) returns swiftmt:MT72? {
+    foreach swiftmt:MT201Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
             }
         }
     }
-    return message.block4.MT72;
+    return block4.MT72;
 }
 
 # Retrieves the specified repeating fields (MT72) from the transactions in an MT203 SWIFT message.
 #
-# + message - The MT201 message containing the transaction data.
+# + block4 - The parsed block4 of MT203 SWIFT message containing multiple transactions.
 # + content - An optional MT72 content object, which can be returned if the matching field is found.
 # + typeName - A string representing the specific type code to match against in the transaction data.
 # + return - Returns the provided `content` if a matching field is found, or the MT72 block from the message if not.
-isolated function getMT203RepeatingFields(swiftmt:MT203Message message, swiftmt:MT72? content, string typeName) returns swiftmt:MT72? {
-    foreach swiftmt:MT203Transaction transaxion in message.block4.Transaction {
+isolated function getMT203RepeatingFields(swiftmt:MT203Block4 block4, swiftmt:MT72? content, string typeName) returns swiftmt:MT72? {
+    foreach swiftmt:MT203Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
             if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
                 return content;
             }
         }
     }
-    return message.block4.MT72;
+    return block4.MT72;
 }
 
 # Extracts and converts floor limit data from the MT34F SWIFT message into ISO 20022 Limit2 format.
@@ -1356,54 +1391,6 @@ isolated function getTotalSumOfEntries(swiftmt:Amnt? creditEntryAmnt, swiftmt:Am
     } on fail {
         return error("Provide decimal value for sum of credit and debit entries.");
     }
-}
-
-# Retrieves the underlying customer transaction fields from a given MT202COV or MT205COV message
-# based on the specified type name.
-#
-# This function checks if the provided `typeName` matches any underlying customer credit transfers.
-# If a match is found, it returns null. Otherwise, it retrieves and returns the appropriate field 
-# based on the specified `typeName`.
-#
-# + message - An MT202COV or MT205COV message containing underlying customer credit transactions.
-# + typeName - The type of the transaction field to retrieve.
-# + return - Returns the corresponding MT52A, MT52D, MT56A, MT56D, MT57A, MT57B, MT57D, MT72 fields, 
-# or null if the transaction type does not match any criteria.
-isolated function getUnderlyingCustomerTransactionFields(swiftmt:MT202COVMessage|swiftmt:MT205COVMessage message, string typeName) returns swiftmt:MT52A?|swiftmt:MT52D?|swiftmt:MT56A?|swiftmt:MT56D?|swiftmt:MT57A?|swiftmt:MT57B?|swiftmt:MT57D?|swiftmt:MT72? {
-    foreach var item in message.block4.UndrlygCstmrCdtTrf {
-        if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
-            return ();
-        } else if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
-            return ();
-        }
-    }
-    match (typeName) {
-        "52A" => {
-            return message.block4.MT52A;
-        }
-        "52D" => {
-            return message.block4.MT52D;
-        }
-        "56A" => {
-            return message.block4.MT56A;
-        }
-        "56D" => {
-            return message.block4.MT56D;
-        }
-        "57A" => {
-            return message.block4.MT57A;
-        }
-        "57B" => {
-            return message.block4.MT57B;
-        }
-        "57D" => {
-            return message.block4.MT57D;
-        }
-        "72" => {
-            return message.block4.MT72;
-        }
-    }
-    return ();
 }
 
 # Retrieves the intermediary agent identification information from the provided MT56A, MT56D, MT57A, MT57B, and MT57D 

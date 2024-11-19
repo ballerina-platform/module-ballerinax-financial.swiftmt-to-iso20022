@@ -6,7 +6,7 @@ const REASON_CODE = ["AGNT", "AM09", "COVR", "CURR", "CUST", "CUTA", "DUPL", "FR
 const MISSING_INFO_CODE = ["3", "4", "5", "7", "10", "13", "14", "15", "16", "17", "18", "19", "23", "24", "25", "26", "27", "28", "29", "36", "37", "38", "42", "48", "49", "50", "51"];
 const INCORRECT_INFO_CODE = ["2", "6", "8", "9", "11", "12", "20", "22", "39", "40", "41", "43", "44", "45", "46", "47"];
 const map<string> INVTGTN_RJCT_RSN = {"RQDA": "NAUT", "LEGL": "NAUT", "INDM": "NAUT", "AGNT": "NAUT", "CUST": "NAUT", "NOOR": "NFND", "PTNA": "UKNW", "ARPL": "UKNW", "NOAS": "UKNW", "AM04": "PCOR", "AC04": "PCOR", "ARDT": "UKNW"};
-final readonly & map<isolated function (record {} message) returns record {}|error> transformFunctionMap =
+final readonly & map<isolated function> transformFunctionMap =
     {
     "101": transformMT101,
     "102": transformMT102,
@@ -33,6 +33,7 @@ final readonly & map<isolated function (record {} message) returns record {}|err
     "920": transformMT920,
     "940": transformMT940,
     "941": transformMT941,
+    "942": transformMT942,
     "950": transformMT950,
     "970": transformMT970,
     "971": transformMT971,

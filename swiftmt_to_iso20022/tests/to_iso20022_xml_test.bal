@@ -445,7 +445,7 @@ US
 ""}</InstrId><EndToEndId/><UETR>31df8b48-8845-4fc6-86cd-5586df980e97</UETR></PmtId><PmtTpInf><SvcLvl><Cd>CRED${
 ""}</Cd></SvcLvl><CtgyPurp/></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="USD"><ActiveCurrencyAndAmount_SimpleType>${
 ""}840.00</ActiveCurrencyAndAmount_SimpleType></ActiveCurrencyAndAmount_SimpleType></IntrBkSttlmAmt><IntrBkSttlmDt>${
-""}2009-08-28</IntrBkSttlmDt><SttlmTmIndctn/><SttlmTmReq><CLSTm>09:15:00</CLSTm></SttlmTmReq><InstdAmt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="USD"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
+""}2009-08-28</IntrBkSttlmDt><SttlmTmIndctn/><SttlmTmReq><CLSTm>09:15:00+01:00</CLSTm></SttlmTmReq><InstdAmt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="USD"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
 ""}850.00</ActiveOrHistoricCurrencyAndAmount_SimpleType></ActiveOrHistoricCurrencyAndAmount_SimpleType></InstdAmt><XchgRate>${
 ""}0.9236</XchgRate><ChrgBr>SHAR</ChrgBr><ChrgsInf><Amt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="USD"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
 ""}10.00</ActiveOrHistoricCurrencyAndAmount_SimpleType></ActiveOrHistoricCurrencyAndAmount_SimpleType></Amt><Agt><FinInstnId/></Agt><Tp><Cd>${
@@ -508,13 +508,13 @@ isolated function testMt104ToIso20022Xml() returns error? {
 -}`; 
 
     xml expected = xml `<Pacs003Document><FIToFICstmrDrctDbt><GrpHdr></GrpHdr><DrctDbtTxInf><PmtId><InstrId>REFERENCE12345${
-""}</InstrId><EndToEndId>REF12444</EndToEndId><TxId>REF12444</TxId></PmtId><PmtTpInf><CtgyPurp/></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="EUR"><ActiveCurrencyAndAmount_SimpleType>${
+""}</InstrId><EndToEndId>REF12444</EndToEndId><TxId>REF12444</TxId></PmtId><PmtTpInf><CtgyPurp><Cd>OTHR</Cd></CtgyPurp></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="EUR"><ActiveCurrencyAndAmount_SimpleType>${
 ""}1875.00</ActiveCurrencyAndAmount_SimpleType></ActiveCurrencyAndAmount_SimpleType></IntrBkSttlmAmt><IntrBkSttlmDt>${
 ""}2009-09-21</IntrBkSttlmDt><InstdAmt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="EUR"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
 ""}1875.00</ActiveOrHistoricCurrencyAndAmount_SimpleType></ActiveOrHistoricCurrencyAndAmount_SimpleType></InstdAmt><ChrgBr>${
 ""}DEBT</ChrgBr><DrctDbtTx><MndtRltdInf/></DrctDbtTx><Cdtr><PstlAdr/><Id><OrgId/></Id></Cdtr><CdtrAcct><Id><Othr><SchmeNm/></Othr></Id></CdtrAcct><CdtrAgt><FinInstnId><PstlAdr/></FinInstnId></CdtrAgt><InitgPty><Id><OrgId/><PrvtId><Othr/></PrvtId></Id></InitgPty><IntrmyAgt1><FinInstnId/></IntrmyAgt1><Dbtr><PstlAdr/><Id><OrgId/></Id></Dbtr><DbtrAcct><Id><Othr><SchmeNm/></Othr></Id></DbtrAcct><DbtrAgt><FinInstnId><PstlAdr/></FinInstnId></DbtrAgt><RgltryRptg><Dtls><Ctry>${
 ""}BE</Ctry><Cd>ORDERRES</Cd><Inf>MEILAAN 1, 9000 GENT</Inf></Dtls></RgltryRptg><RmtInf><Ustrd/></RmtInf></DrctDbtTxInf><DrctDbtTxInf><PmtId><InstrId>${
-""}REFERENCE12345</InstrId><EndToEndId>REF12345</EndToEndId><TxId>REF12345</TxId></PmtId><PmtTpInf><CtgyPurp/></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="EUR"><ActiveCurrencyAndAmount_SimpleType>${
+""}REFERENCE12345</InstrId><EndToEndId>REF12345</EndToEndId><TxId>REF12345</TxId></PmtId><PmtTpInf><CtgyPurp><Cd>OTHR</Cd></CtgyPurp></PmtTpInf><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="EUR"><ActiveCurrencyAndAmount_SimpleType>${
 ""}1875.00</ActiveCurrencyAndAmount_SimpleType></ActiveCurrencyAndAmount_SimpleType></IntrBkSttlmAmt><IntrBkSttlmDt>${
 ""}2009-09-21</IntrBkSttlmDt><InstdAmt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="EUR"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
 ""}1875.00</ActiveOrHistoricCurrencyAndAmount_SimpleType></ActiveOrHistoricCurrencyAndAmount_SimpleType></InstdAmt><ChrgBr>${
@@ -715,8 +715,8 @@ isolated function testMt202ToIso20022Xml() returns error? {
     xml expected = xml `<Pacs009Document><FICdtTrf><GrpHdr></GrpHdr><CdtTrfTxInf><PmtId><InstrId>JPYNOSTRO170105</InstrId><EndToEndId>${
 ""}CLSINSTR170105</EndToEndId></PmtId><IntrBkSttlmAmt><ActiveCurrencyAndAmount_SimpleType Ccy="JPY"><ActiveCurrencyAndAmount_SimpleType>${
 ""}5000000.00</ActiveCurrencyAndAmount_SimpleType></ActiveCurrencyAndAmount_SimpleType></IntrBkSttlmAmt><IntrBkSttlmDt>${
-""}2017-01-05</IntrBkSttlmDt><SttlmTmIndctn/><SttlmTmReq><CLSTm>07:00:00${
-""}</CLSTm></SttlmTmReq><IntrmyAgt1><FinInstnId><PstlAdr/></FinInstnId></IntrmyAgt1><Dbtr><FinInstnId/></Dbtr><DbtrAgt><FinInstnId><PstlAdr/></FinInstnId></DbtrAgt><CdtrAgt><FinInstnId><BICFI>${
+""}2017-01-05</IntrBkSttlmDt><SttlmTmIndctn/><SttlmTmReq><CLSTm>07:00:00+01:00${
+""}</CLSTm></SttlmTmReq><IntrmyAgt1><FinInstnId><PstlAdr/></FinInstnId></IntrmyAgt1><Dbtr><FinInstnId><PstlAdr/></FinInstnId></Dbtr><CdtrAgt><FinInstnId><BICFI>${
 ""}BOJPJPJT</BICFI><PstlAdr/></FinInstnId></CdtrAgt><Cdtr><FinInstnId><BICFI>CLSBUS33${
 ""}</BICFI><PstlAdr/></FinInstnId></Cdtr><InstrForCdtrAgt/><InstrForNxtAgt/></CdtTrfTxInf></FICdtTrf></Pacs009Document>`;
     xml actual = check toIso20022Xml(finMessage);
@@ -739,7 +739,7 @@ isolated function testMt202ToIso20022Xml() returns error? {
     groups: ["toIso20022Xml"]
 }
 isolated function testMt202CovToIso20022Xml() returns error? {
-    string finMessage = string `{1:F01AAAABEBB0000000000}
+    string finMessage = string `{1:F01AAAABEBBXXXX0000000000}
 {2:I202CCCCUS33XXXX}
 {3:{119:COV}}
 {4:
@@ -770,9 +770,7 @@ isolated function testMt202CovToIso20022Xml() returns error? {
 ""}BBBBGB22</BICFI><PstlAdr/></FinInstnId></CdtrAgt><Cdtr><FinInstnId/></Cdtr><InstrForCdtrAgt/><InstrForNxtAgt/><UndrlygCstmrCdtTrf><Dbtr><Nm>${
 ""}MR. BIG</Nm><PstlAdr><TwnNm>BRUSSELS</TwnNm><Ctry>BE</Ctry><AdrLine>HIGH STREET 3${
 ""}</AdrLine></PstlAdr><Id><OrgId/><PrvtId><Othr><SchmeNm/></Othr></PrvtId></Id></Dbtr><DbtrAcct><Id><Othr><Id>123564982101${
-""}</Id><SchmeNm><Cd>BBAN</Cd></SchmeNm></Othr></Id></DbtrAcct><DbtrAgt><FinInstnId><PstlAdr/></FinInstnId></DbtrAgt><IntrmyAgt1><FinInstnId><BICFI>${
-""}ABFDUS33</BICFI><PstlAdr/></FinInstnId></IntrmyAgt1><IntrmyAgt2><FinInstnId><BICFI>DDDDUS33${
-""}</BICFI><PstlAdr/></FinInstnId></IntrmyAgt2><CdtrAgt><FinInstnId/></CdtrAgt><Cdtr><Nm>MR. SMALL</Nm><PstlAdr><TwnNm>${
+""}</Id><SchmeNm><Cd>BBAN</Cd></SchmeNm></Othr></Id></DbtrAcct><DbtrAgt><FinInstnId><PstlAdr/></FinInstnId></DbtrAgt><CdtrAgt><FinInstnId/></CdtrAgt><Cdtr><Nm>MR. SMALL</Nm><PstlAdr><TwnNm>${
 ""}LONDON</TwnNm><Ctry>GB</Ctry><AdrLine>LOW STREET 15</AdrLine></PstlAdr><Id><OrgId/></Id></Cdtr><CdtrAcct><Id><Othr><Id>${
 ""}987654321</Id><SchmeNm><Cd>BBAN</Cd></SchmeNm></Othr></Id></CdtrAcct><InstrForCdtrAgt/><InstrForNxtAgt/><RmtInf><Ustrd>${
 ""}/INV/1234</Ustrd></RmtInf><InstdAmt><ActiveOrHistoricCurrencyAndAmount_SimpleType Ccy="USD"><ActiveOrHistoricCurrencyAndAmount_SimpleType>${
