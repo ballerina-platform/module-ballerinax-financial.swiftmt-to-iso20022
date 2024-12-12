@@ -16,7 +16,9 @@
 
 import ballerina/data.xmldata;
 import ballerina/time;
-import ballerinax/financial.iso20022.cash_management as isorecord;
+import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
+import ballerinax/financial.iso20022.payment_initiation as painIsoRecord;
+import ballerinax/financial.iso20022.payments_clearing_and_settlement as pacsIsoRecord;
 import ballerinax/financial.swift.mt as swiftmt;
 
 # Transforms an MT104 message to its corresponding ISO 20022 message format in XML.
@@ -177,6 +179,16 @@ isolated function getMandatoryFields(string? content) returns string {
     return "";
 }
 
+isolated function getCurrency(string? currency1, string? currency2) returns string{
+    if currency1 is string {
+        return currency1;
+    }
+    if currency2 is string {
+        return currency2;
+    }
+    return "";
+}
+
 # Extracts and returns address lines from the provided `AdrsLine` arrays.
 # It first checks if the first address array (`address1`) is available and uses it;
 # if not, it checks the second address array (`address2`). If neither is available,
@@ -184,14 +196,17 @@ isolated function getMandatoryFields(string? content) returns string {
 #
 # + address1 - An optional array of `AdrsLine` that may contain address lines.
 # + address2 - An optional array of `AdrsLine` that may also contain address lines (default is `null`).
+# + address3 - An optional string of address.
 # + return - Returns an array of strings representing the address lines if any address lines are found;
 # otherwise, returns `null`.
-isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]? address2 = ()) returns string[]? {
-    swiftmt:AdrsLine[] finalAddress;
+isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]? address2 = (), string? address3 = ()) returns string[]? {
+    swiftmt:AdrsLine[] finalAddress = [];
     if address1 is swiftmt:AdrsLine[] {
         finalAddress = address1;
     } else if address2 is swiftmt:AdrsLine[] {
         finalAddress = address2;
+    } else if address3 is string {
+        return [address3];
     } else {
         return ();
     }
@@ -226,7 +241,7 @@ isolated function getDetailsChargesCd(swiftmt:Cd? code) returns string|error {
 # + rgltyRptg - An optional `MT77B` object that contains the regulatory reporting information.
 # + return - Returns an array of `RgltryRptg` objects with the extracted regulatory reporting details.
 # The details are based on the content of the `Nrtv` field within the `MT77B` object.
-isolated function getRegulatoryReporting(string? rgltyRptg) returns isorecord:RegulatoryReporting3[]? {
+isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecord:RegulatoryReporting3[]? {
     if rgltyRptg is string {
         if rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("BENEFRES") ||
             rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("ORDERRES") {
@@ -276,30 +291,33 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns isorecord:Re
 # + return - Returns a tuple of strings and/or null values based on the party identifier content and the `fields` 
 # parameter.
 isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) returns [string?, string?, string?, string?, string?] {
-    if prtyIdnOrAcc is swiftmt:PrtyIdn && prtyIdnOrAcc.content.length() > 1 {
+    if prtyIdnOrAcc is swiftmt:PrtyIdn && prtyIdnOrAcc.content.length() > 4 {
         if prtyIdnOrAcc.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
             return [(), ...validateAccountNumber(prtyIdn = prtyIdnOrAcc), (), ()];
         }
-        if prtyIdnOrAcc.content.startsWith("CUST") || prtyIdnOrAcc.content.startsWith("DRLC")
-            || prtyIdnOrAcc.content.startsWith("EMPL") {
+        string? partyIdentifier = ();
+        string? schemaCode = (); 
+        string? issuer = ();
+        foreach string code in SCHEMA_CODE {
+            if !code.equalsIgnoreCaseAscii(prtyIdnOrAcc.content.substring(0,4)) {
+                continue;
+            }
+            schemaCode = code;
             int count = 0;
             foreach int i in 0 ... prtyIdnOrAcc.content.length() - 1 {
                 if prtyIdnOrAcc.content.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
                     count += 1;
                 }
+                if count == 2 {
+                    partyIdentifier = prtyIdnOrAcc.content.substring(i + 1);
+                }
                 if count == 3 {
-                    return [
-                        prtyIdnOrAcc.content.substring(i + 1),
-                        (),
-                        (),
-                        prtyIdnOrAcc.content.substring(0, 4),
-                        prtyIdnOrAcc.content.substring(8, i)
-                    ];
+                    partyIdentifier = prtyIdnOrAcc.content.substring(i + 1);
+                    issuer = prtyIdnOrAcc.content.substring(8, i);
                 }
             }
-            return [prtyIdnOrAcc.content.substring(8), (), (), prtyIdnOrAcc.content.substring(0, 4), ()];
         }
-        return [prtyIdnOrAcc.content.toString().substring(8), (), (), prtyIdnOrAcc.content.toString().substring(0, 4), ()];
+        return [partyIdentifier, (), (), schemaCode, issuer];
     }
     return [(), (), (), (), ()];
 }
@@ -313,30 +331,34 @@ isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc) ret
 # + prtyIdn1 - An optional `PrtyIdn` object that may contain a party identifier or account number.
 # + prtyIdn2 - A second optional `PrtyIdn` object that may contain a party identifier or account number.
 # + prtyIdn3 - A third optional `PrtyIdn` object that may contain a party identifier or account number.
+# + prtyIdn4 - A fourth optional `PrtyIdn` object that may contain a party identifier or account number.
 # + return - Returns a tuple of strings and/or null values based on the party identifier content.
-isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns [string?, string?, string?] {
+isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = ()) returns [string?, string?, string?] {
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 &&
-        !(prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
+       prtyIdn1.content.startsWith("/") && !(prtyIdn1.content.startsWith("/CH")) &&
+       !(prtyIdn1.content.startsWith("/FW")) && !(prtyIdn1.content.startsWith("/RT")) {
         return [prtyIdn1.content, (), ()];
     }
     if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 &&
-        !(prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
+       prtyIdn2.content.startsWith("/") && !(prtyIdn2.content.startsWith("/CH")) &&
+       !(prtyIdn2.content.startsWith("/FW")) && !(prtyIdn2.content.startsWith("/RT")) {
         return [prtyIdn2.content, (), ()];
     }
     if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 &&
-        !(prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/")) {
+       prtyIdn3.content.startsWith("/") && !(prtyIdn3.content.startsWith("/CH")) &&
+       !(prtyIdn3.content.startsWith("/FW")) && !(prtyIdn3.content.startsWith("/RT")) {
         return [prtyIdn3.content, (), ()];
     }
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 &&
-        prtyIdn1.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
+       (!(prtyIdn1.content.startsWith("/")) || prtyIdn1.content.startsWith("/CH")) {
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn1)];
     }
     if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 &&
-        prtyIdn2.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
+       (!(prtyIdn2.content.startsWith("/")) || prtyIdn2.content.startsWith("/CH")) {
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn2)];
     }
     if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 &&
-        prtyIdn3.content.substring(0, 1).equalsIgnoreCaseAscii("/") {
+       (!(prtyIdn3.content.startsWith("/")) || prtyIdn3.content.startsWith("/CH")) {
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn3)];
     }
     return [(), (), ()];
@@ -490,8 +512,9 @@ isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = (), 
 # + prtyIdn1 - An optional `PrtyIdn` instance representing the party identifier.
 # + prtyIdn2 - An optional `PrtyIdn` instance representing the party identifier.
 # + prtyIdn3 - An optional `PrtyIdn` instance representing the party identifier.
+# + prtyIdn4 - An optional `PrtyIdn` instance representing the party identifier.
 # + return - Returns "BBAN" if any valid account number or party identifier is found, otherwise returns null.
-isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (), swiftmt:Acc? account3 = (), swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = ()) returns string? {
+isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (), swiftmt:Acc? account3 = (), swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = ()) returns string? {
     if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ())
         || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount(prtyIdn1)[2] is ())
         || !(getPartyIdentifierOrAccount(prtyIdn2)[2] is ()) || !(getPartyIdentifierOrAccount(prtyIdn3)[2] is ()) {
@@ -517,18 +540,18 @@ isolated function getAccountId(string? account, string? prtyIdn) returns string?
     return ();
 }
 
-# Returns an array of `isorecord:Charges16` objects that contains charges information based on the provided `MT71F` 
+# Returns an array of `camtIsoRecord:Charges16` objects that contains charges information based on the provided `MT71F` 
 # and `MT71G` SWIFT message records.
 #
 # + sndsChrgs - An optional `swiftmt:MT71F` object that contains information about sender's charges.
 # + rcvsChrgs - An optional `swiftmt:MT71G` object that contains information about receiver's charges.
-# + return - An array of `isorecord:Charges16` containing two entries:
+# + return - An array of `camtIsoRecord:Charges16` containing two entries:
 # - The first entry includes the sender's charges amount and currency, with a charge type of "CRED".
 # - The second entry includes the receiver's charges amount and currency, with a charge type of "DEBT".
 #
 # The function uses helper methods `convertToDecimalMandatory` to convert the amount and `getMandatoryFields` to fetch the currency.
-isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G? rcvsChrgs) returns isorecord:Charges16[]?|error {
-    isorecord:Charges16[] chrgsInf = [];
+isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G? rcvsChrgs) returns camtIsoRecord:Charges16[]?|error {
+    camtIsoRecord:Charges16[] chrgsInf = [];
     if sndsChrgs is swiftmt:MT71F {
         chrgsInf.push({
             Amt: {
@@ -591,60 +614,251 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, stri
 # + sndRcvInfo - An optional `swiftmt:MT72` that contains the sender-to-receiver information.
 # + return - Returns a tuple with extracted information based on the content of `sndRcvInfo`. 
 # - If no conditions match, it returns a tuple of `null` values.
-isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?, string?, string?, string?, string?, string?] {
+isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?]|error {
     if sndRcvInfo is swiftmt:MT72 {
-        match (sndRcvInfo.Cd.content.substring(1, 4)) {
-            "INT" => {
-                return ["INT", sndRcvInfo.Cd.content.substring(5), (), (), (), ()];
-            }
-            "ACC" => {
-                return [(), (), "ACC", sndRcvInfo.Cd.content.substring(5), (), ()];
-            }
-            "INS" => {
-                if sndRcvInfo.Cd.content.substring(5, 11).matches(re `^[A-Z]+$`) && sndRcvInfo.Cd.content.substring(11).matches(re `^[A-Z2-9]+$`) && sndRcvInfo.Cd.content.substring(12).matches(re `^[A-NP-Z0-9]+$`) {
-                    if sndRcvInfo.Cd.content.substring(5).length() == 11 && sndRcvInfo.Cd.content.substring(13).matches(re `^[A-Z0-9]+$`) {
-                        return [(), (), (), (), sndRcvInfo.Cd.content.substring(5), ()];
-                    }
-                    if sndRcvInfo.Cd.content.substring(5).length() == 8 {
-                        return [(), (), (), (), sndRcvInfo.Cd.content.substring(5), ()];
-                    }
-                    return [(), (), (), (), (), sndRcvInfo.Cd.content.substring(5)];
+        string[] code = [];
+        string?[] additionalInfo = [];
+        [boolean, boolean] [isAddtnlInfoPresent, isPreviousValidCode] = [false, true];
+        string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+        foreach int i in 0 ... infoArray.length() - 1 {
+            foreach string item in MT_1XX_SNDR_CODE {
+                if i == 0 && item.equalsIgnoreCaseAscii(infoArray[i]) {
+                    code.push(item);
+                    isAddtnlInfoPresent = false;
+                    break;
                 }
+                if item.equalsIgnoreCaseAscii(infoArray[i]) && i != 0 {
+                    code.push(item);
+                    if isPreviousValidCode {
+                        additionalInfo.push(());
+                    }
+                    isPreviousValidCode = true;
+                    isAddtnlInfoPresent = false;
+                    break;
+                }
+                isAddtnlInfoPresent = true;
+            }
+            if isAddtnlInfoPresent {
+                if i == 0 {
+                    return error("Sender to receiver information code is not supported.");
+                }
+                isPreviousValidCode = false;
+                additionalInfo.push(infoArray[i]);
             }
         }
-        return [(), (), (), (), (), ()];
+        if code.length() != additionalInfo.length() {
+            additionalInfo.push(());
+        }
+        return getMT1XXSenderToReceiverInformationForAgts(code, additionalInfo);
     }
-    return [(), (), (), (), (), ()];
+    return [];
+}
+
+# Extracts and returns specific sender-to-receiver information from the provided MT1XX record.
+#
+# + code - An array of strings representing specific codes from the sender-to-receiver information (e.g., "INT", "ACC", "INS").
+# + additionalInfo - An optional array of strings containing additional details corresponding to each code. Defaults to an empty array if not provided.
+# + return - Returns a tuple with extracted information based on the content in code and addtionalinfo array.
+# If no conditions match, it returns a tuple with empty arrays and `null` values for optional fields.
+isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, string?[] additionalInfo = []) returns [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?] {
+    pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
+    pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? intrmyAgt2 = ();
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? prvsInstgAgt1 = ();
+    [string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?] [serviceLevel, lclInstrm, purpose] = [(), (), ()];
+    foreach int i in 0 ... code.length() - 1 {
+        match (code[i]) {
+            "INT" => {
+                instrFrNxtAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
+            }
+            "ACC" => {
+                instrFrCdtrAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
+            }
+            "INS"|"INTA" => {
+                if additionalInfo[i].toString().length() == 8 && additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`) 
+                && additionalInfo[i].toString().substring(6,7).matches(re `^[A-Z2-9]+$`) && 
+                additionalInfo[i].toString().substring(7).matches(re `^[A-NP-Z0-9]+$`) {
+                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                        prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                    } else {
+                        intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                    }
+                } else {
+                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                        prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
+                    } else {
+                        intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
+                    }
+                }
+            }
+            "SVCLVL" => {
+                serviceLevel = code[i];
+            }
+            "LOCINS" => {
+                lclInstrm = {Cd: code[i]};
+            }
+            "CATPURP" => {
+                purpose = {Cd: code[i]};
+            }
+        }
+    }
+    return [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, purpose];
+}
+
+# Extracts and returns instructions and related information for agents based on the provided MT23E and MT72 records.
+#
+# + instnCd - An optional array of `swiftmt:MT23E` records containing instruction codes and details.
+# + sndRcvInfo - An optional `swiftmt:MT72` record containing sender-to-receiver information.
+# + return - Returns a tuple extracted information based on the content in `instnCd` and `sndRcvInfo`.
+# If an error occurs during processing, it returns the corresponding error.
+isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72? sndRcvInfo) returns [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?, pacsIsoRecord:CategoryPurpose1Choice?]|error {
+    [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?, 
+        pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose] = [];
+    [string?, string?] [serviceLevel1, serviceLevel2] = [getMT103InstructionCode(instnCd)[2], (check getMT1XXSenderToReceiverInformation(sndRcvInfo))[4]];
+    [pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:CategoryPurpose1Choice?] [purpose1, purpose2] = [getMT103InstructionCode(instnCd)[3], (check getMT1XXSenderToReceiverInformation(sndRcvInfo))[6]];
+    
+    foreach pacsIsoRecord:InstructionForCreditorAgent3 instruction in getMT103InstructionCode(instnCd)[0] {
+        instrFrCdtrAgt.push(instruction);
+    }
+    foreach pacsIsoRecord:InstructionForCreditorAgent3 instruction in (check getMT1XXSenderToReceiverInformation(sndRcvInfo))[0] {
+        instrFrCdtrAgt.push(instruction);
+    }
+    foreach pacsIsoRecord:InstructionForNextAgent1 instruction in getMT103InstructionCode(instnCd)[1] {
+        instrFrNxtAgt.push(instruction);
+    }
+    foreach pacsIsoRecord:InstructionForNextAgent1 instruction in (check getMT1XXSenderToReceiverInformation(sndRcvInfo))[1] {
+        instrFrNxtAgt.push(instruction);
+    }
+
+    if serviceLevel1 is string {
+        finalServiceLevel = serviceLevel1;
+    } else {
+        finalServiceLevel = serviceLevel2;
+    }
+
+    if purpose1 is pacsIsoRecord:CategoryPurpose1Choice {
+        finalPurpose = purpose1;
+    } else {
+        finalPurpose = purpose2;
+    }
+
+    return [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose];
 }
 
 # Extracts the Sender to Receiver Information (MT72) from the given SWIFT MT2XX message.
 #
 # + sndRcvInfo - The SWIFT MT2XX `swiftmt:MT72` structure containing sender-to-receiver information.
-# + return - A string tuple with specific values extracted based on the message content, or nulls 
+# + sndCdNum - The number which defines the code array which is used to verify the code given in the message.
+# + return - A tuple with specific values extracted based on the message content, or nulls 
 # if no match.
-isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?, string?, string?, string?, string?, string?] {
+isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int sndCdNum = 1) returns [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
     if sndRcvInfo is swiftmt:MT72 {
-        match (sndRcvInfo.Cd.content.substring(1, 4)) {
-            "INT" => {
-                return ["INT", sndRcvInfo.Cd.content.substring(5), (), (), (), ()];
+        [string[], string?[], boolean, boolean, string[]] [code, additionalInfo, isAddtnlInfoPresent, 
+            isPreviousValidCode, codeArray] = [[], [], false, true, []];
+        if sndCdNum == 1 {
+            codeArray = MT_2XX_SNDR_CODE1;
+        }
+        if sndCdNum == 2 {
+            codeArray = MT_2XX_SNDR_CODE2;
+        }
+        if sndCdNum == 3 {
+            codeArray = MT_2XX_SNDR_CODE3;
+        }
+        string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+        foreach int i in 0 ... infoArray.length() - 1 {
+            foreach string item in codeArray {
+                if i == 0 && item.equalsIgnoreCaseAscii(infoArray[i]) {
+                    code.push(item);
+                    isAddtnlInfoPresent = false;
+                    break;
+                }
+                if item.equalsIgnoreCaseAscii(infoArray[i]) && i != 0 {
+                    code.push(item);
+                    if isPreviousValidCode {
+                        additionalInfo.push(());
+                    }
+                    isPreviousValidCode = true;
+                    isAddtnlInfoPresent = false;
+                    break;
+                }
+                isAddtnlInfoPresent = true;
             }
-            "ACC" => {
-                return [(), (), "ACC", sndRcvInfo.Cd.content.substring(5), (), ()];
+            if isAddtnlInfoPresent {
+                if i == 0 {
+                    return error("Sender to receiver information code is not supported.");
+                }
+                additionalInfo.push(infoArray[i]);
+                isPreviousValidCode = false;
             }
         }
-        match (sndRcvInfo.Cd.content.substring(1, 5)) {
-            "PHON"|"TELE" => {
-                return [sndRcvInfo.Cd.content.substring(1, 5), sndRcvInfo.Cd.content.substring(6), (), (), (), ()];
-            }
+        if code.length() != additionalInfo.length() {
+            additionalInfo.push(());
         }
-        match (sndRcvInfo.Cd.content.substring(1, 5)) {
-            "PHONIBK"|"TELEIBK" => {
-                return [(), (), sndRcvInfo.Cd.content.substring(1, 8), sndRcvInfo.Cd.content.substring(6), (), ()];
-            }
-        }
-        return [(), (), (), (), (), ()];
+        return check getMT2XXSenderToReceiverInfoForAgts(code, additionalInfo);
     }
-    return [(), (), (), (), (), ()];
+    return [];
+}
+
+# Extracts and returns instructions and related information for agents from the provided MT2XX sender-to-receiver details.
+#
+# + code - An array of strings representing the codes for sender-to-receiver information.
+# + additionalInfo - An optional array of strings containing additional information corresponding to the codes.
+# + return - Returns a tuple with extracted information based on the content in code and addtionalinfo array.
+# If an error occurs during processing, it returns the corresponding error.
+isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] additionalInfo = []) returns [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
+    pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
+    pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
+    [pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?]
+        [intrmyAgt2, prvsInstgAgt1] = [(), ()];
+    [string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, 
+        pacsIsoRecord:Purpose2Choice?] [serviceLevel, lclInstrm, catPurpose, remmitanceInfo, purpose] = [(), (), (), (), ()];
+    foreach int i in 0 ... code.length() - 1 {
+        match (code[i]) {
+            "INT"|"PHON"|"TELE"|"TELEIBK"|"PHONIBK" => {
+                instrFrNxtAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
+            }
+            "ACC"|"UDLC"|"PHONBEN"|"TELEBEN" => {
+                instrFrCdtrAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
+            }
+            "INS"|"INTA" => {
+                if additionalInfo[i].toString().length() == 8 && additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`) 
+                && additionalInfo[i].toString().substring(6,7).matches(re `^[A-Z2-9]+$`) && 
+                additionalInfo[i].toString().substring(7).matches(re `^[A-NP-Z0-9]+$`) {
+                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                        prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                    } else {
+                        intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                    }
+                } else {
+                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                        prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
+                    } else {
+                        intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
+                    }
+                }
+            }
+            "BNF"|"TSU" => {
+                remmitanceInfo = {
+                    Ustrd: [check additionalInfo[i].ensureType(pacsIsoRecord:Max140Text)]
+                };
+            }
+            "PURP" => {
+                purpose = {
+                    Cd: code[i]
+                };
+            }
+            "SVCLVL" => {
+                serviceLevel = code[i];
+            }
+            "LOCINS" => {
+                lclInstrm = {Cd: code[i]};
+            }
+            "CATPURP" => {
+                catPurpose = {Cd: code[i]};
+            }
+        }
+    }
+    return [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo, purpose];
 }
 
 # Determines the settlement method based on the input MT53A, MT53B, or MT53D record.
@@ -655,59 +869,68 @@ isolated function getMT2XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
 # + mt53D - An optional `swiftmt:MT53D` record. If provided, and MT53A or MT53D is valid, returns "COVE".
 # + return - Returns "INGA", "INDA", or "COVE" based on the provided inputs. If no conditions match, returns "INDA" 
 # by default.
-isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? mt53B = (), swiftmt:MT53D? mt53D = ()) returns isorecord:SettlementMethod1Code {
+isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? mt53B = (), swiftmt:MT53D? mt53D = ()) returns camtIsoRecord:SettlementMethod1Code {
     if mt53B is swiftmt:MT53B {
         match (mt53B.PrtyIdnTyp?.content) {
             "C" => {
-                return isorecord:INGA;
+                return camtIsoRecord:INGA;
             }
             "D" => {
-                return isorecord:INDA;
+                return camtIsoRecord:INDA;
             }
         }
     }
     if mt53A is swiftmt:MT53A || mt53D is swiftmt:MT53D {
-        return isorecord:COVE;
+        return camtIsoRecord:COVE;
     }
-    return isorecord:INDA;
+    return camtIsoRecord:INDA;
 }
 
 # Returns the instruction code and additional information based on the input Swift MT record and a specified category 
 # number.
 #
 # + instnCd - An optional array of `swiftmt:MT23E` objects containing instruction codes and additional information.
-# + num - An integer specifying the category of instruction code to retrieve:
 # + return - Returns a tuple of up to 8 elements where the relevant instruction code and additional info are populated 
 # based on the category number.
 # If no match is found or `instnCd` is null, returns a tuple with all elements set to `null`.
-isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?, string?] {
+isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd) returns [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?, pacsIsoRecord:CategoryPurpose1Choice?] {
     if instnCd is swiftmt:MT23E[] {
+        pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
+        pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
+        string? serviceLevel = ();
+        string purpose = "";
         foreach swiftmt:MT23E instruction in instnCd {
             match (instruction.InstrnCd.content) {
                 "REPA"|"PHON"|"TELE"|"PHOI"|"TELI" => {
-                    if num == 1 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    instrFrNxtAgt.push ({
+                        Cd: instruction.InstrnCd.content,
+                        InstrInf: instruction.AddInfo?.content
+                    });
                 }
                 "CHQB"|"HOLD"|"PHOB"|"TELB" => {
-                    if num == 2 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    instrFrCdtrAgt.push({
+                        Cd: instruction.InstrnCd.content,
+                        InstrInf: instruction.AddInfo?.content
+                    });
                 }
                 "SDVA" => {
-                    if num == 3 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    serviceLevel = instruction.InstrnCd.content;
                 }
                 "INTC"|"CORT" => {
-                    if num == 4 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    purpose += instruction.InstrnCd.content;
                 }
             }
         }
+        if purpose.length() == 8 && !(purpose.substring(0,4).equalsIgnoreCaseAscii(purpose.substring(4))) {
+            purpose = purpose.substring(0,4) + " " + purpose.substring(4);
+            return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, {Prtry:purpose}];
+        }
+        if purpose.length() == 0 {
+            return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel];
+        }
+        return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, {Cd: purpose.substring(0,4)}];
     }
-    return [(), ()];
+    return [];
 }
 
 # Extracts and returns specific instruction codes and additional information from the provided `MT23E` array
@@ -718,34 +941,46 @@ isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd, int num) ret
 # + num - An integer indicating which set of values to return based on the instruction code.
 # + return - Returns a tuple of strings and/or null values corresponding to the instruction code and additional information.
 # The structure of the tuple depends on the `num` parameter and the matched instruction code.
-isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [string?, string?] {
+isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd, int num) returns [painIsoRecord:InstructionForDebtorAgent1?, camtIsoRecord:InstructionForCreditorAgent3[]?, painIsoRecord:ServiceLevel8Choice[]?, painIsoRecord:CategoryPurpose1Choice?] {
     if instnCd is swiftmt:MT23E[] {
+        painIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
+        painIsoRecord:InstructionForDebtorAgent1? instrFrDbtrAgt = ();
+        painIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
+        string purpose = "";
         foreach swiftmt:MT23E instruction in instnCd {
             match (instruction.InstrnCd.content) {
                 "CMTO"|"CMSW"|"CMZB"|"REPA" => {
-                    if num == 1 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    instrFrDbtrAgt = {
+                        Cd: instruction.InstrnCd.content,
+                        InstrInf: instruction.AddInfo?.content
+                    };
                 }
                 "CHQB"|"PHON"|"EQUI" => {
-                    if num == 2 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    instrFrCdtrAgt.push({
+                        Cd: instruction.InstrnCd.content,
+                        InstrInf: instruction.AddInfo?.content
+                    });
                 }
                 "URGP" => {
-                    if num == 3 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    serviceLevel.push({
+                        Cd: instruction.InstrnCd.content
+                    });
                 }
                 "CORT"|"INTC" => {
-                    if num == 4 {
-                        return [instruction.InstrnCd.content, instruction.AddInfo?.content ?: ()];
-                    }
+                    purpose += instruction.InstrnCd.content;
                 }
             }
         }
+        if purpose.length() == 8 && !(purpose.substring(0,4).equalsIgnoreCaseAscii(purpose.substring(4))) {
+            purpose = purpose.substring(0,4) + " " + purpose.substring(4);
+            return [instrFrDbtrAgt, instrFrCdtrAgt, serviceLevel, {Prtry:purpose}];
+        }
+        if purpose.length() == 0 {
+            return [instrFrDbtrAgt, instrFrCdtrAgt, serviceLevel];
+        }
+        return [instrFrDbtrAgt, instrFrCdtrAgt, serviceLevel, {Cd: purpose.substring(0,4)}];
     }
-    return [(), ()];
+    return [];
 }
 
 # Retrieves a specific MT101 repeating field from a given transaction set or message based on the `typeName` provided.
@@ -788,7 +1023,10 @@ isolated function getMT101RepeatingFields(swiftmt:MT101Block4 block4, swiftmt:MT
 #
 # + date - A `swiftmt:Dt` object containing the date in the format YYMMDD.
 # + return - Returns the date in ISO 20022 format (YYYY-MM-DD). 
-isolated function convertToISOStandardDate(swiftmt:Dt date) returns string {
+isolated function convertToISOStandardDate(swiftmt:Dt? date) returns string? {
+    if date !is swiftmt:Dt {
+        return ();
+    }
     return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6);
 }
 
@@ -1088,7 +1326,7 @@ isolated function getMT203RepeatingFields(swiftmt:MT203Block4 block4, swiftmt:MT
 #
 # + floorLimit - An optional array of MT34F objects, each representing a floor limit.
 # + return - Returns an array of Limit2 objects for ISO 20022, or an error if conversion fails.
-isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns isorecord:Limit2[]?|error {
+isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns camtIsoRecord:Limit2[]?|error {
     if floorLimit is swiftmt:MT34F[] {
         if floorLimit.length() > 1 {
             return [
@@ -1120,7 +1358,7 @@ isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns isorecord:L
                         Ccy: floorLimit[0].Ccy.content
                     }
                 },
-                CdtDbtInd: isorecord:BOTH
+                CdtDbtInd: camtIsoRecord:BOTH
             }
         ];
     }
@@ -1131,14 +1369,14 @@ isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns isorecord:L
 #
 # + code - The optional SWIFT MT Cd element containing the credit or debit indicator.
 # + return - Returns the ISO 20022 `FloorLimitType1Code`, which can be either DEBT (debit) or CRED (credit).
-isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns isorecord:FloorLimitType1Code {
+isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns camtIsoRecord:FloorLimitType1Code {
     if code is swiftmt:Cd {
         if code.content.equalsIgnoreCaseAscii("D") {
-            return isorecord:DEBT;
+            return camtIsoRecord:DEBT;
         }
-        return isorecord:CRED;
+        return camtIsoRecord:CRED;
     }
-    return isorecord:DEBT;
+    return camtIsoRecord:DEBT;
 }
 
 # Retrieves and converts the list of MT61 statement entries into ISO 20022 `ReportEntry14` objects.
@@ -1149,8 +1387,8 @@ isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns isoreco
 #
 # + statement - The optional array of SWIFT MT61 statement lines, containing details of account transactions.
 # + return - Returns an array of `ReportEntry14` objects with mapped values, or an error if conversion fails.
-isolated function getEntries(swiftmt:MT61[]? statement) returns isorecord:ReportEntry14[]|error {
-    isorecord:ReportEntry14[] names = [];
+isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:ReportEntry14[]|error {
+    camtIsoRecord:ReportEntry14[] names = [];
     if statement is swiftmt:MT61[] {
         foreach swiftmt:MT61 stmtLine in statement {
             names.push({
@@ -1185,11 +1423,11 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns isorecord:Report
 # + content - The SWIFT MT message content (MT60F, MT62F, MT65, MT64, MT60M, MT62M, or MT61) which contains 
 # the credit or debit indicator.
 # + return - Returns the ISO 20022 `CreditDebitCode`, either `CRDT` or `DBIT`.
-isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swiftmt:MT65|swiftmt:MT64|swiftmt:MT60M|swiftmt:MT62M|swiftmt:MT61 content) returns isorecord:CreditDebitCode {
+isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swiftmt:MT65|swiftmt:MT64|swiftmt:MT60M|swiftmt:MT62M|swiftmt:MT61 content) returns camtIsoRecord:CreditDebitCode {
     if content.Cd.content.equalsIgnoreCaseAscii("C") || content.Cd.content.equalsIgnoreCaseAscii("RD") {
-        return isorecord:CRDT;
+        return camtIsoRecord:CRDT;
     }
-    return isorecord:DBIT;
+    return camtIsoRecord:DBIT;
 
 }
 
@@ -1208,8 +1446,8 @@ isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swift
 # + inmdCloseBalance - The intraday closing balances (MT62M[]), defaults to null if not provided.
 # + forwardAvailableBalance - The forward available balances (MT65[]), defaults to null if not provided.
 # + return - Returns an array of `CashBalance8` objects representing the balances in ISO 20022 format or an error if any conversion fails.
-isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]? closeAvailableBalance, swiftmt:MT60M[]? inmdOpenBalance = (), swiftmt:MT62M[]? inmdCloseBalance = (), swiftmt:MT65[]? forwardAvailableBalance = ()) returns isorecord:CashBalance8[]|error {
-    isorecord:CashBalance8[] BalArray = [];
+isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]? closeAvailableBalance, swiftmt:MT60M[]? inmdOpenBalance = (), swiftmt:MT62M[]? inmdCloseBalance = (), swiftmt:MT65[]? forwardAvailableBalance = ()) returns camtIsoRecord:CashBalance8[]|error {
+    camtIsoRecord:CashBalance8[] BalArray = [];
     if firstOpenBalance is swiftmt:MT60F {
         BalArray.push({
             Amt: {
@@ -1393,93 +1631,6 @@ isolated function getTotalSumOfEntries(swiftmt:Amnt? creditEntryAmnt, swiftmt:Am
     }
 }
 
-# Retrieves the intermediary agent identification information from the provided MT56A, MT56D, MT57A, MT57B, and MT57D 
-# messages.
-#
-# This function checks for the presence of intermediary fields and constructs a BranchAndFinancialInstitutionIdentification8
-# record containing relevant details such as BIC, LEI, name, and address.
-#
-# + inmd56A - Optional intermediary message of type MT56A.
-# + inmd56D - Optional intermediary message of type MT56D.
-# + inmd57A - Optional intermediary message of type MT57A.
-# + inmd57B - Optional intermediary message of type MT57B.
-# + inmd57D - Optional intermediary message of type MT57D.
-# + return - Returns a BranchAndFinancialInstitutionIdentification8 record or null if no matching messages are found.
-isolated function getIntermediaryAgent1(swiftmt:MT56A? inmd56A, swiftmt:MT56D? inmd56D, swiftmt:MT57A? inmd57A, swiftmt:MT57B? inmd57B, swiftmt:MT57D? inmd57D) returns isorecord:BranchAndFinancialInstitutionIdentification8? {
-    if inmd56A is swiftmt:MT56A || inmd56D is swiftmt:MT56D {
-        return {
-            FinInstnId: {
-                BICFI: inmd56A?.IdnCd?.content,
-                LEI: getPartyIdentifier(inmd56A?.PrtyIdn, inmd56D?.PrtyIdn),
-                Nm: getName(inmd56D?.Nm),
-                PstlAdr: {
-                    AdrLine: getAddressLine(inmd56D?.AdrsLine)
-                }
-            }
-        };
-    }
-    if inmd57A is swiftmt:MT57A || inmd57B is swiftmt:MT57B || inmd57D is swiftmt:MT57D {
-        return {
-            FinInstnId: {
-                BICFI: inmd57A?.IdnCd?.content,
-                LEI: getPartyIdentifier(inmd57A?.PrtyIdn, inmd57B?.PrtyIdn, inmd57D?.PrtyIdn),
-                Nm: getName(inmd57D?.Nm),
-                PstlAdr: {
-                    AdrLine: getAddressLine(inmd57D?.AdrsLine)
-                }
-            }
-        };
-    }
-    return ();
-}
-
-# Retrieves the intermediary agent identification information from the provided MT56A, MT56D, MT57A, MT57B, and 
-# MT57D messages.
-#
-# This function checks for the presence of intermediary fields in MT56 and MT57 messages and constructs a 
-# BranchAndFinancialInstitutionIdentification8 record containing relevant details such as BIC, LEI, name, and address.
-#
-# + inmd56A - Optional intermediary message of type MT56A.
-# + inmd56D - Optional intermediary message of type MT56D.
-# + inmd57A - Optional intermediary message of type MT57A.
-# + inmd57B - Optional intermediary message of type MT57B.
-# + inmd57D - Optional intermediary message of type MT57D.
-# + return - Returns a BranchAndFinancialInstitutionIdentification8 record or null if no matching messages are found.
-isolated function getIntermediaryAgent2(swiftmt:MT56A? inmd56A, swiftmt:MT56D? inmd56D, swiftmt:MT57A? inmd57A, swiftmt:MT57B? inmd57B, swiftmt:MT57D? inmd57D) returns isorecord:BranchAndFinancialInstitutionIdentification8? {
-    if inmd56A is swiftmt:MT56A || inmd56D is swiftmt:MT56D && (inmd57A is swiftmt:MT57A || inmd57B is swiftmt:MT57B || inmd57D is swiftmt:MT57D) {
-        return {
-            FinInstnId: {
-                BICFI: inmd57A?.IdnCd?.content,
-                LEI: getPartyIdentifier(inmd57A?.PrtyIdn, inmd57B?.PrtyIdn, inmd57D?.PrtyIdn),
-                Nm: getName(inmd57D?.Nm),
-                PstlAdr: {
-                    AdrLine: getAddressLine(inmd57D?.AdrsLine)
-                }
-            }
-        };
-    }
-    return ();
-}
-
-# Retrieves sender to receiver information from an MT72 message.
-#
-# This function analyzes the `Cd` field of an MT72 message and returns relevant information based on its content.
-#
-# + sndRcvInfo - An optional MT72 message containing sender to receiver information.
-# + return - Returns a tuple of strings or nulls based on the analyzed content of the `Cd` field.
-isolated function getMT204SenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns [string?, string?] {
-    if sndRcvInfo is swiftmt:MT72 {
-        if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("ACC") {
-            return ["ACC", sndRcvInfo.Cd.content.substring(5)];
-        }
-        if sndRcvInfo.Cd.content.substring(1, 4).equalsIgnoreCaseAscii("BNF") {
-            return [(), ()];
-        }
-        return [sndRcvInfo.Cd.content];
-    }
-    return [(), ()];
-}
-
 # Retrieves the end-to-end identification string based on available identifiers.
 #
 # This function checks for the presence of three optional identifiers in the following
@@ -1600,11 +1751,11 @@ isolated function getDescriptionOfMessage(swiftmt:Nrtv[]? narrative) returns str
 # an optional additional explanation.
 #
 # + narration - A `string` containing the narration to analyze.
-# + return - Returns an `isorecord:MissingOrIncorrectData1` record with arrays of missing and incorrect information reasons.
-isolated function getJustificationReason(string narration) returns isorecord:MissingOrIncorrectData1 {
-    isorecord:UnableToApplyMissing2[] missingInfoArray = [];
-    isorecord:UnableToApplyIncorrect2[] incorrectInfoArray = [];
-    string[] queriesArray = getQueriesArray(narration);
+# + return - Returns an `camtIsoRecord:MissingOrIncorrectData1` record with arrays of missing and incorrect information reasons.
+isolated function getJustificationReason(string narration) returns camtIsoRecord:MissingOrIncorrectData1 {
+    camtIsoRecord:UnableToApplyMissing2[] missingInfoArray = [];
+    camtIsoRecord:UnableToApplyIncorrect2[] incorrectInfoArray = [];
+    string[] queriesArray = getCodeAndAddtnlInfo(narration);
 
     foreach int i in 0 ... queriesArray.length() - 1 {
         boolean isMissingInfo = false;
@@ -1651,6 +1802,45 @@ isolated function getJustificationReason(string narration) returns isorecord:Mis
     };
 }
 
+# Extracts cancellation reasons and additional information from a narration string.
+#
+# + narration - A `string` containing the narration with codes and additional information.
+# + return - Returns an array of `camtIsoRecord:CancellationStatusReason5` records with the following structure:
+#    - `Rsn`: Contains the cancellation reason code (`Cd`).
+#    - `AddtlInf` (optional): Contains additional information related to the reason, if present.
+isolated function getCancellationReason(string narration) returns camtIsoRecord:CancellationStatusReason5[] {
+    camtIsoRecord:CancellationStatusReason5[] cancellationReasonArray = [];
+    string[] answersArray = getCodeAndAddtnlInfo(narration);
+
+    foreach int i in 0 ... answersArray.length() - 1 {
+        if answersArray[i].length() <= 2 || answersArray[i].length() == 4  {
+            if i != answersArray.length() - 1 {
+                if answersArray[i + 1].length() > 4 {
+                    cancellationReasonArray.push({
+                        Rsn: {
+                            Cd:answersArray[i]
+                        }, 
+                        AddtlInf: [answersArray[i + 1]]
+                    });
+                    continue;
+                } 
+                cancellationReasonArray.push({
+                    Rsn: {
+                        Cd: answersArray[i]
+                    }
+                });
+                continue;
+            } 
+            cancellationReasonArray.push({
+                Rsn: {
+                    Cd: answersArray[i]
+                }
+            });
+        }
+    }
+    return cancellationReasonArray;
+}
+
 # Parses a narration string into an array of individual queries based on separator patterns.
 #
 # This function divides a narration string by recognizing sections marked by '/' characters,
@@ -1658,29 +1848,29 @@ isolated function getJustificationReason(string narration) returns isorecord:Mis
 #
 # + narration - A `string` containing the narration to split.
 # + return - Returns an array of `string` values containing individual queries extracted from the narration.
-isolated function getQueriesArray(string narration) returns string[] {
+isolated function getCodeAndAddtnlInfo(string narration) returns string[] {
     string supplementaryInfo = "";
-    string[] queriesArray = [];
+    string[] queriesOrAnswersArray = [];
     int count = 0;
 
     foreach int i in 1 ... narration.length() - 1 {
         if narration.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
             if i == narration.length() - 1 {
-                queriesArray.push(supplementaryInfo);
+                queriesOrAnswersArray.push(supplementaryInfo);
                 break;
             }
             count += 1;
             if count == 2 || narration.substring(i + 1, i + 2).equalsIgnoreCaseAscii("/") {
                 continue;
             }
-            queriesArray.push(supplementaryInfo);
+            queriesOrAnswersArray.push(supplementaryInfo);
             supplementaryInfo = "";
             continue;
         }
         if count < 2 {
             supplementaryInfo += narration.substring(i, i + 1);
             if i == narration.length() - 1 {
-                queriesArray.push(supplementaryInfo);
+                queriesOrAnswersArray.push(supplementaryInfo);
                 break;
             }
             count = 0;
@@ -1691,7 +1881,7 @@ isolated function getQueriesArray(string narration) returns string[] {
             count = 0;
         }
     }
-    return queriesArray;
+    return queriesOrAnswersArray;
 }
 
 # Retrieves a rejection reason code from a narration string.
@@ -1700,11 +1890,125 @@ isolated function getQueriesArray(string narration) returns string[] {
 # investigation rejection reason code if it matches a value in `INVTGTN_RJCT_RSN`.
 #
 # + narration - A `string` containing the narration with the rejection reason code.
-# + return - Returns the `isorecord:InvestigationRejection1Code` if found, or an error if the code is invalid.
-isolated function getRejectedReason(string narration) returns isorecord:InvestigationRejection1Code|error {
+# + return - Returns the `camtIsoRecord:InvestigationRejection1Code` if found, or an error if the code is invalid.
+isolated function getRejectedReason(string narration) returns camtIsoRecord:InvestigationRejection1Code|error {
     string? code = INVTGTN_RJCT_RSN[narration.substring(6, 10)];
     if code is string {
         return code.ensureType();
     }
     return error("Provide a valid rejection reason code.");
+}
+
+# Retrieves the corresponding ISO 20022 message name based on the given SWIFT message type.
+#
+# + messageName - A `string?` representing the SWIFT message type (e.g., `"101"`, `"103"`, etc.).
+# + return - Returns a `string` representing the corresponding ISO 20022 message name.
+isolated function getOrignalMessageName(string? messageName) returns string {
+    match messageName {
+        "101" => {
+            return "pain.001";
+        }
+        "102"|"103" => {
+            return "pacs.008";
+        }
+        "104"|"107" => {
+            return "pacs.003";
+        }
+        "200"|"201"|"202"|"202COV"|"203"|"205"|"205COV" => {
+            return "pacs.009";
+        }
+        "204" => {
+            return "pacs.010";
+        }
+        "210" => {
+            return "camt.057";
+        }
+    }
+    return "";
+}
+
+# Retrieves the underlying customer transaction fields from a given MT202COV or MT205COV message
+# based on the specified type name.
+#
+# This function checks if the provided `typeName` matches any underlying customer credit transfers.
+# If a match is found, it returns (). Otherwise, it retrieves and returns the appropriate field 
+# based on the specified `typeName`.
+#
+# + ordgInstn1 - A MT52A field containing ordering institution details.
+# + ordgInstn2 - A MT52D field containing ordering institution details.
+# + block4 - A MT202COV or MT 205COV block4 containing transaction details. 
+# + return - Returns a tuple of MT52 field.
+isolated function getUnderlyingCustomerTransactionField52(swiftmt:MT52A? ordgInstn1, swiftmt:MT52D? ordgInstn2, swiftmt:MT202COVBlock4|swiftmt:MT205COVBlock4 block4) returns [swiftmt:MT52A?, swiftmt:MT52D?] {
+    if ordgInstn1 is swiftmt:MT52A {
+        return [ordgInstn1, ()];
+    }
+    if ordgInstn2 is swiftmt:MT52D {
+        return [(), ordgInstn2] ;
+    }
+    return [block4.MT52A, block4.MT52D];
+}
+
+# Retrieves the underlying customer transaction fields from a given MT202COV or MT205COV message
+# based on the specified type name.
+#
+# This function checks if the provided `typeName` matches any underlying customer credit transfers.
+# If a match is found, it returns (). Otherwise, it retrieves and returns the appropriate field 
+# based on the specified `typeName`.
+#
+# + cdtrAgt1 - A MT57A field containing ordering institution details.
+# + cdtrAgt2 - A MT57B field containing ordering institution details.
+# + cdtrAgt3 - A MT57C field containing ordering institution details.
+# + cdtrAgt4 - A MT57D field containing ordering institution details.
+# + block4 - A MT202COV or MT 205COV block4 containing transaction details. 
+# + return - Returns a tuple of MT57 field.
+isolated function getUnderlyingCustomerTransactionField57(swiftmt:MT57A? cdtrAgt1, swiftmt:MT57B? cdtrAgt2, swiftmt:MT57C? cdtrAgt3, swiftmt:MT57D? cdtrAgt4, swiftmt:MT202COVBlock4|swiftmt:MT205COVBlock4 block4) returns [swiftmt:MT57A?, swiftmt:MT57B?, swiftmt:MT57C?, swiftmt:MT57D?] {
+    if cdtrAgt1 is swiftmt:MT57A {
+        return [cdtrAgt1, (), (), ()];
+    }
+    if cdtrAgt2 is swiftmt:MT57B {
+        return [(), cdtrAgt2, (), ()] ;
+    }
+    if cdtrAgt3 is swiftmt:MT57C {
+        return [ (), (), cdtrAgt3, ()];
+    }
+    if cdtrAgt4 is swiftmt:MT57D {
+        return [(), (), (), cdtrAgt4] ;
+    }
+    return [block4.MT58A, (), (), block4.MT58D];
+}
+
+# Extracts and returns other identification details for the given accounts.
+#
+# + account1 - An optional `swiftmt:Acc` record representing the first account.
+# + account2 - An optional `swiftmt:Acc` record representing the second account.
+# + account3 - An optional `swiftmt:Acc` record representing the third account (default is `()`).
+# + return - An optional array of `GenericOrganisationIdentification3` records containing the identification details.
+# If no accounts (`account1`, `account2`, or `account3`) are provided, a record with the ID `"NOTPROVIDED"` and 
+# the scheme name `"TxId"` is returned.
+# Returns `()` if at least one of the accounts is provided.
+isolated function getOtherId(swiftmt:Acc? account1, swiftmt:Acc? account2, swiftmt:Acc? account3 = ()) returns camtIsoRecord:GenericOrganisationIdentification3[]? {
+    if account1 is swiftmt:Acc || account2 is swiftmt:Acc || account3 is swiftmt:Acc {
+        return ();
+    }
+    return [{
+        Id: "NOTPROVIDED",
+        SchmeNm: {
+            Cd: "TxId"
+        }
+    }];
+}
+
+# Extracts a status confirmation code from the given narration string if certain conditions are met.
+#
+# + narration - A `string` containing the narration from which the status confirmation code is to be extracted.
+# + return -  A `string` containing the extracted status confirmation code (substring from the 1st to the 5th character) 
+# if the narration satisfies the following conditions:The length of the narration is greater than 4.
+# the narration starts with any of the prefixes: `"/CNCL"`, `"/PDCR"`, or `"RJCR"`.
+# Returns () if the narration does not meet the above conditions.
+isolated function getStatusConfirmation(string narration) returns string? {
+    if narration.length() > 4 && (narration.startsWith("/CNCL") || narration.startsWith("/PDCR") 
+    || narration.startsWith("RJCR")) {
+        return narration.substring(1,5);
+    }
+    return ();
 }
