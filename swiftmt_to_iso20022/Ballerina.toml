@@ -1,0 +1,12 @@
+[package]
+org = "ballerinax"
+name = "financial.swiftmtToIso20022"
+version = "0.9.0"
+distribution = "2201.10.1"
+authors=["Ballerina"]
+keywords=["Financial", "SWIFT MT", "ISO 20022", "Conversion"]
+repository="https://github.com/ballerina-platform/module-ballerinax-financial.swiftmt-to-iso20022"
+license = ["Apache-2.0"]
+
+[build-options]
+observabilityIncluded = true
