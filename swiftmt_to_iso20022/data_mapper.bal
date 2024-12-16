@@ -25,21 +25,21 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + finMessage - The SWIFT message string that needs to be transformed to ISO 20022 XML.
 # + return - Returns the transformed ISO 20022 XML or an error if the transformation fails.
 public isolated function toIso20022Xml(string finMessage) returns xml|error {
-    record {} customizedMessage = check swiftmt:parseSwiftMt(finMessage);
+    record {} parsedMessage = check swiftmt:parseSwiftMt(finMessage);
     // MT104, MT107, and MTn96 messages are handled separately to identify the type of instruction found within the 
     //message and to determine the appropriate action, whether converting it to ISO 20022 XML or returning an error 
     //message if the instruction is not supported. For eaxample if the MT 107 message has RTND instruction code, an
     //error will be thrown as the returned mapping for MT 107 is still not supported.
-    if customizedMessage is swiftmt:MT104Message {
-        return getMT104TransformFunction(customizedMessage);
+    if parsedMessage is swiftmt:MT104Message {
+        return getMT104TransformFunction(parsedMessage);
     }
-    if customizedMessage is swiftmt:MT107Message {
-        return getMT107TransformFunction(customizedMessage);
+    if parsedMessage is swiftmt:MT107Message {
+        return getMT107TransformFunction(parsedMessage);
     }
-    if customizedMessage is swiftmt:MTn96Message {
-        return getMTn96TransformFunction(customizedMessage);
+    if parsedMessage is swiftmt:MTn96Message {
+        return getMTn96TransformFunction(parsedMessage);
     }
-    xml swiftMessageXml = check xmldata:toXml(customizedMessage);
+    xml swiftMessageXml = check xmldata:toXml(parsedMessage);
     string messageType = (swiftMessageXml/**/<messageType>).data();
     string validationFlag = (swiftMessageXml/**/<ValidationFlag>/<value>).data();
     if validationFlag.length() > 0 {
@@ -47,11 +47,11 @@ public isolated function toIso20022Xml(string finMessage) returns xml|error {
         if func is () {
             return error("This SWIFT MT to ISO 20022 conversion is not supported.");
         }
-        return xmldata:toXml(check function:call(func, customizedMessage).ensureType(), {textFieldName: "content"});
+        return xmldata:toXml(check function:call(func, parsedMessage).ensureType(), {textFieldName: "content"});
     }
     isolated function? func = transformFunctionMap[messageType];
     if func is () {
         return error("This SWIFT MT to ISO 20022 conversion is not supported.");
     }
-    return xmldata:toXml(check function:call(func, customizedMessage).ensureType(), {textFieldName: "content"});
+    return xmldata:toXml(check function:call(func, parsedMessage).ensureType(), {textFieldName: "content"});
 }
