@@ -35,20 +35,20 @@ isolated function getMT104TransformFunction(swiftmt:MT104Message message) return
                     return error("Return direct debit transfer message is not supported.");
                 }
                 if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string)) {
-                    return xmldata:toXml(check transformMT104DrctDbt(message));
+                    return xmldata:toXml(check transformMT104ToPacs003(message));
                 }
                 if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string), true) {
-                    return xmldata:toXml(check transformMT104ReqDbtTrf(message));
+                    return xmldata:toXml(check transformMT104ToPain008(message));
                 }
             }
         }
         return error("Instruction code is required to identify ISO 20022 message type.");
     }
     if isValidInstructionCode(check message.block4.MT23E?.InstrnCd?.content.ensureType(string)) {
-        return xmldata:toXml(check transformMT104DrctDbt(message));
+        return xmldata:toXml(check transformMT104ToPacs003(message));
     }
     if isValidInstructionCode(check message.block4.MT23E?.InstrnCd?.content.ensureType(string), true) {
-        return xmldata:toXml(check transformMT104ReqDbtTrf(message));
+        return xmldata:toXml(check transformMT104ToPain008(message));
     }
     return error("Return direct debit transfer message is not supported.");
 }
@@ -67,14 +67,14 @@ isolated function getMT107TransformFunction(swiftmt:MT107Message message) return
                     return error("Return general direct debit transfer message is not supported.");
                 }
                 if isValidInstructionCode(check transaxion.MT23E?.InstrnCd?.content.ensureType(string)) {
-                    return xmldata:toXml(check transformMT107(message));
+                    return xmldata:toXml(check transformMT107ToPacs003(message));
                 }
             }
         }
-        return xmldata:toXml(check transformMT107(message));
+        return xmldata:toXml(check transformMT107ToPacs003(message));
     }
     if isValidInstructionCode(check message.block4.MT23E?.InstrnCd?.content.ensureType(string)) {
-        return xmldata:toXml(check transformMT107(message));
+        return xmldata:toXml(check transformMT107ToPacs003(message));
     }
     return error("Return general direct debit transfer message is not supported.");
 }
