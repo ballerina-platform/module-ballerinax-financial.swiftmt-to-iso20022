@@ -1,4 +1,4 @@
-// Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -26,6 +26,10 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns the transformed ISO 20022 XML or an error if the transformation fails.
 public isolated function toIso20022Xml(string finMessage) returns xml|error {
     record {} customizedMessage = check swiftmt:parseSwiftMt(finMessage);
+    // MT104, MT107, and MTn96 messages are handled separately to identify the type of instruction found within the 
+    //message and to determine the appropriate action, whether converting it to ISO 20022 XML or returning an error 
+    //message if the instruction is not supported. For eaxample if the MT 107 message has RTND instruction code, an
+    //error will be thrown as the returned mapping for MT 107 is still not supported.
     if customizedMessage is swiftmt:MT104Message {
         return getMT104TransformFunction(customizedMessage);
     }
