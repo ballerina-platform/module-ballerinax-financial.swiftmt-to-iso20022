@@ -561,7 +561,10 @@ isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G?
                 }
             },
             Agt: {
-                FinInstnId: {}
+                FinInstnId: {
+                    Nm:"NOTPROVIDED",
+                    PstlAdr: {AdrLine: ["NOTPROVIDED"]}
+                }
             },
             Tp: {
                 Cd: "CRED"
@@ -577,7 +580,10 @@ isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G?
                 }
             },
             Agt: {
-                FinInstnId: {}
+                FinInstnId: {
+                    Nm:"NOTPROVIDED",
+                    PstlAdr: {AdrLine: ["NOTPROVIDED"]}
+                }
             },
             Tp: {
                 Cd: "DEBT"
@@ -1297,7 +1303,7 @@ isolated function getMT107RepeatingFields(swiftmt:MT107Block4 block4, swiftmt:MT
 isolated function getMT201RepeatingFields(swiftmt:MT201Block4 block4, swiftmt:MT72? content, string typeName) returns swiftmt:MT72? {
     foreach swiftmt:MT201Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+            if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
                 return content;
             }
         }
@@ -1314,7 +1320,7 @@ isolated function getMT201RepeatingFields(swiftmt:MT201Block4 block4, swiftmt:MT
 isolated function getMT203RepeatingFields(swiftmt:MT203Block4 block4, swiftmt:MT72? content, string typeName) returns swiftmt:MT72? {
     foreach swiftmt:MT203Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+            if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
                 return content;
             }
         }

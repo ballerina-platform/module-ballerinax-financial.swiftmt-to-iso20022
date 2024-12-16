@@ -85,7 +85,12 @@ isolated function transformMT101(swiftmt:MT101Message message) returns painIsoRe
             FwdgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             NbOfTxs: message.block4.Transaction.length().toString(),
@@ -373,10 +378,11 @@ isolated function transformMT102STP(swiftmt:MT102STPMessage message) returns pac
             NbOfTxs: message.block4.Transaction.length().toString(),
             TtlIntrBkSttlmAmt: {
                 ActiveCurrencyAndAmount_SimpleType: {
-                    ActiveCurrencyAndAmount_SimpleType: check getTotalInterBankSettlementAmount(message.block4.MT19, message.block4.MT32A),
+                    ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
                     Ccy: message.block4.MT32A.Ccy.content
                 }
             },
+            CtrlSum: check convertToDecimal(message.block4.MT19?.Amnt),
             MsgId: message.block4.MT20.msgId.content
         },
         CdtTrfTxInf: check getMT102STPCreditTransferTransactionInfo(message.block4, message.block3)
@@ -555,7 +561,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
             InstrForNxtAgt: (check getMT1XXSenderToReceiverInformation(block4.MT72))[1],
             InstrForCdtrAgt: (check getMT1XXSenderToReceiverInformation(block4.MT72))[0],
             Purp: {
-                Cd: getMandatoryFields(trnsTyp?.Typ?.content)
+                Prtry: getMandatoryFields(trnsTyp?.Typ?.content)
             }
         });
     }
@@ -624,7 +630,12 @@ isolated function transformMT102(swiftmt:MT102Message message) returns pacsIsoRe
             InstgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             InstdAgt: {
@@ -822,7 +833,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
             InstrForNxtAgt: (check getMT1XXSenderToReceiverInformation(block4.MT72))[1],
             InstrForCdtrAgt: (check getMT1XXSenderToReceiverInformation(block4.MT72))[0],
             Purp: {
-                Cd: getMandatoryFields(trnsTyp?.Typ?.content)
+                Prtry: getMandatoryFields(trnsTyp?.Typ?.content)
             }
         });
     }
@@ -914,7 +925,12 @@ isolated function transformMT103REMIT(swiftmt:MT103REMITMessage message) returns
             InstgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             InstdAgt: {
@@ -1486,7 +1502,12 @@ isolated function transformMT103(swiftmt:MT103Message message) returns pacsIsoRe
             InstgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             InstdAgt: {
@@ -1719,7 +1740,12 @@ isolated function transformMT104DrctDbt(swiftmt:MT104Message message) returns pa
             InstgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             InstdAgt: {
@@ -1965,7 +1991,12 @@ isolated function transformMT104ReqDbtTrf(swiftmt:MT104Message message) returns 
             FwdgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             NbOfTxs: message.block4.Transaction.length().toString(),
@@ -2123,7 +2154,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Block4 block4, swift
                     RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),
                     RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []},
                     Purp: {
-                        Cd: getMandatoryFields(trnsTp?.Typ?.content)
+                        Prtry: getMandatoryFields(trnsTp?.Typ?.content)
                     }
                 }
             ],
@@ -2157,7 +2188,12 @@ isolated function transformMT107(swiftmt:MT107Message message) returns pacsIsoRe
             InstgAgt: {
                 FinInstnId: {
                     BICFI: message.block4.MT51A?.IdnCd?.content,
-                    LEI: message.block4.MT51A?.PrtyIdn?.content
+                    ClrSysMmbId: {
+                        MmbId: "", 
+                        ClrSysId: {
+                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                        }
+                    }
                 }
             },
             InstdAgt: {

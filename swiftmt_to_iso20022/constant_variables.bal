@@ -22,7 +22,8 @@ final readonly & map<isolated function> transformFunctionMap =
     "103REMIT": transformMT103REMIT,
     "107": transformMT107,
     "192": transformMT192ToCamt055,
-    "195": transformMTn92ToCamt056,
+    "195": transformMTn95ToCamt026,
+    "196":transformMTn96ToCamt029,
     "200": transformMT200ToPacs009,
     "201": transformMT201,
     "202": transformMT202,
@@ -33,7 +34,8 @@ final readonly & map<isolated function> transformFunctionMap =
     "205COV": transformMT205COV,
     "210": transformMT210,
     "292": transformMTn92ToCamt056,
-    "295": transformMTn92ToCamt056,
+    "295": transformMTn95ToCamt026,
+    "296":transformMTn96ToCamt029,
     "900": transformMT900,
     "910": transformMT910,
     "920": transformMT920,
@@ -46,5 +48,6 @@ final readonly & map<isolated function> transformFunctionMap =
     "972": transformMT972,
     "973": transformMT973,
     "992": transformMTn92ToCamt056,
-    "995": transformMTn92ToCamt056
+    "995": transformMTn95ToCamt026,
+    "996":transformMTn96ToCamt029
 };
