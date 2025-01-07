@@ -22,29 +22,38 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT973 message as a record value.
 # + return - Returns a `Camt060Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT973ToCamt060(swiftmt:MT973Message message) returns camtIsoRecord:Camt060Document|error => {
-    AcctRptgReq: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            MsgId: message.block4.MT20.msgId.content
-        },
-        RptgReq: [
-            {
-                Id: message.block4.MT20.msgId.content,
-                ReqdMsgNmId: message.block4.MT12.Msg.content,
-                AcctOwnr: {},
-                Acct: {
-                    Id: {
-                        IBAN: validateAccountNumber(message.block4.MT25?.Acc)[0],
-                        Othr: {
-                            Id: validateAccountNumber(message.block4.MT25?.Acc)[1],
-                            SchmeNm: {
-                                Cd: getSchemaCode(message.block4.MT25?.Acc)
+isolated function transformMT973ToCamt060(swiftmt:MT973Message message) returns camtIsoRecord:Camt060Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "camt060.001.07", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        AcctRptgReq: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                MsgId: message.block4.MT20.msgId.content
+            },
+            RptgReq: [
+                {
+                    Id: message.block4.MT20.msgId.content,
+                    ReqdMsgNmId: message.block4.MT12.Msg.content,
+                    AcctOwnr: {},
+                    Acct: {
+                        Id: {
+                            IBAN: validateAccountNumber(message.block4.MT25?.Acc)[0],
+                            Othr: {
+                                Id: validateAccountNumber(message.block4.MT25?.Acc)[1],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(message.block4.MT25?.Acc)
+                                }
                             }
                         }
                     }
                 }
-            }
-        ]
+            ]
+        }
     }
 };

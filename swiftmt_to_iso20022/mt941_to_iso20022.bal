@@ -22,45 +22,55 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT941 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns camtIsoRecord:Camt052Document|error => {
-    BkToCstmrAcctRpt: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            MsgId: message.block4.MT20.msgId.content
-        },
-        Rpt: [
-            {
-                Id: message.block4.MT20.msgId.content,
-                CreDtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm),
-                Acct: {
-                    Id: {
-                        IBAN: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[0],
-                        Othr: {
-                            Id: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[1],
-                            SchmeNm: {
-                                Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns camtIsoRecord:Camt052Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "camt052.001.12", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        BkToCstmrAcctRpt: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                MsgId: message.block4.MT20.msgId.content
+            },
+            Rpt: [
+                {
+                    Id: message.block4.MT20.msgId.content,
+                    CreDtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm),
+                    Acct: {
+                        Id: {
+                            IBAN: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[0],
+                            Othr: {
+                                Id: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[1],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                }
                             }
                         }
-                    }
-                },
-                ElctrncSeqNb: message.block4.MT28.SeqNo?.content,
-                Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64, forwardAvailableBalance = message.block4.MT65),
-                TxsSummry: {
-                    TtlNtries: {
-                        NbOfNtries: check getTotalNumOfEntries(message.block4.MT90C?.TtlNum, message.block4.MT90D?.TtlNum),
-                        Sum: check getTotalSumOfEntries(message.block4.MT90C?.Amnt, message.block4.MT90D?.Amnt)
                     },
-                    TtlDbtNtries: {
-                        NbOfNtries: message.block4.MT90D?.TtlNum?.content,
-                        Sum: check convertToDecimal(message.block4.MT90D?.Amnt)
+                    ElctrncSeqNb: message.block4.MT28.SeqNo?.content,
+                    LglSeqNb: message.block4.MT28.StmtNo.content,
+                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64, forwardAvailableBalance = message.block4.MT65),
+                    TxsSummry: {
+                        TtlNtries: {
+                            NbOfNtries: check getTotalNumOfEntries(message.block4.MT90C?.TtlNum, message.block4.MT90D?.TtlNum),
+                            Sum: check getTotalSumOfEntries(message.block4.MT90C?.Amnt, message.block4.MT90D?.Amnt)
+                        },
+                        TtlDbtNtries: {
+                            NbOfNtries: message.block4.MT90D?.TtlNum?.content,
+                            Sum: check convertToDecimal(message.block4.MT90D?.Amnt)
+                        },
+                        TtlCdtNtries: {
+                            NbOfNtries: message.block4.MT90C?.TtlNum?.content,
+                            Sum: check convertToDecimal(message.block4.MT90C?.Amnt)
+                        }
                     },
-                    TtlCdtNtries: {
-                        NbOfNtries: message.block4.MT90C?.TtlNum?.content,
-                        Sum: check convertToDecimal(message.block4.MT90C?.Amnt)
-                    }
-                },
-                AddtlRptInf: getInfoToAccOwnr(message.block4.MT86)
-            }
-        ]
+                    AddtlRptInf: getInfoToAccOwnr(message.block4.MT86)
+                }
+            ]
+        }
     }
 };

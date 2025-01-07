@@ -25,52 +25,61 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The MTn95 message to be transformed, which should be in the `swiftmt:MTn95Message` format.
 # + return - Returns a record in `camtIsoRecord:Camt026Document` format if successful, otherwise returns an error.
-isolated function transformMTn95ToCamt026(swiftmt:MTn95Message message) returns camtIsoRecord:Camt026Document|error => {
-    UblToApply: {
-        Assgnmt: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            Assgne: {
-                Agt: {
-                    FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+isolated function transformMTn95ToCamt026(swiftmt:MTn95Message message) returns camtIsoRecord:Camt026Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "camt026.001.10", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        UblToApply: {
+            Assgnmt: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                Assgne: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    }
+                },
+                Id: ASSIGN_ID,
+                Assgnr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
                     }
                 }
             },
-            Id: ASSIGN_ID,
-            Assgnr: {
-                Agt: {
-                    FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+            Case: {
+                Id: message.block4.MT20.msgId.content,
+                Cretr: {
+                    Agt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
                     }
                 }
-            }
-        },
-        Case: {
-            Id: message.block4.MT20.msgId.content,
-            Cretr: {
-                Agt: {
-                    FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+            },
+            Undrlyg: {
+                Initn: {
+                    OrgnlInstrId: message.block4.MT21.Ref.content,
+                    OrgnlUETR: message.block3?.NdToNdTxRef?.value
+                }
+            },
+            Justfn: {
+                MssngOrIncrrctInf: getJustificationReason(message.block4.MT75.Nrtv.content)
+            },
+            SplmtryData: [
+                {
+                    Envlp: {
+                        CpOfOrgnlMsg: message.block4.MessageCopy.toJson(),
+                        Nrtv: getDescriptionOfMessage(message.block4.MT79?.Nrtv)
                     }
                 }
-            }
-        },
-        Undrlyg: {
-            Initn: {
-                OrgnlInstrId: message.block4.MT21.Ref.content,
-                OrgnlUETR: message.block3?.NdToNdTxRef?.value
-            }
-        },
-        Justfn: {
-            MssngOrIncrrctInf: getJustificationReason(message.block4.MT75.Nrtv.content)
-        },
-        SplmtryData: [
-            {
-                Envlp: {
-                    CpOfOrgnlMsg: message.block4.MessageCopy.toJson(),
-                    Nrtv: getDescriptionOfMessage(message.block4.MT79?.Nrtv)
-                }
-            }
-        ]
+            ]
+        }
     }
 };

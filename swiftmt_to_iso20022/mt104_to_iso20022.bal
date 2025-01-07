@@ -26,39 +26,46 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT104 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs003Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns pacsIsoRecord:Pacs003Document|error => {
-    FIToFICstmrDrctDbt: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            SttlmInf: {
-                SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
-            },
-            NbOfTxs: message.block4.Transaction.length().toString(),
-            TtlIntrBkSttlmAmt: {
-                ActiveCurrencyAndAmount_SimpleType: {
-                    ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                    Ccy: message.block4.MT32B.Ccy.content
-                }
-            },
-            InstgAgt: {
-                FinInstnId: {
-                    BICFI: message.block4.MT51A?.IdnCd?.content,
-                    ClrSysMmbId: {
-                        MmbId: "", 
-                        ClrSysId: {
-                            Cd: message.block4.MT51A?.PrtyIdn?.content
+isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns pacsIsoRecord:Pacs003Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "pacs.003.001.11", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        FIToFICstmrDrctDbt: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                SttlmInf: {
+                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
+                },
+                NbOfTxs: message.block4.Transaction.length().toString(),
+                TtlIntrBkSttlmAmt: {
+                    content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+                        Ccy: message.block4.MT32B.Ccy.content
+                },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        ClrSysMmbId: {
+                            MmbId: "", 
+                            ClrSysId: {
+                                Cd: message.block4.MT51A?.PrtyIdn?.content
+                            }
                         }
                     }
-                }
+                },
+                InstdAgt: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                    }
+                },
+                MsgId: message.block4.MT20.msgId.content
             },
-            InstdAgt: {
-                FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                }
-            },
-            MsgId: message.block4.MT20.msgId.content
-        },
-        DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3)
+            DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3)
+        }
     }
 };
 
@@ -148,16 +155,12 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
             },
             IntrBkSttlmDt: convertToISOStandardDate(block4.MT30.Dt),
             IntrBkSttlmAmt: {
-                ActiveCurrencyAndAmount_SimpleType: {
-                    ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
-                    Ccy: transaxion.MT32B.Ccy.content
-                }
+                content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
+                Ccy: transaxion.MT32B.Ccy.content
             },
             InstdAmt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
-                    Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
-                }
+                content: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
+                Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
             },
             XchgRate: check convertToDecimal(transaxion.MT36?.Rt),
             DrctDbtTx: {
@@ -273,39 +276,48 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
 # + message - The parsed MT104 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pain008Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT104ToPain008(swiftmt:MT104Message message) returns painIsoRecord:Pain008Document|error => {
-    CstmrDrctDbtInitn: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            InitgPty: {
-                Id: {
-                    OrgId: {
-                        AnyBIC: message.block4.MT50C?.IdnCd?.content
-                    },
-                    PrvtId: {
-                        Othr: [
-                            {
-                                Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
-                            }
-                        ]
-                    }
-                }
-            },
-            FwdgAgt: {
-                FinInstnId: {
-                    BICFI: message.block4.MT51A?.IdnCd?.content,
-                    ClrSysMmbId: {
-                        MmbId: "", 
-                        ClrSysId: {
-                            Cd: message.block4.MT51A?.PrtyIdn?.content
+isolated function transformMT104ToPain008(swiftmt:MT104Message message) returns painIsoRecord:Pain008Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "pain.008.001.11", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        CstmrDrctDbtInitn: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                InitgPty: {
+                    Id: {
+                        OrgId: {
+                            AnyBIC: message.block4.MT50C?.IdnCd?.content
+                        },
+                        PrvtId: {
+                            Othr: [
+                                {
+                                    Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
+                                }
+                            ]
                         }
                     }
-                }
+                },
+                FwdgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        ClrSysMmbId: {
+                            MmbId: "", 
+                            ClrSysId: {
+                                Cd: message.block4.MT51A?.PrtyIdn?.content
+                            }
+                        }
+                    }
+                },
+                NbOfTxs: message.block4.Transaction.length().toString(),
+                MsgId: message.block4.MT20.msgId.content
             },
-            NbOfTxs: message.block4.Transaction.length().toString(),
-            MsgId: message.block4.MT20.msgId.content
-        },
-        PmtInf: check getPaymentInformationOfMT104(message.block4, message.block3)
+            PmtInf: check getPaymentInformationOfMT104(message.block4, message.block3)
+        }
     }
 };
 
@@ -437,10 +449,8 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Block4 block4, swift
                         }
                     },
                     InstdAmt: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                            ActiveOrHistoricCurrencyAndAmount_SimpleType: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
+                        content: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
                             Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
-                        }
                     },
                     Dbtr: {
                         Id: {

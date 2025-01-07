@@ -25,39 +25,46 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT107 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs003Document` structure if the message instruction is not `RTND`.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns pacsIsoRecord:Pacs003Document|error => {
-    FIToFICstmrDrctDbt: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            SttlmInf: {
-                SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
-            },
-            TtlIntrBkSttlmAmt: {
-                ActiveCurrencyAndAmount_SimpleType: {
-                    ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns pacsIsoRecord:Pacs003Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "pacs.003.001.11", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    }, 
+    Document: {
+        FIToFICstmrDrctDbt: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                SttlmInf: {
+                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
+                },
+                TtlIntrBkSttlmAmt: {
+                    content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
                     Ccy: message.block4.MT32B.Ccy.content
-                }
-            },
-            InstgAgt: {
-                FinInstnId: {
-                    BICFI: message.block4.MT51A?.IdnCd?.content,
-                    ClrSysMmbId: {
-                        MmbId: "", 
-                        ClrSysId: {
-                            Cd: message.block4.MT51A?.PrtyIdn?.content
+                },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        ClrSysMmbId: {
+                            MmbId: "", 
+                            ClrSysId: {
+                                Cd: message.block4.MT51A?.PrtyIdn?.content
+                            }
                         }
                     }
-                }
+                },
+                InstdAgt: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                    }
+                },
+                NbOfTxs: message.block4.Transaction.length().toString(),
+                MsgId: message.block4.MT20.msgId.content
             },
-            InstdAgt: {
-                FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                }
-            },
-            NbOfTxs: message.block4.Transaction.length().toString(),
-            MsgId: message.block4.MT20.msgId.content
-        },
-        DrctDbtTxInf: check getDirectDebitTransactionInfoMT107(message.block4, message.block3)
+            DrctDbtTxInf: check getDirectDebitTransactionInfoMT107(message.block4, message.block3)
+        }
     }
 };
 
@@ -148,16 +155,12 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Block4 block4,
             },
             IntrBkSttlmDt: convertToISOStandardDate(block4.MT30.Dt),
             IntrBkSttlmAmt: {
-                ActiveCurrencyAndAmount_SimpleType: {
-                    ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
-                    Ccy: transaxion.MT32B.Ccy.content
-                }
+                content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
+                Ccy: transaxion.MT32B.Ccy.content
             },
             InstdAmt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
-                    Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
-                }
+                content: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
+                Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
             },
             XchgRate: check convertToDecimal(transaxion.MT36?.Rt),
             DrctDbtTx: {
