@@ -337,17 +337,17 @@ isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftm
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 &&
        prtyIdn1.content.startsWith("/") && !(prtyIdn1.content.startsWith("/CH")) &&
        !(prtyIdn1.content.startsWith("/FW")) && !(prtyIdn1.content.startsWith("/RT")) {
-        return [prtyIdn1.content, (), ()];
+        return [prtyIdn1.content.substring(1), (), ()];
     }
     if prtyIdn2 is swiftmt:PrtyIdn && prtyIdn2.content.length() > 1 &&
        prtyIdn2.content.startsWith("/") && !(prtyIdn2.content.startsWith("/CH")) &&
        !(prtyIdn2.content.startsWith("/FW")) && !(prtyIdn2.content.startsWith("/RT")) {
-        return [prtyIdn2.content, (), ()];
+        return [prtyIdn2.content.substring(1), (), ()];
     }
     if prtyIdn3 is swiftmt:PrtyIdn && prtyIdn3.content.length() > 1 &&
        prtyIdn3.content.startsWith("/") && !(prtyIdn3.content.startsWith("/CH")) &&
        !(prtyIdn3.content.startsWith("/FW")) && !(prtyIdn3.content.startsWith("/RT")) {
-        return [prtyIdn3.content, (), ()];
+        return [prtyIdn3.content.substring(1), (), ()];
     }
     if prtyIdn1 is swiftmt:PrtyIdn && prtyIdn1.content.length() > 1 &&
        (!(prtyIdn1.content.startsWith("/")) || prtyIdn1.content.startsWith("/CH")) {
@@ -429,7 +429,11 @@ isolated function validateAccountNumber(swiftmt:Acc? acc1 = (), swiftmt:PrtyIdn?
     } else if acc3 is swiftmt:Acc {
         finalAccount = acc3.content;
     } else if prtyIdn is swiftmt:PrtyIdn && prtyIdn.content.length() > 1 {
-        finalAccount = prtyIdn.content.substring(1);
+        if prtyIdn.content.startsWith("/") {
+            finalAccount = prtyIdn.content.substring(1);
+        } else {
+            finalAccount = prtyIdn.content;
+        }
     } else {
         return [(), ()];
     }
@@ -516,12 +520,31 @@ isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = (), 
 # + return - Returns "BBAN" if any valid account number or party identifier is found, otherwise returns null.
 isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (), swiftmt:Acc? account3 = (), swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = ()) returns string? {
     if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ())
+        || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount2(prtyIdn1)[2] is ())
+        || !(getPartyIdentifierOrAccount2(prtyIdn2)[2] is ()) || !(getPartyIdentifierOrAccount2(prtyIdn3)[2] is ()) {
+        return "BBAN";
+    }
+    return ();
+}
+
+# Determines the schema code based on account numbers and party identifiers for Debtor and Creditor.
+# It returns "BBAN" if any of the provided accounts or party identifiers are valid, otherwise returns null.
+#
+# + account1 - An optional `Acc` instance representing the first account.
+# + account2 - An optional `Acc` instance representing the second account.
+# + account3 - An optional `Acc` instance representing the third account.
+# + prtyIdn1 - An optional `PrtyIdn` instance representing the party identifier.
+# + prtyIdn2 - An optional `PrtyIdn` instance representing the party identifier.
+# + prtyIdn3 - An optional `PrtyIdn` instance representing the party identifier.
+# + prtyIdn4 - An optional `PrtyIdn` instance representing the party identifier.
+# + return - Returns "BBAN" if any valid account number or party identifier is found, otherwise returns null.
+isolated function getSchemaCodeForDbtr(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (), swiftmt:Acc? account3 = (), swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = ()) returns string? {
+    if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ())
         || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount(prtyIdn1)[2] is ())
         || !(getPartyIdentifierOrAccount(prtyIdn2)[2] is ()) || !(getPartyIdentifierOrAccount(prtyIdn3)[2] is ()) {
         return "BBAN";
     }
     return ();
-
 }
 
 # Returns the account ID or party identifier based on the provided inputs.
@@ -555,10 +578,8 @@ isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G?
     if sndsChrgs is swiftmt:MT71F {
         chrgsInf.push({
             Amt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(sndsChrgs?.Amnt),
-                    Ccy: getMandatoryFields(sndsChrgs?.Ccy.content)
-                }
+                content: check convertToDecimalMandatory(sndsChrgs?.Amnt),
+                Ccy: getMandatoryFields(sndsChrgs?.Ccy.content)
             },
             Agt: {
                 FinInstnId: {
@@ -574,10 +595,8 @@ isolated function getChargesInformation(swiftmt:MT71F? sndsChrgs, swiftmt:MT71G?
     if rcvsChrgs is swiftmt:MT71G {
         chrgsInf.push({
             Amt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(rcvsChrgs?.Amnt),
-                    Ccy: getMandatoryFields(rcvsChrgs?.Ccy.content)
-                }
+                content: check convertToDecimalMandatory(rcvsChrgs?.Amnt),
+                Ccy: getMandatoryFields(rcvsChrgs?.Ccy.content)
             },
             Agt: {
                 FinInstnId: {
@@ -605,10 +624,12 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, stri
                 return [tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2), (), ()];
             }
             "RNCTIME" => {
-                return [(), tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2), ()];
+                // Dummy date is added to translate the time to ISO standard date and time;
+                return [(), "0001-01-01T" + tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2), ()];
             }
             "SNDTIME" => {
-                return [(), (), tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2)];
+                // Dummy date is added to translate the time to ISO standard date and time;
+                return [(), (), "0001-01-01T" + tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0,2) + ":" + tmInd.TmOfst.content.substring(2)];
             }
         }
     }
@@ -1055,7 +1076,7 @@ isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? tim
         return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" + date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" + time.content.substring(2, 4) + ":00";
     }
     if isCreationDateTime {
-        return time:utcToString(time:utcNow());
+        return time:utcToString(time:utcNow()).substring(0,19);
     }
     return ();
 }
@@ -1338,19 +1359,15 @@ isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns camtIsoReco
             return [
                 {
                     Amt: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                            ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[0].Amnt),
-                            Ccy: floorLimit[0].Ccy.content
-                        }
+                        content: check convertToDecimalMandatory(floorLimit[0].Amnt),
+                        Ccy: floorLimit[0].Ccy.content
                     },
                     CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[0].Cd)
                 },
                 {
                     Amt: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                            ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[1].Amnt),
-                            Ccy: floorLimit[1].Ccy.content
-                        }
+                        content: check convertToDecimalMandatory(floorLimit[1].Amnt),
+                        Ccy: floorLimit[1].Ccy.content
                     },
                     CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[1].Cd)
                 }
@@ -1359,10 +1376,8 @@ isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns camtIsoReco
         return [
             {
                 Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(floorLimit[0].Amnt),
-                        Ccy: floorLimit[0].Ccy.content
-                    }
+                    content: check convertToDecimalMandatory(floorLimit[0].Amnt),
+                    Ccy: floorLimit[0].Ccy.content
                 },
                 CdtDbtInd: camtIsoRecord:BOTH
             }
@@ -1398,16 +1413,13 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
     if statement is swiftmt:MT61[] {
         foreach swiftmt:MT61 stmtLine in statement {
             names.push({
-                NtryRef: stmtLine.RefAccOwn.content,
                 ValDt: {
                     Dt: convertToISOStandardDate(stmtLine.ValDt)
                 },
                 CdtDbtInd: convertDbtOrCrdToISOStandard(stmtLine),
                 Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(stmtLine.Amnt),
-                        Ccy: getMandatoryFields(stmtLine.FndCd?.content)
-                    }
+                    content: check convertToDecimalMandatory(stmtLine.Amnt),
+                    Ccy: getMandatoryFields(stmtLine.FndCd?.content)
                 },
                 BkTxCd: {
                     Prtry: {
@@ -1417,7 +1429,15 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
                 Sts: {
                     Cd: "BOOK"
                 },
-                AddtlNtryInf: stmtLine.SpmtDtls?.content
+                AcctSvcrRef: stmtLine.RefAccSerInst?.content,
+                NtryDtls: [{
+                    TxDtls: [{
+                        Refs: {
+                            EndToEndId: stmtLine.RefAccOwn.content
+                        },
+                        AddtlTxInf: stmtLine.SpmtDtls?.content
+                    }]
+                }]
             });
         }
     }
@@ -1457,16 +1477,14 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
     if firstOpenBalance is swiftmt:MT60F {
         BalArray.push({
             Amt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(firstOpenBalance.Amnt),
-                    Ccy: firstOpenBalance.Ccy.content
-                }
+                content: check convertToDecimalMandatory(firstOpenBalance.Amnt),
+                Ccy: firstOpenBalance.Ccy.content
             },
             Dt: {Dt: convertToISOStandardDate(firstOpenBalance.Dt)},
             CdtDbtInd: convertDbtOrCrdToISOStandard(firstOpenBalance),
             Tp: {
                 CdOrPrtry: {
-                    Cd: "PRCD"
+                    Cd: "OPBD"
                 }
             }
         });
@@ -1475,16 +1493,14 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
         foreach swiftmt:MT60M inmdOpnBal in inmdOpenBalance {
             BalArray.push({
                 Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(inmdOpnBal.Amnt),
-                        Ccy: inmdOpnBal.Ccy.content
-                    }
+                    content: check convertToDecimalMandatory(inmdOpnBal.Amnt),
+                    Ccy: inmdOpnBal.Ccy.content
                 },
                 Dt: {Dt: convertToISOStandardDate(inmdOpnBal.Dt)},
                 CdtDbtInd: convertDbtOrCrdToISOStandard(inmdOpnBal),
                 Tp: {
                     CdOrPrtry: {
-                        Cd: "ITBD"
+                        Cd: "OPBD/INTM"
                     }
                 }
             });
@@ -1493,10 +1509,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
     if firstCloseBalance is swiftmt:MT62F {
         BalArray.push({
             Amt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(firstCloseBalance.Amnt),
-                    Ccy: firstCloseBalance.Ccy.content
-                }
+                content: check convertToDecimalMandatory(firstCloseBalance.Amnt),
+                Ccy: firstCloseBalance.Ccy.content
             },
             Dt: {Dt: convertToISOStandardDate(firstCloseBalance.Dt)},
             CdtDbtInd: convertDbtOrCrdToISOStandard(firstCloseBalance),
@@ -1511,16 +1525,15 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
         foreach swiftmt:MT62M inmdClsBal in inmdCloseBalance {
             BalArray.push({
                 Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(inmdClsBal.Amnt),
-                        Ccy: inmdClsBal.Ccy.content
-                    }
+                    content: check convertToDecimalMandatory(inmdClsBal.Amnt),
+                    Ccy: inmdClsBal.Ccy.content
+                    
                 },
                 Dt: {Dt: convertToISOStandardDate(inmdClsBal.Dt)},
                 CdtDbtInd: convertDbtOrCrdToISOStandard(inmdClsBal),
                 Tp: {
                     CdOrPrtry: {
-                        Cd: "ITBD"
+                        Cd: "CLBD/INTM"
                     }
                 }
             });
@@ -1530,10 +1543,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
         foreach swiftmt:MT64 clsAvblBal in closeAvailableBalance {
             BalArray.push({
                 Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(clsAvblBal.Amnt),
+                    content: check convertToDecimalMandatory(clsAvblBal.Amnt),
                         Ccy: clsAvblBal.Ccy.content
-                    }
                 },
                 Dt: {Dt: convertToISOStandardDate(clsAvblBal.Dt)},
                 CdtDbtInd: convertDbtOrCrdToISOStandard(clsAvblBal),
@@ -1549,10 +1560,8 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
         foreach swiftmt:MT65 fwdAvblBal in forwardAvailableBalance {
             BalArray.push({
                 Amt: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                        ActiveOrHistoricCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(fwdAvblBal.Amnt),
+                    content: check convertToDecimalMandatory(fwdAvblBal.Amnt),
                         Ccy: fwdAvblBal.Ccy.content
-                    }
                 },
                 Dt: {Dt: convertToISOStandardDate(fwdAvblBal.Dt)},
                 CdtDbtInd: convertDbtOrCrdToISOStandard(fwdAvblBal),
@@ -2018,3 +2027,102 @@ isolated function getStatusConfirmation(string narration) returns string? {
     }
     return ();
 }
+
+isolated function getDebtorAgent(swiftmt:MT910Block4 block4) returns pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? {
+    if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
+        return ();
+    }
+    return {
+        FinInstnId: {
+            BICFI: block4.MT52A?.IdnCd?.content,
+            ClrSysMmbId: {
+                MmbId: "", 
+                ClrSysId: {
+                    Cd: getPartyIdentifierOrAccount2(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn)[0]
+                }
+            },
+            Nm: getName(block4.MT52D?.Nm),
+            PstlAdr: {
+                AdrLine: getAddressLine(block4.MT52D?.AdrsLine)
+            }
+        }
+    }; 
+} 
+
+isolated function getDebtorAgent2(swiftmt:MT910Block4 block4) returns pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? {
+    if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
+        return {
+            FinInstnId: {
+                BICFI: block4.MT52A?.IdnCd?.content,
+                ClrSysMmbId: {
+                    MmbId: "", 
+                    ClrSysId: {
+                        Cd: getPartyIdentifierOrAccount2(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn)[0]
+                    }
+                },
+                Nm: getName(block4.MT52D?.Nm),
+                PstlAdr: {
+                    AdrLine: getAddressLine(block4.MT52D?.AdrsLine)
+                }
+            }
+        };
+    } 
+    return ();
+} 
+
+isolated function getDebtor(swiftmt:MT910Block4 block4) returns pacsIsoRecord:PartyIdentification272? {
+    if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
+        return {
+            Id: {
+                OrgId: {
+                    AnyBIC: block4.MT50A?.IdnCd?.content
+                },
+                PrvtId: {
+                    Othr: [
+                        {
+                            Id: getPartyIdentifierOrAccount(block4.MT50F?.PrtyIdn)[0],
+                            SchmeNm: {
+                                Cd: getPartyIdentifierOrAccount(block4.MT50F?.PrtyIdn)[3]
+                            },
+                            Issr: getPartyIdentifierOrAccount(block4.MT50F?.PrtyIdn)[4]
+                        }
+                    ]
+                }
+            },
+            Nm: getName(block4.MT50F?.Nm, block4.MT50K?.Nm),
+            PstlAdr: {
+                AdrLine: getAddressLine(block4.MT50F?.AdrsLine, block4.MT50K?.AdrsLine),
+                Ctry: getCountryAndTown(block4.MT50F?.CntyNTw)[0],
+                TwnNm: getCountryAndTown(block4.MT50F?.CntyNTw)[1]
+            }
+        };
+    }
+    return ();
+} 
+
+isolated function getDebtorAccount(swiftmt:MT910Block4 block4) returns pacsIsoRecord:CashAccount40? {
+    if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
+        return {
+            Id: {
+                IBAN: getAccountId(validateAccountNumber(block4.MT50A?.Acc, acc2 = block4.MT50K?.Acc)[0], getPartyIdentifierOrAccount(block4.MT50F?.PrtyIdn)[1]),
+                Othr: {
+                    Id: getAccountId(validateAccountNumber(block4.MT50A?.Acc, acc2 = block4.MT50K?.Acc)[1], getPartyIdentifierOrAccount(block4.MT50F?.PrtyIdn)[2]),
+                    SchmeNm: {
+                        Cd: getSchemaCodeForDbtr(block4.MT50A?.Acc, block4.MT50K?.Acc, prtyIdn1 = block4.MT50F?.PrtyIdn)
+                    }
+                }
+            }
+        };
+    }
+    return {
+        Id: {
+            IBAN: getPartyIdentifierOrAccount2(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn)[1],
+            Othr: {
+                Id: getPartyIdentifierOrAccount2(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn)[2],
+                SchmeNm: {
+                    Cd: getSchemaCode(prtyIdn1 = block4.MT52A?.PrtyIdn, prtyIdn2 = block4.MT52D?.PrtyIdn)
+                }
+            }
+        }
+    };
+} 

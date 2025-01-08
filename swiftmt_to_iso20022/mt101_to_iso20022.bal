@@ -25,39 +25,48 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT101 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pain001Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns painIsoRecord:Pain001Document|error => {
-    CstmrCdtTrfInitn: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            InitgPty: {
-                Id: {
-                    OrgId: {
-                        AnyBIC: message.block4.MT50C?.IdnCd?.content
-                    },
-                    PrvtId: {
-                        Othr: [
-                            {
-                                Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
-                            }
-                        ]
-                    }
-                }
-            },
-            FwdgAgt: {
-                FinInstnId: {
-                    BICFI: message.block4.MT51A?.IdnCd?.content,
-                    ClrSysMmbId: {
-                        MmbId: "", 
-                        ClrSysId: {
-                            Cd: message.block4.MT51A?.PrtyIdn?.content
+isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns painIsoRecord:Pain001Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "pain.001.001.12", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        CstmrCdtTrfInitn: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                InitgPty: {
+                    Id: {
+                        OrgId: {
+                            AnyBIC: message.block4.MT50C?.IdnCd?.content
+                        },
+                        PrvtId: {
+                            Othr: [
+                                {
+                                    Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
+                                }
+                            ]
                         }
                     }
-                }
+                },
+                FwdgAgt: {
+                    FinInstnId: {
+                        BICFI: message.block4.MT51A?.IdnCd?.content,
+                        ClrSysMmbId: {
+                            MmbId: "", 
+                            ClrSysId: {
+                                Cd: message.block4.MT51A?.PrtyIdn?.content
+                            }
+                        }
+                    }
+                },
+                NbOfTxs: message.block4.Transaction.length().toString(),
+                MsgId: message.block4.MT20.msgId.content
             },
-            NbOfTxs: message.block4.Transaction.length().toString(),
-            MsgId: message.block4.MT20.msgId.content
-        },
-        PmtInf: check getPaymentInformation(message.block4, message.block3)
+            PmtInf: check getPaymentInformation(message.block4, message.block3)
+        }
     }
 };
 
@@ -84,16 +93,18 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                 {
                     Amt: {
                         InstdAmt: {
-                            ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                                ActiveOrHistoricCurrencyAndAmount_SimpleType: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
-                                Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
+                            content: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
+                            Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
                             }
-                        }
-                    },
+                        },
                     PmtId: {
                         EndToEndId: getEndToEndId(block4.MT21R?.Ref?.content, transaxion.MT70?.Nrtv?.content, transaxion.MT21.Ref.content),
                         InstrId: block4.MT20.msgId.content,
                         UETR: block3?.NdToNdTxRef?.value
+                    },
+                    PmtTpInf: {
+                        SvcLvl: getMT101InstructionCode(transaxion.MT23E, 1)[2],
+                        CtgyPurp: getMT101InstructionCode(transaxion.MT23E, 1)[3]
                     },
                     XchgRateInf: {
                         XchgRate: check convertToDecimal(transaxion.MT36?.Rt)
@@ -178,20 +189,17 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                     InstrForDbtrAgt: getMT101InstructionCode(transaxion.MT23E, 1)[0],
                     InstrForCdtrAgt: getMT101InstructionCode(transaxion.MT23E, 1)[1],
                     RgltryRptg: getRegulatoryReporting(transaxion.MT77B?.Nrtv?.content),
+                    ChrgBr: check getDetailsChargesCd(transaxion.MT71A.Cd).ensureType(painIsoRecord:ChargeBearerType1Code),
                     RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []}
                 }
             ],
-            PmtTpInf: {
-                SvcLvl: getMT101InstructionCode(transaxion.MT23E, 1)[2],
-                CtgyPurp: getMT101InstructionCode(transaxion.MT23E, 1)[3]
-            },
             DbtrAcct: {
                 Id: {
                     IBAN: getAccountId(validateAccountNumber(ordgCstm50G?.Acc, acc2 = ordgCstm50H?.Acc)[0], getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[1]),
                     Othr: {
                         Id: getAccountId(validateAccountNumber(ordgCstm50G?.Acc, acc2 = ordgCstm50H?.Acc)[1], getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[2]),
                         SchmeNm: {
-                            Cd: getSchemaCode(ordgCstm50G?.Acc, ordgCstm50H?.Acc, prtyIdn1 = ordgCstm50F?.PrtyIdn)
+                            Cd: getSchemaCodeForDbtr(ordgCstm50G?.Acc, ordgCstm50H?.Acc, prtyIdn1 = ordgCstm50F?.PrtyIdn)
                         }
                     }
                 }
@@ -248,7 +256,6 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                 }
             },
             PmtMtd: "TRF",
-            ChrgBr: check getDetailsChargesCd(transaxion.MT71A.Cd).ensureType(painIsoRecord:ChargeBearerType1Code),
             ChrgsAcct: {
                 Id: {
                     IBAN: validateAccountNumber(transaxion.MT25A?.Acc)[0],

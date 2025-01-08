@@ -23,28 +23,37 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT201 message as a record value.
 # + return - Returns a `Pacs009Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns pacsIsoRecord:Pacs009Document|error => {
-    FICdtTrf: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
-            SttlmInf: {
-                SttlmMtd: getSettlementMethod(mt53B = message.block4.MT53B)
+isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns pacsIsoRecord:Pacs009Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: uuid:createType4AsString().substring(0, 35), 
+        MsgDefIdr: "pacs.009.001.11", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        FICdtTrf: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
+                SttlmInf: {
+                    SttlmMtd: getSettlementMethod(mt53B = message.block4.MT53B)
+                },
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                    }
+                },
+                InstdAgt: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                    }
+                },
+                NbOfTxs: message.block4.Transaction.length().toString(),
+                MsgId: uuid:createType4AsString().substring(0, 35)
             },
-            InstgAgt: {
-                FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                }
-            },
-            InstdAgt: {
-                FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                }
-            },
-            NbOfTxs: message.block4.Transaction.length().toString(),
-            MsgId: uuid:createType4AsString().substring(0, 35)
-        },
-        CdtTrfTxInf: check getCreditTransferTransactionInfo(message.block4, message.block3)
+            CdtTrfTxInf: check getCreditTransferTransactionInfo(message.block4, message.block3)
+        }
     }
 };
 
@@ -63,7 +72,6 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, s
             Cdtr: {
                 FinInstnId: {
                     BICFI: transaxion.MT57A?.IdnCd?.content,
-                    LEI: getPartyIdentifierOrAccount2(transaxion.MT57A?.PrtyIdn, transaxion.MT57B?.PrtyIdn, transaxion.MT57D?.PrtyIdn)[0],
                     ClrSysMmbId: {
                         MmbId: "", 
                         ClrSysId: {
@@ -88,10 +96,8 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, s
                 }
             },
             IntrBkSttlmAmt: {
-                ActiveCurrencyAndAmount_SimpleType: {
-                    ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
-                    Ccy: transaxion.MT32B.Ccy.content
-                }
+                content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
+                Ccy: transaxion.MT32B.Ccy.content
             },
             IntrBkSttlmDt: convertToISOStandardDate(block4.MT30.Dt),
             PmtId: {

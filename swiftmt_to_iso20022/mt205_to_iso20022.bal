@@ -22,190 +22,197 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT205 message as a record type.
 # + return - Returns a `Pacs009Document` containing the payment instruction information, 
 # or an error if the transformation fails.
-isolated function transformMT205ToPacs009(swiftmt:MT205Message message) returns pacsIsoRecord:Pacs009Document|error => {
-    FICdtTrf: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            SttlmInf: {
-                SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
-                InstgRmbrsmntAgt: {
+isolated function transformMT205ToPacs009(swiftmt:MT205Message message) returns pacsIsoRecord:Pacs009Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "pacs.009.001.11", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        FICdtTrf: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                SttlmInf: {
+                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+                    InstgRmbrsmntAgt: {
+                        FinInstnId: {
+                            BICFI: message.block4.MT53A?.IdnCd?.content,
+                            ClrSysMmbId: {
+                                MmbId: "", 
+                                ClrSysId: {
+                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[0]
+                                }
+                            },
+                            Nm: getName(message.block4.MT53D?.Nm),
+                            PstlAdr: {
+                                AdrLine: getAddressLine(message.block4.MT53D?.AdrsLine, address3 = message.block4.MT53B?.Lctn?.content)
+                            }
+                        }
+                    },
+                    InstgRmbrsmntAgtAcct: {
+                        Id: {
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[1],
+                            Othr: {
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[2],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT53A?.PrtyIdn, prtyIdn2 = message.block4.MT53B?.PrtyIdn, prtyIdn3 = message.block4.MT53D?.PrtyIdn)
+                                }
+                            }
+                        }
+                    }
+                },
+                InstgAgt: {
                     FinInstnId: {
-                        BICFI: message.block4.MT53A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[0]
-                            }
-                        },
-                        Nm: getName(message.block4.MT53D?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(message.block4.MT53D?.AdrsLine, address3 = message.block4.MT53B?.Lctn?.content)
-                        }
+                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
                     }
                 },
-                InstgRmbrsmntAgtAcct: {
-                    Id: {
-                        IBAN: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[1],
-                        Othr: {
-                            Id: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[2],
-                            SchmeNm: {
-                                Cd: getSchemaCode(prtyIdn1 = message.block4.MT53A?.PrtyIdn, prtyIdn2 = message.block4.MT53B?.PrtyIdn, prtyIdn3 = message.block4.MT53D?.PrtyIdn)
-                            }
-                        }
-                    }
-                }
-            },
-            InstgAgt: {
-                FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                }
-            },
-            InstdAgt: {
-                FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                }
-            },
-            NbOfTxs: DEFAULT_NUM_OF_TX,
-            MsgId: message.block4.MT20.msgId.content
-        },
-        CdtTrfTxInf: [
-            {
-                Cdtr: {
+                InstdAgt: {
                     FinInstnId: {
-                        BICFI: message.block4.MT58A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[0]
-                            }
-                        },
-                        Nm: getName(message.block4.MT58D?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(message.block4.MT58D?.AdrsLine)
-                        }
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
                     }
                 },
-                CdtrAcct: {
-                    Id: {
-                        IBAN: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[1],
-                        Othr: {
-                            Id: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[2],
-                            SchmeNm: {
-                                Cd: getSchemaCode(prtyIdn1 = message.block4.MT58A?.PrtyIdn, prtyIdn2 = message.block4.MT58D?.PrtyIdn)
+                NbOfTxs: DEFAULT_NUM_OF_TX,
+                MsgId: message.block4.MT20.msgId.content
+            },
+            CdtTrfTxInf: [
+                {
+                    Cdtr: {
+                        FinInstnId: {
+                            BICFI: message.block4.MT58A?.IdnCd?.content,
+                            ClrSysMmbId: {
+                                MmbId: "", 
+                                ClrSysId: {
+                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[0]
+                                }
+                            },
+                            Nm: getName(message.block4.MT58D?.Nm),
+                            PstlAdr: {
+                                AdrLine: getAddressLine(message.block4.MT58D?.AdrsLine)
                             }
                         }
-                    }
-                },
-                CdtrAgt: {
-                    FinInstnId: {
-                        BICFI: message.block4.MT57A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[0]
-                            }
-                        },
-                        Nm: getName(message.block4.MT57D?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(message.block4.MT57D?.AdrsLine, address3 = message.block4.MT57B?.Lctn?.content)
-                        }
-                    }
-                },
-                CdtrAgtAcct: {
-                    Id: {
-                        IBAN: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[1],
-                        Othr: {
-                            Id: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[2],
-                            SchmeNm: {
-                                Cd: getSchemaCode(prtyIdn1 = message.block4.MT57A?.PrtyIdn, prtyIdn2 = message.block4.MT57B?.PrtyIdn, prtyIdn3 = message.block4.MT57D?.PrtyIdn)
+                    },
+                    CdtrAcct: {
+                        Id: {
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[1],
+                            Othr: {
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[2],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT58A?.PrtyIdn, prtyIdn2 = message.block4.MT58D?.PrtyIdn)
+                                }
                             }
                         }
-                    }
-                },
-                IntrBkSttlmAmt: {
-                    ActiveCurrencyAndAmount_SimpleType: {
-                        ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
+                    },
+                    CdtrAgt: {
+                        FinInstnId: {
+                            BICFI: message.block4.MT57A?.IdnCd?.content,
+                            ClrSysMmbId: {
+                                MmbId: "", 
+                                ClrSysId: {
+                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[0]
+                                }
+                            },
+                            Nm: getName(message.block4.MT57D?.Nm),
+                            PstlAdr: {
+                                AdrLine: getAddressLine(message.block4.MT57D?.AdrsLine, address3 = message.block4.MT57B?.Lctn?.content)
+                            }
+                        }
+                    },
+                    CdtrAgtAcct: {
+                        Id: {
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[1],
+                            Othr: {
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[2],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT57A?.PrtyIdn, prtyIdn2 = message.block4.MT57B?.PrtyIdn, prtyIdn3 = message.block4.MT57D?.PrtyIdn)
+                                }
+                            }
+                        }
+                    },
+                    IntrBkSttlmAmt: {
+                        content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
                         Ccy: message.block4.MT32A.Ccy.content
-                    }
-                },
-                IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
-                PmtId: {
-                    EndToEndId: message.block4.MT21.Ref.content,
-                    InstrId: message.block4.MT20.msgId.content,
-                    UETR: message.block3?.NdToNdTxRef?.value
-                },
-                PmtTpInf: {
-                    SvcLvl: [{
-                        Cd: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[4]
-                    }],
-                    CtgyPurp: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[6],
-                    LclInstrm: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[5]
-                },
-                SttlmTmReq: {
-                    CLSTm: getTimeIndication(message.block4.MT13C)[0]
-                },
-                SttlmTmIndctn: {
-                    CdtDtTm: getTimeIndication(message.block4.MT13C)[1],
-                    DbtDtTm: getTimeIndication(message.block4.MT13C)[2]
-                },
-                Dbtr: {
-                    FinInstnId: {
-                        BICFI: message.block4.MT52A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[0]
-                            }
-                        },
-                        Nm: getName(message.block4.MT52D?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(message.block4.MT52D?.AdrsLine)
-                        }
-                    }
-                },
-                DbtrAcct: {
-                    Id: {
-                        IBAN: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[1],
-                        Othr: {
-                            Id: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[2],
-                            SchmeNm: {
-                                Cd: getSchemaCode(prtyIdn1 = message.block4.MT52A?.PrtyIdn, prtyIdn2 = message.block4.MT52D?.PrtyIdn)
+                    },
+                    IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
+                    PmtId: {
+                        EndToEndId: message.block4.MT21.Ref.content,
+                        InstrId: message.block4.MT20.msgId.content,
+                        UETR: message.block3?.NdToNdTxRef?.value
+                    },
+                    PmtTpInf: {
+                        SvcLvl: [{
+                            Cd: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[4]
+                        }],
+                        CtgyPurp: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[6],
+                        LclInstrm: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[5]
+                    },
+                    SttlmTmReq: {
+                        CLSTm: getTimeIndication(message.block4.MT13C)[0]
+                    },
+                    SttlmTmIndctn: {
+                        CdtDtTm: getTimeIndication(message.block4.MT13C)[1],
+                        DbtDtTm: getTimeIndication(message.block4.MT13C)[2]
+                    },
+                    Dbtr: {
+                        FinInstnId: {
+                            BICFI: message.block4.MT52A?.IdnCd?.content,
+                            ClrSysMmbId: {
+                                MmbId: "", 
+                                ClrSysId: {
+                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[0]
+                                }
+                            },
+                            Nm: getName(message.block4.MT52D?.Nm),
+                            PstlAdr: {
+                                AdrLine: getAddressLine(message.block4.MT52D?.AdrsLine)
                             }
                         }
-                    }
-                },
-                IntrmyAgt1: {
-                    FinInstnId: {
-                        BICFI: message.block4.MT56A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: getPartyIdentifierOrAccount2(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn)[0]
-                            }
-                        },
-                        Nm: getName(message.block4.MT56D?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(message.block4.MT56D?.AdrsLine)
-                        }
-                    }
-                },
-                IntrmyAgt1Acct: {
-                    Id: {
-                        IBAN: getPartyIdentifierOrAccount2(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn)[1],
-                        Othr: {
-                            Id: getPartyIdentifierOrAccount2(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn)[2],
-                            SchmeNm: {
-                                Cd: getSchemaCode(prtyIdn1 = message.block4.MT56A?.PrtyIdn, prtyIdn2 = message.block4.MT56D?.PrtyIdn)
+                    },
+                    DbtrAcct: {
+                        Id: {
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[1],
+                            Othr: {
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[2],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT52A?.PrtyIdn, prtyIdn2 = message.block4.MT52D?.PrtyIdn)
+                                }
                             }
                         }
-                    }
-                },
-                InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[1],
-                InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[0],
-                RmtInf: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[7],
-                Purp: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[8]
-            }
-        ]
+                    },
+                    IntrmyAgt1: {
+                        FinInstnId: {
+                            BICFI: message.block4.MT56A?.IdnCd?.content,
+                            ClrSysMmbId: {
+                                MmbId: "", 
+                                ClrSysId: {
+                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn)[0]
+                                }
+                            },
+                            Nm: getName(message.block4.MT56D?.Nm),
+                            PstlAdr: {
+                                AdrLine: getAddressLine(message.block4.MT56D?.AdrsLine)
+                            }
+                        }
+                    },
+                    IntrmyAgt1Acct: {
+                        Id: {
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn)[1],
+                            Othr: {
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn)[2],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT56A?.PrtyIdn, prtyIdn2 = message.block4.MT56D?.PrtyIdn)
+                                }
+                            }
+                        }
+                    },
+                    InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[1],
+                    InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[0],
+                    RmtInf: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[7],
+                    Purp: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[8]
+                }
+            ]
+        }
     }
 };
 
@@ -214,53 +221,62 @@ isolated function transformMT205ToPacs009(swiftmt:MT205Message message) returns 
 # + message - The parsed MT205COV message as a record value.
 # + return - Returns a `Pacs009Document` containing the payment instruction information, 
 # or an error if the transformation fails.
-isolated function transformMT205COVToPacs009(swiftmt:MT205COVMessage message) returns pacsIsoRecord:Pacs009Document|error => {
-    FICdtTrf: {
-        GrpHdr: {
-            CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-            SttlmInf: {
-                SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
-                InstgRmbrsmntAgt: {
-                    FinInstnId: {
-                        BICFI: message.block4.MT53A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[0]
+isolated function transformMT205COVToPacs009(swiftmt:MT205COVMessage message) returns pacsIsoRecord:Pacs009Envelope|error => {
+    AppHdr: {
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        BizMsgIdr: message.block4.MT20.msgId.content, 
+        MsgDefIdr: "pacs.009.001.11", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+    },
+    Document: {
+        FICdtTrf: {
+            GrpHdr: {
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                SttlmInf: {
+                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+                    InstgRmbrsmntAgt: {
+                        FinInstnId: {
+                            BICFI: message.block4.MT53A?.IdnCd?.content,
+                            ClrSysMmbId: {
+                                MmbId: "", 
+                                ClrSysId: {
+                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[0]
+                                }
+                            },
+                            Nm: getName(message.block4.MT53D?.Nm),
+                            PstlAdr: {
+                                AdrLine: getAddressLine(message.block4.MT53D?.AdrsLine, address3 = message.block4.MT53B?.Lctn?.content)
                             }
-                        },
-                        Nm: getName(message.block4.MT53D?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(message.block4.MT53D?.AdrsLine, address3 = message.block4.MT53B?.Lctn?.content)
+                        }
+                    },
+                    InstgRmbrsmntAgtAcct: {
+                        Id: {
+                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[1],
+                            Othr: {
+                                Id: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[2],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT53A?.PrtyIdn, prtyIdn2 = message.block4.MT53B?.PrtyIdn, prtyIdn3 = message.block4.MT53D?.PrtyIdn)
+                                }
+                            }
                         }
                     }
                 },
-                InstgRmbrsmntAgtAcct: {
-                    Id: {
-                        IBAN: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[1],
-                        Othr: {
-                            Id: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn)[2],
-                            SchmeNm: {
-                                Cd: getSchemaCode(prtyIdn1 = message.block4.MT53A?.PrtyIdn, prtyIdn2 = message.block4.MT53B?.PrtyIdn, prtyIdn3 = message.block4.MT53D?.PrtyIdn)
-                            }
-                        }
+                InstgAgt: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
                     }
-                }
+                },
+                InstdAgt: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                    }
+                },
+                NbOfTxs: DEFAULT_NUM_OF_TX,
+                MsgId: message.block4.MT20.msgId.content
             },
-            InstgAgt: {
-                FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                }
-            },
-            InstdAgt: {
-                FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                }
-            },
-            NbOfTxs: DEFAULT_NUM_OF_TX,
-            MsgId: message.block4.MT20.msgId.content
-        },
-        CdtTrfTxInf: check getMT205COVCreditTransfer(message.block4, message.block3)
+            CdtTrfTxInf: check getMT205COVCreditTransfer(message.block4, message.block3)
+        }
     }
 };
 
@@ -333,10 +349,8 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVBlock4 block4, swift
             }
         },
         IntrBkSttlmAmt: {
-            ActiveCurrencyAndAmount_SimpleType: {
-                ActiveCurrencyAndAmount_SimpleType: check convertToDecimalMandatory(block4.MT32A.Amnt),
-                Ccy: block4.MT32A.Ccy.content
-            }
+            content: check convertToDecimalMandatory(block4.MT32A.Amnt),
+            Ccy: block4.MT32A.Ccy.content
         },
         IntrBkSttlmDt: convertToISOStandardDate(block4.MT32A.Dt),
         PmtId: {
@@ -362,7 +376,6 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVBlock4 block4, swift
         Dbtr: {
             FinInstnId: {
                 BICFI: block4.MT52A?.IdnCd?.content,
-                LEI: getPartyIdentifier(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn),
                 ClrSysMmbId: {
                     MmbId: "", 
                     ClrSysId: {
@@ -448,7 +461,7 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVBlock4 block4, swift
                     Othr: {
                         Id: getAccountId(validateAccountNumber(block4.UndrlygCstmrCdtTrf.MT50A?.Acc, acc2 = block4.UndrlygCstmrCdtTrf.MT50K?.Acc)[1], getPartyIdentifierOrAccount(block4.UndrlygCstmrCdtTrf.MT50F?.PrtyIdn)[2]),
                         SchmeNm: {
-                            Cd: getSchemaCode(block4.UndrlygCstmrCdtTrf.MT50A?.Acc, block4.UndrlygCstmrCdtTrf.MT50K?.Acc, prtyIdn1 = block4.UndrlygCstmrCdtTrf.MT50F?.PrtyIdn)
+                            Cd: getSchemaCodeForDbtr(block4.UndrlygCstmrCdtTrf.MT50A?.Acc, block4.UndrlygCstmrCdtTrf.MT50K?.Acc, prtyIdn1 = block4.UndrlygCstmrCdtTrf.MT50F?.PrtyIdn)
                         }
                     }
                 }
@@ -456,7 +469,6 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVBlock4 block4, swift
             DbtrAgt: {
                 FinInstnId: {
                     BICFI: ordgInstn52A?.IdnCd?.content,
-                    LEI: getPartyIdentifier(ordgInstn52A?.PrtyIdn, ordgInstn52D?.PrtyIdn),
                     ClrSysMmbId: {
                         MmbId: "", 
                         ClrSysId: {
@@ -481,10 +493,8 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVBlock4 block4, swift
                 }
             },
             InstdAmt: {
-                ActiveOrHistoricCurrencyAndAmount_SimpleType: {
-                    ActiveOrHistoricCurrencyAndAmount_SimpleType: check getInstructedAmount(instrdAmnt = block4.UndrlygCstmrCdtTrf.MT33B),
-                    Ccy: getMandatoryFields(block4.UndrlygCstmrCdtTrf.MT33B?.Ccy?.content)
-                }
+                content: check getInstructedAmount(instrdAmnt = block4.UndrlygCstmrCdtTrf.MT33B),
+                Ccy: getMandatoryFields(block4.UndrlygCstmrCdtTrf.MT33B?.Ccy?.content)
             },
             IntrmyAgt1: {
                 FinInstnId: {
