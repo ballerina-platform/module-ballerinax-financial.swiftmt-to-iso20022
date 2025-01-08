@@ -2126,33 +2126,3 @@ isolated function getDebtorAccount(swiftmt:MT910Block4 block4) returns pacsIsoRe
         }
     };
 } 
-
-isolated function removeTagsForTest(xml actual, boolean isMessageIdPresent = true) returns xml {
-    xml childXml = xml ``;
-    foreach xml:Element tag in actual.elementChildren() {
-        if tag.getName().includes("Document") {
-            foreach xml:Element mainChild in tag.elementChildren().elementChildren(){
-                if mainChild.getName().includes("GrpHdr") {
-                    foreach xml:Element subChild in mainChild.elementChildren(){
-                        if subChild.getName().includes("CreDtTm") || (subChild.getName().includes("MsgId") && !isMessageIdPresent) {
-                            continue;
-                        }
-                        childXml += subChild;
-                    }
-                    mainChild.setChildren(childXml);
-                    childXml = xml ``;
-                }
-            }
-            break;
-        }
-        foreach xml:Element child in tag.elementChildren() {
-            if child.getName().includes("CreDt") || (child.getName().includes("BizMsgIdr") && !isMessageIdPresent){
-                continue;
-            }
-            childXml += child;
-        }
-        tag.setChildren(childXml);
-        childXml = xml ``;
-    }
-    return actual;
-}
