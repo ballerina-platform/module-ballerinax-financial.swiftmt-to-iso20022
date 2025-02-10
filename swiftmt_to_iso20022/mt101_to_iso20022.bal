@@ -31,18 +31,19 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
         To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
         MsgDefIdr: "pain.001.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        BizSvc: "swift.cbprplus.02",
+        CreDt: "9999-12-31T00:00:00+00:00"
     },
     Document: {
         CstmrCdtTrfInitn: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: "9999-12-31T00:00:00+00:00",
                 InitgPty: {
-                    Id: {
-                        OrgId: {
+                    Id: message.block4.MT50C?.IdnCd?.content is () && message.block4.MT50L?.PrtyIdn is () ? () : {
+                        OrgId: message.block4.MT50C?.IdnCd?.content is () ? () : {
                             AnyBIC: message.block4.MT50C?.IdnCd?.content
                         },
-                        PrvtId: {
+                        PrvtId: getPartyIdentifier(message.block4.MT50L?.PrtyIdn) is () ? () :{
                             Othr: [
                                 {
                                     Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
@@ -51,17 +52,8 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
                         }
                     }
                 },
-                FwdgAgt: {
-                    FinInstnId: {
-                        BICFI: message.block4.MT51A?.IdnCd?.content,
-                        ClrSysMmbId: {
-                            MmbId: "", 
-                            ClrSysId: {
-                                Cd: message.block4.MT51A?.PrtyIdn?.content
-                            }
-                        }
-                    }
-                },
+                FwdgAgt: getOptionalFinancialInstitution(message.block4.MT51A?.IdnCd?.content,
+                        (), message.block4.MT51A?.PrtyIdn, ()),
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: message.block4.MT20.msgId.content
             },
@@ -86,6 +78,9 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
         swiftmt:MT50H? ordgCstm50H = check getMT101RepeatingFields(block4, transaxion.MT50H, "50H").ensureType();
         swiftmt:MT52A? ordgInstn52A = check getMT101RepeatingFields(block4, transaxion.MT52A, "52A").ensureType();
         swiftmt:MT52C? ordgInstn52C = check getMT101RepeatingFields(block4, transaxion.MT52C, "52C").ensureType();
+        [painIsoRecord:InstructionForDebtorAgent1?, InstructionForCreditorAgentArray?, 
+            painIsoRecord:ServiceLevel8Choice[]?, painIsoRecord:CategoryPurpose1Choice?] [instrFrDbtrAgt, instrFrCdtrAgt,
+            serviceLevel, catPurpose] = getMT101InstructionCode(transaxion.MT23E);
 
         pmtInfArray.push({
             PmtInfId: block4.MT20.msgId.content,
@@ -102,171 +97,47 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                         InstrId: block4.MT20.msgId.content,
                         UETR: block3?.NdToNdTxRef?.value
                     },
-                    PmtTpInf: {
-                        SvcLvl: getMT101InstructionCode(transaxion.MT23E, 1)[2],
-                        CtgyPurp: getMT101InstructionCode(transaxion.MT23E, 1)[3]
+                    PmtTpInf: serviceLevel is () && catPurpose is () ? () : {
+                        SvcLvl: serviceLevel,
+                        CtgyPurp: catPurpose
                     },
-                    XchgRateInf: {
+                    XchgRateInf: transaxion.MT36?.Rt is () ? () : {
                         XchgRate: check convertToDecimal(transaxion.MT36?.Rt)
                     },
-                    Cdtr: {
-                        Id: {
-                            OrgId: {
-                                AnyBIC: transaxion.MT59A?.IdnCd?.content,
-                                Othr: getOtherId(transaxion.MT59?.Acc, transaxion.MT59A?.Acc, transaxion.MT59F?.Acc)
-                            }
-                        },
-                        Nm: getName(transaxion.MT59F?.Nm, transaxion.MT59?.Nm),
-                        PstlAdr: {
-                            AdrLine: getAddressLine(transaxion.MT59F?.AdrsLine, transaxion.MT59?.AdrsLine),
-                            Ctry: getCountryAndTown(transaxion.MT59F?.CntyNTw)[0],
-                            TwnNm: getCountryAndTown(transaxion.MT59F?.CntyNTw)[1]
-                        }
-                    },
-                    CdtrAcct: {
-                        Id: {
-                            IBAN: validateAccountNumber(transaxion.MT59A?.Acc, acc2 = transaxion.MT59?.Acc, acc3 = transaxion.MT59F?.Acc)[0],
-                            Othr: {
-                                Id: validateAccountNumber(transaxion.MT59A?.Acc, acc2 = transaxion.MT59?.Acc, acc3 = transaxion.MT59F?.Acc)[1],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(transaxion.MT59A?.Acc, transaxion.MT59?.Acc, transaxion.MT59F?.Acc)
-                                }
-                            }
-                        }
-                    },
-                    CdtrAgt: {
-                        FinInstnId: {
-                            BICFI: transaxion.MT57A?.IdnCd?.content,
-                            ClrSysMmbId: {
-                                MmbId: "", 
-                                ClrSysId: {
-                                    Cd: getPartyIdentifierOrAccount2(transaxion.MT57A?.PrtyIdn, transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn)[0]
-                                }
-                            },
-                            Nm: getName(transaxion.MT57D?.Nm),
-                            PstlAdr: {
-                                AdrLine: getAddressLine(transaxion.MT57D?.AdrsLine)
-                            }
-                        }
-                    },
-                    CdtrAgtAcct: {
-                        Id: {
-                            IBAN: getPartyIdentifierOrAccount2(transaxion.MT57A?.PrtyIdn, transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn)[1],
-                            Othr: {
-                                Id: getPartyIdentifierOrAccount2(transaxion.MT57A?.PrtyIdn, transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn)[2],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(prtyIdn1 = transaxion.MT57A?.PrtyIdn, prtyIdn2 = transaxion.MT57C?.PrtyIdn, prtyIdn3 = transaxion.MT57D?.PrtyIdn)
-                                }
-                            }
-                        }
-                    },
-                    IntrmyAgt1: {
-                        FinInstnId: {
-                            BICFI: transaxion.MT56A?.IdnCd?.content,
-                            ClrSysMmbId: {
-                                MmbId: "", 
-                                ClrSysId: {
-                                    Cd: getPartyIdentifierOrAccount2(transaxion.MT56A?.PrtyIdn, transaxion.MT56C?.PrtyIdn, transaxion.MT56D?.PrtyIdn)[0]
-                                }
-                            },
-                            Nm: getName(transaxion.MT56D?.Nm),
-                            PstlAdr: {
-                                AdrLine: getAddressLine(transaxion.MT56D?.AdrsLine)
-                            }
-                        }
-                    },
-                    IntrmyAgt1Acct: {
-                        Id: {
-                            IBAN: getPartyIdentifierOrAccount2(transaxion.MT56A?.PrtyIdn, transaxion.MT56C?.PrtyIdn, transaxion.MT56D?.PrtyIdn)[1],
-                            Othr: {
-                                Id: getPartyIdentifierOrAccount2(transaxion.MT56A?.PrtyIdn, transaxion.MT56C?.PrtyIdn, transaxion.MT56D?.PrtyIdn)[2],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(prtyIdn1 = transaxion.MT56A?.PrtyIdn, prtyIdn2 = transaxion.MT56C?.PrtyIdn, prtyIdn3 = transaxion.MT56D?.PrtyIdn)
-                                }
-                            }
-                        }
-                    },
-                    InstrForDbtrAgt: getMT101InstructionCode(transaxion.MT23E, 1)[0],
-                    InstrForCdtrAgt: getMT101InstructionCode(transaxion.MT23E, 1)[1],
+                    Cdtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc,
+                        transaxion.MT59A?.Acc, transaxion.MT59F?.Acc, (),
+                        transaxion.MT59F?.Nm, transaxion.MT59?.Nm,
+                        transaxion.MT59F?.AdrsLine, transaxion.MT59?.AdrsLine,
+                        transaxion.MT59F?.CntyNTw, false, transaxion.MT77B?.Nrtv),
+                    CdtrAcct: getCashAccountForDbtrOrCdtr(transaxion.MT59?.Acc, transaxion.MT59A?.Acc, transaxion.MT59F?.Acc),
+                    CdtrAgt: getMandatoryFinancialInstitution(transaxion.MT57A?.IdnCd?.content, transaxion.MT57D?.Nm, transaxion.MT57A?.PrtyIdn,
+                        (), transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn,transaxion.MT57D?.AdrsLine),
+                    CdtrAgtAcct: getCashAccount(transaxion.MT57A?.PrtyIdn, (), transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn),
+                    IntrmyAgt1: getOptionalFinancialInstitution(transaxion.MT56A?.IdnCd?.content, transaxion.MT56D?.Nm, transaxion.MT56A?.PrtyIdn,
+                        transaxion.MT56C?.PrtyIdn, transaxion.MT56D?.PrtyIdn, (), transaxion.MT56D?.AdrsLine),
+                    IntrmyAgt1Acct: getCashAccount(transaxion.MT56A?.PrtyIdn, transaxion.MT56C?.PrtyIdn, transaxion.MT56D?.PrtyIdn),
+                    InstrForDbtrAgt: instrFrDbtrAgt,
+                    InstrForCdtrAgt: instrFrCdtrAgt,
                     RgltryRptg: getRegulatoryReporting(transaxion.MT77B?.Nrtv?.content),
                     ChrgBr: check getDetailsChargesCd(transaxion.MT71A.Cd).ensureType(painIsoRecord:ChargeBearerType1Code),
                     RmtInf: {Ustrd: [getRemmitanceInformation(transaxion.MT70?.Nrtv?.content)], Strd: []}
                 }
             ],
-            DbtrAcct: {
-                Id: {
-                    IBAN: getAccountId(validateAccountNumber(ordgCstm50G?.Acc, acc2 = ordgCstm50H?.Acc)[0], getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[1]),
-                    Othr: {
-                        Id: getAccountId(validateAccountNumber(ordgCstm50G?.Acc, acc2 = ordgCstm50H?.Acc)[1], getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[2]),
-                        SchmeNm: {
-                            Cd: getSchemaCodeForDbtr(ordgCstm50G?.Acc, ordgCstm50H?.Acc, prtyIdn1 = ordgCstm50F?.PrtyIdn)
-                        }
-                    }
-                }
-            },
+            DbtrAcct: getCashAccountForDbtrOrCdtr(ordgCstm50G?.Acc, ordgCstm50H?.Acc, (), ordgCstm50F?.PrtyIdn) ?: {},
             ReqdExctnDt: {
                 Dt: convertToISOStandardDate(block4.MT30.Dt),
                 DtTm: ""
             },
-            DbtrAgt: {
-                FinInstnId: {
-                    BICFI: ordgInstn52A?.IdnCd?.content,
-                    ClrSysMmbId: {
-                        MmbId: "", 
-                        ClrSysId: {
-                            Cd: getPartyIdentifierOrAccount2(ordgInstn52A?.PrtyIdn, ordgInstn52C?.PrtyIdn)[0]
-                        }
-                    }
-                }
-            },
-            DbtrAgtAcct: {
-                Id: {
-                    IBAN: getPartyIdentifierOrAccount2(ordgInstn52A?.PrtyIdn, ordgInstn52C?.PrtyIdn)[1],
-                    Othr: {
-                        Id: getPartyIdentifierOrAccount2(ordgInstn52A?.PrtyIdn, ordgInstn52C?.PrtyIdn)[2],
-                        SchmeNm: {
-                            Cd: getSchemaCode(prtyIdn1 = ordgInstn52A?.PrtyIdn, prtyIdn2 = ordgInstn52C?.PrtyIdn)
-                        }
-                    }
-                }
-            },
-            Dbtr: {
-                Id: {
-                    OrgId: {
-                        AnyBIC: ordgCstm50G?.IdnCd?.content,
-                        Othr: getOtherId(ordgCstm50G?.Acc, ordgCstm50H?.Acc)
-                    },
-                    PrvtId: {
-                        Othr: [
-                            {
-                                Id: getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[0],
-                                SchmeNm: {
-                                    Cd: getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[3]
-                                },
-                                Issr: getPartyIdentifierOrAccount(ordgCstm50F?.PrtyIdn)[4]
-                            }
-                        ]
-                    }
-                },
-                Nm: getName(ordgCstm50F?.Nm, ordgCstm50H?.Nm),
-                PstlAdr: {
-                    AdrLine: getAddressLine(ordgCstm50F?.AdrsLine, ordgCstm50H?.AdrsLine),
-                    Ctry: getCountryAndTown(ordgCstm50F?.CntyNTw)[0],
-                    TwnNm: getCountryAndTown(ordgCstm50F?.CntyNTw)[1]
-                }
-            },
+            DbtrAgt: getMandatoryFinancialInstitution(ordgInstn52A?.IdnCd?.content, (), ordgInstn52A?.PrtyIdn,
+                        ordgInstn52C?.PrtyIdn, ()),
+                    DbtrAgtAcct: getCashAccount(ordgInstn52A?.PrtyIdn, ordgInstn52C?.PrtyIdn),
+            Dbtr: getDebtorOrCreditor(ordgCstm50G?.IdnCd, ordgCstm50G?.Acc,
+                        ordgCstm50H?.Acc, (), ordgCstm50F?.PrtyIdn,
+                        ordgCstm50F?.Nm, ordgCstm50H?.Nm,
+                        ordgCstm50F?.AdrsLine, ordgCstm50H?.AdrsLine,
+                        ordgCstm50F?.CntyNTw, true, transaxion.MT77B?.Nrtv),
             PmtMtd: "TRF",
-            ChrgsAcct: {
-                Id: {
-                    IBAN: validateAccountNumber(transaxion.MT25A?.Acc)[0],
-                    Othr: {
-                        Id: validateAccountNumber(transaxion.MT25A?.Acc)[1],
-                        SchmeNm: {
-                            Cd: getSchemaCode(transaxion.MT25A?.Acc)
-                        }
-                    }
-                }
-            }
+            ChrgsAcct: getCashAccountForDbtrOrCdtr(transaxion.MT25A?.Acc, ())
         }
         );
     }

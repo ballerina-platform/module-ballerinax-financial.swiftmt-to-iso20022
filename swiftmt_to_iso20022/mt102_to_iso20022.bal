@@ -39,50 +39,12 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message) re
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A),
-                    InstgRmbrsmntAgt: {
-                        FinInstnId: {
-                            BICFI: message.block4.MT53A?.IdnCd?.content,
-                            ClrSysMmbId: {
-                                MmbId: "", 
-                                ClrSysId: {
-                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn)[0]
-                                }
-                            }
-                        }
-                    },
-                    InstgRmbrsmntAgtAcct: {
-                        Id: {
-                            IBAN: getAccountId(validateAccountNumber(message.block4.MT53C?.Acc)[0], getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn)[1]),
-                            Othr: {
-                                Id: getAccountId(validateAccountNumber(message.block4.MT53C?.Acc)[1], getPartyIdentifierOrAccount2(message.block4.MT53A?.PrtyIdn)[2]),
-                                SchmeNm: {
-                                    Cd: getSchemaCode(message.block4.MT53C?.Acc, prtyIdn1 = message.block4.MT53A?.PrtyIdn)
-                                }
-                            }
-                        }
-                    },
-                    InstdRmbrsmntAgt: {
-                        FinInstnId: {
-                            BICFI: message.block4.MT54A?.IdnCd?.content,
-                            ClrSysMmbId: {
-                                MmbId: "", 
-                                ClrSysId: {
-                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT54A?.PrtyIdn)[0]
-                                }
-                            }
-                        }
-                    },
-                    InstdRmbrsmntAgtAcct: {
-                        Id: {
-                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT54A?.PrtyIdn)[1],
-                            Othr: {
-                                Id: getPartyIdentifierOrAccount2(message.block4.MT54A?.PrtyIdn)[2],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT54A?.PrtyIdn)
-                                }
-                            }
-                        }
-                    }
+                    InstgRmbrsmntAgt: getOptionalFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
+                        (), message.block4.MT53A?.PrtyIdn, ()),
+                    InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn, ()),
+                    InstdRmbrsmntAgt: getOptionalFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
+                        (), message.block4.MT54A?.PrtyIdn, ()),
+                    InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ())
                 },
                 InstgAgt: {
                     FinInstnId: {
@@ -137,6 +99,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
                     }
                 },
                 Nm: getName(transaxion.MT59F?.Nm, transaxion.MT59?.Nm),
+                CtryOfRes: getCountryOfResidence(rgltyRptg?.Nrtv?.content, false),
                 PstlAdr: {
                     AdrLine: getAddressLine(transaxion.MT59F?.AdrsLine, transaxion.MT59?.AdrsLine),
                     Ctry: getCountryAndTown(transaxion.MT59F?.CntyNTw)[0],
@@ -260,6 +223,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
                         ]
                     }
                 },
+                CtryOfRes: getCountryOfResidence(rgltyRptg?.Nrtv?.content, true),
                 Nm: getName(ordgCstm50F?.Nm, ordgCstm50K?.Nm),
                 PstlAdr: {
                     AdrLine: getAddressLine(ordgCstm50F?.AdrsLine, ordgCstm50K?.AdrsLine),
@@ -409,6 +373,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
                     }
                 },
                 Nm: getName(transaxion.MT59F?.Nm, transaxion.MT59?.Nm),
+                CtryOfRes: getCountryOfResidence(rgltyRptg?.Nrtv?.content, false),
                 PstlAdr: {
                     AdrLine: getAddressLine(transaxion.MT59F?.AdrsLine, transaxion.MT59?.AdrsLine),
                     Ctry: getCountryAndTown(transaxion.MT59F?.CntyNTw)[0],
@@ -536,6 +501,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
                     }
                 },
                 Nm: getName(ordgCstm50F?.Nm, ordgCstm50K?.Nm),
+                CtryOfRes: getCountryOfResidence(rgltyRptg?.Nrtv?.content, true),
                 PstlAdr: {
                     AdrLine: getAddressLine(ordgCstm50F?.AdrsLine, ordgCstm50K?.AdrsLine),
                     Ctry: getCountryAndTown(ordgCstm50F?.CntyNTw)[0],

@@ -41,9 +41,12 @@ isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns 
                     Id: message.block4.MT20.msgId.content,
                     Acct: {
                         Id: {
-                            IBAN: validateAccountNumber(message.block4.MT25P?.Acc)[0],
+                            IBAN: validateAccountNumber(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)[0],
                             Othr: {
-                                Id: validateAccountNumber(message.block4.MT25P?.Acc)[1]
+                                Id: validateAccountNumber(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)[1],
+                                SchmeNm: {
+                                    Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                }
                             }
                         },
                         Ownr: {

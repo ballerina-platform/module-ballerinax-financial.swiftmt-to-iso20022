@@ -26,32 +26,53 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns the transformed ISO 20022 XML or an error if the transformation fails.
 public isolated function toIso20022Xml(string finMessage) returns xml|error {
     record {} parsedMessage = check swiftmt:parseSwiftMt(finMessage);
+    xml iso20022Xml = xml ``;
     // MT104, MT107, and MTn96 messages are handled separately to identify the type of instruction found within the 
     //message and to determine the appropriate action, whether converting it to ISO 20022 XML or returning an error 
     //message if the instruction is not supported. For eaxample if the MT 107 message has RTND instruction code, an
     //error will be thrown as the returned mapping for MT 107 is still not supported.
     if parsedMessage is swiftmt:MT104Message {
-        return getMT104TransformFunction(parsedMessage);
-    }
-    if parsedMessage is swiftmt:MT107Message {
-        return getMT107TransformFunction(parsedMessage);
-    }
-    if parsedMessage is swiftmt:MTn96Message {
-        return getMTn96TransformFunction(parsedMessage);
-    }
-    xml swiftMessageXml = check xmldata:toXml(parsedMessage);
-    string messageType = (swiftMessageXml/**/<messageType>).data();
-    string validationFlag = (swiftMessageXml/**/<ValidationFlag>/<value>).data();
-    if validationFlag.length() > 0 {
-        isolated function? func = transformFunctionMap[messageType + validationFlag];
-        if func is () {
-            return error("This SWIFT MT to ISO 20022 conversion is not supported.");
+        iso20022Xml = check getMT104TransformFunction(parsedMessage);
+    } else if parsedMessage is swiftmt:MT107Message {
+        iso20022Xml = check getMT107TransformFunction(parsedMessage);
+    } else if parsedMessage is swiftmt:MTn96Message {
+        iso20022Xml = check getMTn96TransformFunction(parsedMessage);
+    } 
+    // The following conditions are used to identify the message type and the instruction code within the message in
+    //order to call the coressponding function. 
+    else if parsedMessage is swiftmt:MT103Message && parsedMessage.block4.MT72?.Cd?.content.toString().includes("/RETN/99"){
+        iso20022Xml = check xmldata:toXml(check transformMT103ToPacs004(parsedMessage), {textFieldName: "content"});
+    } else if parsedMessage is swiftmt:MT103Message && parsedMessage.block4.MT72?.Cd?.content.toString().includes("/REJT/"){
+        iso20022Xml = check xmldata:toXml(check transformMT103ToPacs002(parsedMessage), {textFieldName: "content"});
+    } else if parsedMessage is swiftmt:MT202Message && parsedMessage.block4.MT72?.Cd?.content.toString().includes("/RETN/99"){
+        iso20022Xml = check xmldata:toXml(check transformMT202ToPacs004(parsedMessage), {textFieldName: "content"});
+    } else {
+        xml swiftMessageXml = check xmldata:toXml(parsedMessage);
+        string messageType = (swiftMessageXml/**/<messageType>).data();
+        string validationFlag = (swiftMessageXml/**/<ValidationFlag>/<value>).data();
+        if validationFlag.length() > 0 {
+            isolated function? func = transformFunctionMap[messageType + validationFlag];
+            if func is () {
+                return error("This SWIFT MT to ISO 20022 conversion is not supported.");
+            }
+            iso20022Xml = check xmldata:toXml(check function:call(func, parsedMessage).ensureType(), {textFieldName: "content"});
+        } else {
+            isolated function? func = transformFunctionMap[messageType];
+            if func is () {
+                return error("This SWIFT MT to ISO 20022 conversion is not supported.");
+            }
+            iso20022Xml = check xmldata:toXml(check function:call(func, parsedMessage).ensureType(), {textFieldName: "content"});
         }
-        return xmldata:toXml(check function:call(func, parsedMessage).ensureType(), {textFieldName: "content"});
     }
-    isolated function? func = transformFunctionMap[messageType];
-    if func is () {
-        return error("This SWIFT MT to ISO 20022 conversion is not supported.");
-    }
-    return xmldata:toXml(check function:call(func, parsedMessage).ensureType(), {textFieldName: "content"});
-}
+    xml:Element messageTypeXml = check (iso20022Xml/**/<AppHdr>/<MsgDefIdr>).ensureType();
+    string isoMessageType = "urn:iso:std:iso:20022:tech:xsd:" + messageTypeXml.data();
+    xml:Element appHdr = xml:createElement("AppHdr", {"xmlns": "urn:iso:std:iso:20022:tech:xsd:head.001.001.02"},
+        (iso20022Xml/**/<AppHdr>).elementChildren());
+    xml:Element document = xml:createElement("Document", {"xmlns": isoMessageType},
+        (iso20022Xml/**/<Document>).elementChildren());
+    xml:Element envelope = xml `<Envelope xmlns="urn:swift:xsd:envelope" 
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></Envelope>`;
+    envelope.setChildren(appHdr + document);
+    xml finalXml = xml:createComment("?xml version=\"1.0\" encoding=\"UTF-8\"?") + envelope;
+    return finalXml;
+} 

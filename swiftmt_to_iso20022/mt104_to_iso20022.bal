@@ -101,6 +101,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
                     }
                 },
                 Nm: getName(creditor50K?.Nm),
+                CtryOfRes: getCountryOfResidence(rgltryRptg?.Nrtv?.content, false),
                 PstlAdr: {
                     AdrLine: getAddressLine(creditor50K?.AdrsLine)
                 }
@@ -245,6 +246,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
                 }
             },
             ChrgBr: check getDetailsChargesCd(dtlsOfChrgs?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
             Dbtr: {
                 Id: {
                     OrgId: {
@@ -253,6 +255,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
                     }
                 },
                 Nm: getName(transaxion.MT59?.Nm),
+                CtryOfRes: getCountryOfResidence(rgltryRptg?.Nrtv?.content, true),
                 PstlAdr: {
                     AdrLine: getAddressLine(transaxion.MT59?.AdrsLine)
                 }
@@ -350,6 +353,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Block4 block4, swift
                     }
                 },
                 Nm: getName(creditor50K?.Nm),
+                CtryOfRes: getCountryOfResidence(rgltryRptg?.Nrtv?.content, false),
                 PstlAdr: {
                     AdrLine: getAddressLine(creditor50K?.AdrsLine)
                 }
@@ -460,6 +464,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Block4 block4, swift
                             }
                         },
                         Nm: getName(transaxion.MT59?.Nm),
+                        CtryOfRes: getCountryOfResidence(rgltryRptg?.Nrtv?.content, true),
                         PstlAdr: {
                             AdrLine: getAddressLine(transaxion.MT59?.AdrsLine)
                         }

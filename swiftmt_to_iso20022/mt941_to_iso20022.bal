@@ -39,7 +39,10 @@ isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns 
             Rpt: [
                 {
                     Id: message.block4.MT20.msgId.content,
-                    CreDtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm),
+                    CreDtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm) !is () ? 
+                             convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm).toString() + 
+                             message.block4.MT13D?.Sgn?.content.toString() + message.block4.MT13D?.TmOfst?.content.toString().substring(0,2)
+                             + ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2,4) : () ,
                     Acct: {
                         Id: {
                             IBAN: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[0],
