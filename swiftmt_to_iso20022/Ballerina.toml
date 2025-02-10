@@ -1,7 +1,7 @@
 [package]
 org = "ballerinax"
 name = "financial.swiftmtToIso20022"
-version = "0.9.0"
+version = "0.9.1"
 distribution = "2201.10.1"
 authors=["Ballerina"]
 keywords=["Financial", "SWIFT MT", "ISO 20022", "Conversion"]
@@ -10,8 +10,3 @@ license = ["Apache-2.0"]
 
 [build-options]
 observabilityIncluded = true
-
-[[dependency]]
-org = "ballerinax"
-name = "financial.iso20022"
-version = "1.2.0"

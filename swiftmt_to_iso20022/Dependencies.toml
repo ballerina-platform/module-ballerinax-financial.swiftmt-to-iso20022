@@ -5,7 +5,7 @@
 
 [ballerina]
 dependencies-toml-version = "2"
-distribution-version = "2201.10.4-20250127-170500-e3246f5f"
+distribution-version = "2201.10.1"
 
 [[package]]
 org = "ballerina"
@@ -217,7 +217,7 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "financial.swiftmtToIso20022"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
 	{org = "ballerina", name = "data.xmldata"},
 	{org = "ballerina", name = "io"},
@@ -232,4 +232,3 @@ dependencies = [
 modules = [
 	{org = "ballerinax", packageName = "financial.swiftmtToIso20022", moduleName = "financial.swiftmtToIso20022"}
 ]
-
