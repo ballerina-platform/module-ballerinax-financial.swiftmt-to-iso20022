@@ -22,21 +22,25 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MTn90 message as a record value.
 # + return - Returns a `Camt105Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns camtIsoRecord:Camt105Envelope|error => {
+isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns camtIsoRecord:Camt105Envelope|error =>{
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
         MsgDefIdr: "camt105.001.02", 
         BizSvc: "swift.cbprplus.02",
-        CreDt: "9999-12-31T00:00:00+00:00"
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string) + "+00:00"
     },
     Document: {
         ChrgsPmtNtfctn: {
             GrpHdr: {
-                CreDtTm: "9999-12-31T00:00:00+00:00",
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string) + "+00:00",
                 MsgId: message.block4.MT20.msgId.content,
-                ChrgsAcct: getCashAccountForDbtrOrCdtr(message.block4.MT25?.Acc, ())
+                ChrgsAcct: getCashAccount2(message.block4.MT25?.Acc, ())
             }, 
             Chrgs: {
                 PerTx: {
@@ -56,8 +60,9 @@ isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns 
                             CdtDbtInd: message.block4.MT32C is () ? "DBIT" : "CRDT"},
                         ValDt: {Dt: message.block4.MT32C is () ? convertToISOStandardDate(message.block4.MT32D?.Dt) : 
                             convertToISOStandardDate(message.block4.MT32C?.Dt)},
-                        DbtrAgt: getOptionalFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
-                            message.block4.MT52D?.PrtyIdn, (), (), message.block4.MT52D?.AdrsLine),
+                        DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
+                            message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
+                            (), message.block4.MT52D?.AdrsLine),
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
                         ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content)}]
                 }

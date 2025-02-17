@@ -22,18 +22,23 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT204 message as record value.
 # + return - Returns a `Pacs010Document` containing the direct debit transaction instructions,
 # or an error if the transformation fails.
-isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns pacsIsoRecord:Pacs010Envelope|error => {
+isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns pacsIsoRecord:Pacs010Envelope|error =>{
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "pacs.010.001.06", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "pacs.010.001.06",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string)
     },
     Document: {
         FIDrctDbt: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string),
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: message.block4.MT20.msgId.content,
                 CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
@@ -50,58 +55,16 @@ isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns 
             },
             CdtInstr: [
                 {
-                    Cdtr: {
-                        FinInstnId: {
-                            BICFI: message.block4.MT58A?.IdnCd?.content,
-                            ClrSysMmbId: {
-                                MmbId: "", 
-                                ClrSysId: {
-                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[0]
-                                }
-                            },
-                            Nm: getName(message.block4.MT58D?.Nm),
-                            PstlAdr: {
-                                AdrLine: getAddressLine(message.block4.MT58D?.AdrsLine)
-                            }
-                        }
-                    },
-                    CdtrAcct: {
-                        Id: {
-                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[1],
-                            Othr: {
-                                Id: getPartyIdentifierOrAccount2(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn)[2],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT58A?.PrtyIdn, prtyIdn2 = message.block4.MT58D?.PrtyIdn)
-                                }
-                            }
-                        }
-                    },
-                    CdtrAgt: {
-                        FinInstnId: {
-                            BICFI: message.block4.MT57A?.IdnCd?.content,
-                            ClrSysMmbId: {
-                                MmbId: "", 
-                                ClrSysId: {
-                                    Cd: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[0]
-                                }
-                            },
-                            Nm: getName(message.block4.MT57D?.Nm),
-                            PstlAdr: {
-                                AdrLine: getAddressLine(message.block4.MT57D?.AdrsLine, address3 = message.block4.MT57B?.Lctn?.content)
-                            }
-                        }
-                    },
-                    CdtrAgtAcct: {
-                        Id: {
-                            IBAN: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[1],
-                            Othr: {
-                                Id: getPartyIdentifierOrAccount2(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57D?.PrtyIdn)[2],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(prtyIdn1 = message.block4.MT57A?.PrtyIdn, prtyIdn2 = message.block4.MT57B?.PrtyIdn, prtyIdn3 = message.block4.MT57D?.PrtyIdn)
-                                }
-                            }
-                        }
-                    },
+                    Cdtr: getFinancialInstitution(message.block4.MT58A?.IdnCd?.content, message.block4.MT58D?.Nm, 
+                            message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn, (), (),
+                            message.block4.MT58D?.AdrsLine) ?: {FinInstnId: {}},
+                    CdtrAcct: getCashAccount(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn),
+                    CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
+                        message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, (), 
+                        message.block4.MT57D?.PrtyIdn,message.block4.MT57D?.AdrsLine,
+                        message.block4.MT57B?.Lctn?.content),
+                    CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
+                        message.block4.MT57D?.PrtyIdn),
                     CdtId: message.block4.MT20.msgId.content,
                     IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT30.Dt),
                     InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[0],
@@ -119,46 +82,27 @@ isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns 
 # + block3 - The parsed block3 of MT204 SWIFT message containing end to end id.
 # + return - Returns an array of `DirectDebitTransactionInformation33` containing 
 # the transaction information, or an error if the extraction fails.
-isolated function getMT204CreditTransferTransactionInfo(swiftmt:MT204Block4 block4, swiftmt:Block3? block3) returns pacsIsoRecord:DirectDebitTransactionInformation33[]|error {
-    pacsIsoRecord:DirectDebitTransactionInformation33[] dbtTrfTxInfArray = [];
-    foreach swiftmt:MT204Transaction transaxion in block4.Transaction {
-        dbtTrfTxInfArray.push({
-            IntrBkSttlmAmt: {
-                content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
-                Ccy: transaxion.MT32B.Ccy.content
-            },
-            PmtId: {
-                EndToEndId: getMandatoryFields(transaxion.MT21?.Ref?.content),
-                InstrId: transaxion.MT20.msgId.content,
-                UETR: block3?.NdToNdTxRef?.value
-            },
-            Dbtr: {
-                FinInstnId: {
-                    BICFI: transaxion.MT53A?.IdnCd?.content,
-                    ClrSysMmbId: {
-                        MmbId: "", 
-                        ClrSysId: {
-                            Cd: getPartyIdentifierOrAccount2(transaxion.MT53A?.PrtyIdn, transaxion.MT53B?.PrtyIdn, transaxion.MT53D?.PrtyIdn)[0]
-                        }
-                    },
-                    Nm: getName(transaxion.MT53D?.Nm),
-                    PstlAdr: {
-                        AdrLine: getAddressLine(transaxion.MT53D?.AdrsLine, address3 = transaxion.MT53B?.Lctn?.content)
-                    }
-                }
-            },
-            DbtrAcct: {
-                Id: {
-                    IBAN: getPartyIdentifierOrAccount2(transaxion.MT53A?.PrtyIdn, transaxion.MT53B?.PrtyIdn, transaxion.MT53D?.PrtyIdn)[1],
-                    Othr: {
-                        Id: getPartyIdentifierOrAccount2(transaxion.MT53A?.PrtyIdn, transaxion.MT53B?.PrtyIdn, transaxion.MT53D?.PrtyIdn)[2],
-                        SchmeNm: {
-                            Cd: getSchemaCode(prtyIdn1 = transaxion.MT53A?.PrtyIdn, prtyIdn2 = transaxion.MT53B?.PrtyIdn, prtyIdn3 = transaxion.MT53D?.PrtyIdn)
-                        }
-                    }
-                }
-            }
-        });
-    }
-    return dbtTrfTxInfArray;
+isolated function getMT204CreditTransferTransactionInfo(swiftmt:MT204Block4 block4, swiftmt:Block3? block3) 
+    returns pacsIsoRecord:DirectDebitTransactionInformation33[]|error {
+        pacsIsoRecord:DirectDebitTransactionInformation33[] dbtTrfTxInfArray = [];
+        foreach swiftmt:MT204Transaction transaxion in block4.Transaction {
+            dbtTrfTxInfArray.push({
+                IntrBkSttlmAmt: {
+                    content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
+                    Ccy: transaxion.MT32B.Ccy.content
+                },
+                PmtId: {
+                    EndToEndId: getMandatoryFields(transaxion.MT21?.Ref?.content),
+                    InstrId: transaxion.MT20.msgId.content,
+                    UETR: block3?.NdToNdTxRef?.value
+                },
+                Dbtr: getFinancialInstitution(transaxion.MT53A?.IdnCd?.content,
+                            transaxion.MT53D?.Nm, transaxion.MT53A?.PrtyIdn, transaxion.MT53B?.PrtyIdn,
+                            transaxion.MT53D?.PrtyIdn, (), transaxion.MT53D?.AdrsLine,
+                            transaxion.MT53B?.Lctn?.content) ?: {FinInstnId: {}},
+                DbtrAcct: getCashAccount(transaxion.MT53A?.PrtyIdn, transaxion.MT53B?.PrtyIdn,
+                    transaxion.MT53D?.PrtyIdn)
+            });
+        }
+        return dbtTrfTxInfArray;
 }

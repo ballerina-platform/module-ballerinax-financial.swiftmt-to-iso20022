@@ -22,22 +22,27 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MTn91 message as a record value.
 # + return - Returns a `Camt106Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMTn90ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error => {
+isolated function transformMTn90ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error =>{
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
         MsgDefIdr: "camt106.001.02", 
         BizSvc: "swift.cbprplus.02",
-        CreDt: "9999-12-31T00:00:00+00:00"
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string) + "+00:00"
     },
     Document: {
         ChrgsPmtReq: {
             GrpHdr: {
-                CreDtTm: "9999-12-31T00:00:00+00:00", 
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string) + "+00:00", 
                 MsgId: message.block4.MT20.msgId.content,
-                ChrgsAcctAgt: getOptionalFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
-                            message.block4.MT52D?.PrtyIdn, (), (), message.block4.MT52D?.AdrsLine),
+                ChrgsAcctAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
+                    message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
+                    message.block4.MT52D?.AdrsLine),
                 ChrgsAcctAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)}, 
             Chrgs: {
                 PerTx: {
@@ -52,7 +57,8 @@ isolated function transformMTn90ToCamt106(swiftmt:MTn91Message message) returns 
                             TtlChrgsAmt: {content: check convertToDecimalMandatory(message.block4.MT32B.Amnt), 
                                 Ccy: message.block4.MT32B.Ccy.content},
                             CdtDbtInd: "DBIT"},
-                        DbtrAgt: getOptionalFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
+                        DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
+                            message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
                             message.block4.MT52D?.PrtyIdn, (), (), message.block4.MT52D?.AdrsLine),
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
                         ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content)

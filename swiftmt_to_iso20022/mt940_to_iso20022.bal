@@ -22,34 +22,42 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT940 message as a record value.
 # + return - Returns a `Camt053Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns camtIsoRecord:Camt053Envelope|error => {
+isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns camtIsoRecord:Camt053Envelope|error => 
+    let [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc, 
+        acc2 = message.block4.MT25P?.Acc),
+    camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61) in {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt053.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "camt053.001.12",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string)
     },
     Document: {
         BkToCstmrStmt: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string),
                 MsgId: message.block4.MT20.msgId.content
             },
             Stmt: [
                 {
                     Id: message.block4.MT20.msgId.content,
-                    Acct: {
+                    Acct: bban is () && iban is () ? {} : {
                         Id: {
-                            IBAN: validateAccountNumber(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)[0],
-                            Othr: {
-                                Id: validateAccountNumber(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)[1],
+                            IBAN: iban,
+                            Othr: bban is () ? (): {
+                                Id: bban,
                                 SchmeNm: {
                                     Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
                                 }
                             }
                         },
-                        Ownr: {
+                        Ownr: message.block4.MT25P is () ? () : {
                             Id: {
                                 OrgId: {
                                     AnyBIC: message.block4.MT25P?.IdnCd?.content
@@ -59,8 +67,9 @@ isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns 
                     },
                     ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                     LglSeqNb: message.block4.MT28C.StmtNo.content,
-                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64, message.block4.MT60M, message.block4.MT62M, message.block4.MT65),
-                    Ntry: check getEntries(message.block4.MT61)
+                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
+                        message.block4.MT60M, message.block4.MT62M, message.block4.MT65),
+                    Ntry: entries.length() == 0 ? () : entries
                 }
             ]
         }

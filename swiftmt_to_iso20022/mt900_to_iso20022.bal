@@ -23,34 +23,42 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT900 message as a record value.
 # + return - Returns a `Camt054Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns camtIsoRecord:Camt054Envelope|error => {
+isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns camtIsoRecord:Camt054Envelope|error =>
+    let string? dateTime = convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm),
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc,
+        acc2 = message.block4.MT25P?.Acc) in {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt054.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "camt054.001.12",
+        BizSvc: "swift.cbprplus.02", 
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
+            true).ensureType(string)
     },
     Document: {
         BkToCstmrDbtCdtNtfctn: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
+                    true).ensureType(string),
                 MsgId: message.block4.MT20.msgId.content
             },
             Ntfctn: [
                 {
                     Id: message.block4.MT20.msgId.content,
-                    Acct: {
+                    Acct: bban is () && iban is () ? {} : {
                         Id: {
-                            IBAN: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[0],
-                            Othr: {
-                                Id: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[1],
+                            IBAN: iban,
+                            Othr: bban is () ? (): {
+                                Id: bban,
                                 SchmeNm: {
                                     Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
                                 }
                             }
                         },
-                        Ownr: {
+                        Ownr: message.block4.MT25P is () ? () : {
                             Id: {
                                 OrgId: {
                                     AnyBIC: message.block4.MT25P?.IdnCd?.content
@@ -59,11 +67,10 @@ isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns 
                         }
                     },
                     Ntry: [{
-                        BookgDt: {
-                            DtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm) is () ? (): 
-                            convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm).toString()
-                            + message.block4.MT13D?.Sgn?.content.toString() + message.block4.MT13D?.TmOfst?.content.toString().substring(0,2) + 
-                            ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2)
+                        BookgDt: dateTime is () ? (): {
+                            DtTm:  dateTime + message.block4.MT13D?.Sgn?.content.toString() + 
+                                message.block4.MT13D?.TmOfst?.content.toString().substring(0,2) + 
+                                ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2)
                         },
                         Amt: {
                             content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
@@ -89,33 +96,13 @@ isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns 
                                         CdtDbtInd: camtIsoRecord:DBIT,
                                         RltdPties: {
                                             Dbtr: {
-                                                Agt: {
-                                                    FinInstnId: {
-                                                        BICFI: message.block4.MT52A?.IdnCd?.content,
-                                                        ClrSysMmbId: {
-                                                            MmbId: "", 
-                                                            ClrSysId: {
-                                                                Cd: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[0]
-                                                            }
-                                                        },
-                                                        Nm: getName(message.block4.MT52D?.Nm),
-                                                        PstlAdr: {
-                                                            AdrLine: getAddressLine(message.block4.MT52D?.AdrsLine)
-                                                        }
-                                                    }
-                                                }
+                                                Agt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, 
+                                                    message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
+                                                    message.block4.MT52D?.PrtyIdn, (), (), 
+                                                        message.block4.MT52D?.AdrsLine)
                                             },
-                                            DbtrAcct: {
-                                                Id: {
-                                                    IBAN: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[1],
-                                                    Othr: {
-                                                        Id: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[2],
-                                                        SchmeNm: {
-                                                            Cd: getSchemaCode(prtyIdn1 = message.block4.MT52A?.PrtyIdn, prtyIdn2 = message.block4.MT52D?.PrtyIdn)
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            DbtrAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, 
+                                                message.block4.MT52D?.PrtyIdn)
                                         }, 
                                         Refs: {
                                             EndToEndId: message.block4.MT21.Ref.content,

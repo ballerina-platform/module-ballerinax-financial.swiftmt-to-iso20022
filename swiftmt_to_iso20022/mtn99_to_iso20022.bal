@@ -22,20 +22,25 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MTn99 message as a record value.
 # + return - Returns a `Pacs002Document` object if the transformation is successful,
 # otherwise returns an error.
-isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pacsIsoRecord:Pacs002Envelope|error => let 
-    [pacsIsoRecord:Max105Text[], string?, string?, string?, string?] [addtnlInfo, messageId, endToEndId, uetr, reason] =
-        getInfoFromField79ForPacs002(message.block4.MT79.Nrtv) in {
+isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pacsIsoRecord:Pacs002Envelope|error =>
+    let [pacsIsoRecord:Max105Text[], string?, string?, string?, string?] [addtnlInfo, messageId, endToEndId, uetr,
+        reason] = getInfoFromField79ForPacs002(message.block4.MT79.Nrtv) in {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "pacs.002.001.14", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "pacs.002.001.14",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string)
     },
     Document: {
         FIToFIPmtStsRpt: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string), 
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string), 
                 MsgId: message.block4.MT20.msgId.content
             },
             TxInfAndSts: [{
@@ -46,8 +51,8 @@ isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pa
                 OrgnlInstrId: message.block4.MT21?.Ref?.content,
                 OrgnlEndToEndId: endToEndId,
                 OrgnlUETR: uetr is string ? uetr : message.block3?.NdToNdTxRef?.value,
-                StsRsnInf: [{
-                    Rsn: {
+                StsRsnInf: reason is () && addtnlInfo.length() == 0 ? () : [{
+                    Rsn: reason is () ? () :{
                         Cd:reason
                     },
                     AddtlInf: addtnlInfo.length() == 0 ? () : addtnlInfo

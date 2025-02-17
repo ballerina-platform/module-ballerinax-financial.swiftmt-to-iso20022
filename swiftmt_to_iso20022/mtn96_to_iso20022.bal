@@ -25,18 +25,23 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The MTn96 message to be transformed, which should be in the `swiftmt:MTn96Message` format.
 # + return - Returns a record in `camtIsoRecord:Camt028Document` format if successful, otherwise returns an error.
-isolated function transformMTn96ToCamt028(swiftmt:MTn96Message message) returns camtIsoRecord:Camt028Envelope|error => {
+isolated function transformMTn96ToCamt028(swiftmt:MTn96Message message) returns camtIsoRecord:Camt028Envelope|error =>{
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt028.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "camt028.001.12",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string)
     },
     Document: {
         AddtlPmtInf: {
             Assgnmt: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string),
                 Assgne: {
                     Agt: {
                         FinInstnId: {
@@ -87,18 +92,23 @@ isolated function transformMTn96ToCamt028(swiftmt:MTn96Message message) returns 
     }
 };
 
-isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns camtIsoRecord:Camt029Envelope|error => {
+isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns camtIsoRecord:Camt029Envelope|error =>{
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt029.001.13", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "camt029.001.13",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string)
     },
     Document: {
         RsltnOfInvstgtn: {
             Assgnmt: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string), 
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string), 
                 Assgne: {
                     Agt: {
                         FinInstnId: {
@@ -146,18 +156,23 @@ isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns 
 #
 # + message - The MTn96 message to be transformed, which should be in the `swiftmt:MTn96Message` format.
 # + return - Returns a record in `camtIsoRecord:Camt031Document` format if successful, otherwise returns an error.
-isolated function transformMTn96ToCamt031(swiftmt:MTn96Message message) returns camtIsoRecord:Camt031Envelope|error => {
+isolated function transformMTn96ToCamt031(swiftmt:MTn96Message message) returns camtIsoRecord:Camt031Envelope|error =>{
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt031.001.07", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "camt031.001.07",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+            true).ensureType(string)
     },
     Document: {
         RjctInvstgtn: {
             Assgnmt: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string),
                 Assgne: {
                     Agt: {
                         FinInstnId: {

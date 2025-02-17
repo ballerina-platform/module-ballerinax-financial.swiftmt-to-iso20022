@@ -22,38 +22,35 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT972 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT972ToCamt052(swiftmt:MT972Message message) returns camtIsoRecord:Camt052Envelope|error => {
+isolated function transformMT972ToCamt052(swiftmt:MT972Message message) returns camtIsoRecord:Camt052Envelope|error =>
+    let camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61) in {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
+        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
+            message.block2.MIRLogicalTerminal)}}}, 
+        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
+            message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt052.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        MsgDefIdr: "camt052.001.12",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
+            true).ensureType(string)
     },
     Document: {
         BkToCstmrAcctRpt: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
+                    true).ensureType(string),
                 MsgId: message.block4.MT20.msgId.content
             },
             Rpt: [
                 {
                     Id: message.block4.MT20.msgId.content,
-                    Acct: {
-                        Id: {
-                            IBAN: validateAccountNumber(message.block4.MT25?.Acc)[0],
-                            Othr: {
-                                Id: validateAccountNumber(message.block4.MT25?.Acc)[1],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(message.block4.MT25?.Acc)
-                                }
-                            }
-                        }
-                    },
+                    Acct: getCashAccount(message.block4.MT25?.Acc, ()) ?: {},
                     ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                     LglSeqNb: message.block4.MT28C.StmtNo.content,
-                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64, message.block4.MT60M, message.block4.MT62M),
-                    Ntry: check getEntries(message.block4.MT61)
+                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
+                        message.block4.MT60M, message.block4.MT62M),
+                    Ntry: entries.length() == 0 ? () : entries
                 }
             ]
         }

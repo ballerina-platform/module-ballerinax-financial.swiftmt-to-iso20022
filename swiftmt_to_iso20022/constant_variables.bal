@@ -25,9 +25,34 @@ const MT_2XX_SNDR_CODE1 = ["INT", "ACC", "INS", "BNF", "TSU", "INTA", "PHON", "P
             "TELEBEN", "TELEIBK", "SVCLVL", "LOCINS", "CATPURP", "PURP", "UDLC"];
 const MT_2XX_SNDR_CODE2 = ["INT", "ACC", "PHON", "PHONIBK", "TELE", "TELEIBK"];
 const MT_2XX_SNDR_CODE3 = ["ACC", "BNF"];
-const MISSING_INFO_CODE = ["3", "4", "5", "7", "10", "13", "14", "15", "16", "17", "18", "19", "23", "24", "25", "26", "27", "28", "29", "36", "37", "38", "42", "48", "49", "50", "51"];
-const INCORRECT_INFO_CODE = ["2", "6", "8", "9", "11", "12", "20", "22", "39", "40", "41", "43", "44", "45", "46", "47"];
-const map<string> INVTGTN_RJCT_RSN = {"RQDA": "NAUT", "LEGL": "NAUT", "INDM": "NAUT", "AGNT": "NAUT", "CUST": "NAUT", "NOOR": "NFND", "PTNA": "UKNW", "ARPL": "UKNW", "NOAS": "UKNW", "AM04": "PCOR", "AC04": "PCOR", "ARDT": "UKNW"};
+const MISSING_INFO_CODE = ["3", "4", "5", "7", "10", "13", "14", "15", "16", "17", "18", "19", "23", "24", "25", "26",
+    "27", "28", "29", "36", "37", "38", "42", "48", "49", "50", "51"];
+const INCORRECT_INFO_CODE = ["2", "6", "8", "9", "11", "12", "20", "22", "39", "40", "41", "43", "44", "45", "46",
+    "47"];
+const map<string> INVTGTN_RJCT_RSN = {"RQDA": "NAUT", "LEGL": "NAUT", "INDM": "NAUT", "AGNT": "NAUT", "CUST": "NAUT",
+    "NOOR": "NFND", "PTNA": "UKNW", "ARPL": "UKNW", "NOAS": "UKNW", "AM04": "PCOR", "AC04": "PCOR", "ARDT": "UKNW"};
+const RTND_CODE = "RTND";
+const UNSUPPORTED_MSG = "Return general direct debit transfer message is not supported.";
+const CANCEL_CODE = "CNCL";
+const PENDING_CANCEL_CODE = "PDCR";
+const REJECT_CODE = "RJCR";
+const AUTH_CODE = "AUTH";
+const NAUT_CODE = "NAUT";
+const OTHR_CODE = "OTHR";
+const RFDD_CODE = "RFDD";
+const DECIMAL_ERROR = "Invalid decimal format in amount/rate. Expected format: nn,nn or nn,n";
+const XML_NAMESPACE_ISO = "urn:iso:std:iso:20022:tech:xsd";
+const XML_NAMESPACE_SWIFT = "urn:swift:xsd:envelope";
+const XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance";
+const APP_HDR_VERSION = "head.001.001.02";
+
+final readonly & map<string> chequeCancelReasonCode = {
+    "DuplicateCheque": "DUPL",
+    "RequestedByCustomer": "CUST",
+    "FraudulentOrigin": "FRAD",
+    "ChequeLost": "LOST",
+    "Narrative": "NARR"};
+
 final readonly & map<isolated function> transformFunctionMap =
     {
     "101": transformMT101ToPain001,
