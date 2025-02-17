@@ -9,6 +9,7 @@ The DataMapper Library is a comprehensive toolkit designed to convert SWIFT MT F
 - SWIFT MT 1XX Category to ISO 20022
 - SWIFT MT 2XX Category to ISO 20022
 - SWIFT MT 9XX Category to ISO 20022
+- SWIFT MT nXX Category to ISO 20022
 
 ## Usage
 
