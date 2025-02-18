@@ -92,7 +92,8 @@ isolated function transformMTn96ToCamt028(swiftmt:MTn96Message message) returns 
     }
 };
 
-isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns camtIsoRecord:Camt029Envelope|error =>{
+isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns camtIsoRecord:Camt029Envelope|error =>
+    let string? date = convertToISOStandardDate(message.block4.MT11R?.Dt) in {
     AppHdr: {
         Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
             message.block2.MIRLogicalTerminal)}}}, 
@@ -130,10 +131,11 @@ isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns 
                     OrgnlGrpInf: {
                         OrgnlMsgId: "",
                         OrgnlMsgNmId: getOrignalMessageName(message.block4.MT11R?.MtNum?.content),
-                        OrgnlCreDtTm: convertToISOStandardDate(message.block4.MT11R?.Dt)
+                        OrgnlCreDtTm: date is () ? () : date + "T00:00:00+00:00"
                     },
                     CxlStsId: message.block4.MT20.msgId.content,
-                    OrgnlUETR: message.block3?.NdToNdTxRef?.value,
+                    OrgnlUETR: message.block3?.NdToNdTxRef?.value is () ? getOrgnlUETR(message.block4.MT77A?.Nrtv?.content)
+                        : message.block3?.NdToNdTxRef?.value,
                     RslvdCase: {
                         Id: message.block4.MT21.Ref.content,
                         Cretr: {}

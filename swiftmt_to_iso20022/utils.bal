@@ -2013,7 +2013,7 @@ isolated function getCodeAndAddtnlInfo(string narration) returns string[] {
 # + narration - A `string` containing the narration with the rejection reason code.
 # + return - Returns the `camtIsoRecord:InvestigationRejection1Code` if found, or an error if the code is invalid.
 isolated function getRejectedReason(string narration) returns camtIsoRecord:InvestigationRejection1Code|error {
-    string? code = INVTGTN_RJCT_RSN[narration.substring(6, 10)];
+    string? code = narration.length() >= 5 ? INVTGTN_RJCT_RSN[narration.substring(1, 5)] : ();
     if code is string {
         return code.ensureType();
     }
@@ -2605,4 +2605,17 @@ isolated function get103REJTSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) retu
         return [instructionId, endToEndId, statusReasonArray];
     }
     return [];
+}
+
+isolated function getOrgnlUETR(string? narration) returns string? {
+    if narration is string && narration.startsWith("/UETR/") && narration.length() > 6 {
+        string narrative = "";
+        foreach int i in 6 ... narration.length() - 1 {
+            if narration.substring(i, i + 1) == "/" {
+                continue;
+            }
+            narrative += narration.substring(i, i + 1);
+        }
+    }
+    return ();
 }
