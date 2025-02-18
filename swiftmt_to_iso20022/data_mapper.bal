@@ -17,6 +17,8 @@
 import ballerina/data.xmldata;
 import ballerinax/financial.swift.mt as swiftmt;
 
+configurable boolean isAddPrefix = true;
+
 # Converts a SWIFT message in string format to its corresponding ISO 20022 XML format.
 #
 # The function uses a map of transformation functions corresponding to different SWIFT MT message types 
@@ -29,10 +31,14 @@ public isolated function toIso20022Xml(string finMessage) returns xml|error {
     
     // Transform message based on type
     xml iso20022Xml = check transformMessage(parsedMessage);
+    xml:Element messageTypeXml = check (iso20022Xml/**/<AppHdr>/<MsgDefIdr>).ensureType();
+    string isoMessageType = messageTypeXml.data().substring(0, 4);
     
     // Clean and format final XML
-    iso20022Xml = removeEmptyParents(iso20022Xml);
-    return check createEnvelopedXml(iso20022Xml);
+    iso20022Xml = check createEnvelopedXml(iso20022Xml);
+    iso20022Xml = check removeEmptyParents(iso20022Xml, documentPrefix = isoMessageType);
+    xml finalXml = xml:createComment("?xml version=\"1.0\" encoding=\"UTF-8\"?") + iso20022Xml;
+    return finalXml;
 }
 
 isolated function transformMessage(record {} parsedMessage) returns xml|error {
@@ -47,9 +53,6 @@ isolated function typeBasedTransform(record {} message) returns xml|error? {
     } 
     if message is swiftmt:MT107Message {
         return check getMT107TransformFunction(message);
-    } 
-    if message is swiftmt:MTn96Message {
-        return check getMTn96TransformFunction(message);
     } 
     return ();
 }
@@ -88,33 +91,84 @@ isolated function generalTransform(record {} message) returns xml|error {
 isolated function createEnvelopedXml(xml messageXml) returns xml|error {
     xml:Element messageTypeXml = check (messageXml/**/<AppHdr>/<MsgDefIdr>).ensureType();
     string isoMessageType = string `${XML_NAMESPACE_ISO}:${messageTypeXml.data()}`;
-    
-    xml:Element appHdr = xml:createElement("AppHdr", 
-        {"xmlns": string `${XML_NAMESPACE_ISO}:${APP_HDR_VERSION}`},
-        (messageXml/**/<AppHdr>).elementChildren()
-    );
-    
-    xml:Element document = xml:createElement("Document", 
-        {"xmlns": isoMessageType},
-        (messageXml/**/<Document>).elementChildren()
-    );
+    xml:Element appHdr = xml `<AppHdr/>`;
+    xml:Element document = xml `<Document/>`;
+
+    if isAddPrefix {
+        appHdr = xml:createElement("AppHdr", 
+            {"{http://www.w3.org/2000/xmlns/}head": string `${XML_NAMESPACE_ISO}:${APP_HDR_VERSION}`},
+            (messageXml/**/<AppHdr>).elementChildren()
+        );
+
+        document = xml:createElement("Document", 
+            {[string `{http://www.w3.org/2000/xmlns/}${messageTypeXml.data().substring(0, 4)}`]: isoMessageType},
+            (messageXml/**/<Document>).elementChildren()
+        );
+    } else {
+        appHdr = xml:createElement("AppHdr", {"xmlns": string `${XML_NAMESPACE_ISO}:${APP_HDR_VERSION}`},
+            (messageXml/**/<AppHdr>).elementChildren()
+        );
+
+        document = xml:createElement("Document", {"xmlns": isoMessageType},
+            (messageXml/**/<Document>).elementChildren()
+        );
+    }    
     
     xml:Element envelope = xml `<Envelope xmlns="urn:swift:xsd:envelope" 
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></Envelope>`;
     envelope.setChildren(appHdr + document);
-    xml finalXml = xml:createComment("?xml version=\"1.0\" encoding=\"UTF-8\"?") + envelope;
     
-    return finalXml;
+    return envelope;
 } 
 
-isolated function removeEmptyParents(xml node) returns xml {
+# Adds the appropriate prefix to the XML element based on the context
+#
+# + name - The name of the XML element
+# + attributes - The attributes of the XML element
+# + children - The children of the XML element
+# + appHdr - Indicates if the element is within the AppHdr
+# + document - Indicates if the element is within the Document
+# + documentPrefix - The prefix to add to elements within the Document
+# + return - The XML element with the appropriate prefix
+isolated function addPrefixToElement(string name, map<string> attributes, xml children, boolean appHdr, boolean document, string documentPrefix) returns xml {
+    if appHdr {
+        xml:Element element = xml:createElement(name, attributes, children);
+        element.setName("head:" + name);
+        return element;
+    } 
+    if document {
+        xml:Element element = xml:createElement(name, attributes, children);
+        element.setName(documentPrefix + ":" + name);
+        return element;
+    }
+    return xml:createElement(name, attributes, children);
+}
+
+# Recursively removes empty parent elements from the XML and adds prefixes based on the context
+#
+# + node - The XML node to process
+# + isAppHdr - Indicates if the current node is within the AppHdr
+# + isDocument - Indicates if the current node is within the Document
+# + documentPrefix - The prefix to add to elements within the Document
+# + return - The processed XML node or an error
+isolated function removeEmptyParents(xml node, boolean isAppHdr = false, boolean isDocument = false, string documentPrefix = "") returns xml|error { 
     if node is xml:Element {
         xml children = node.getChildren();
         xml filteredChildren = xml ``;
+        boolean appHdr = isAppHdr;
+        boolean document = isDocument;
+
+        if node.getName().includes("AppHdr") {
+            appHdr = true;
+        }
+        if node.getName().includes("Document") {
+            document = true;
+            appHdr = false;
+        }
 
         // Recursively process child elements
         foreach xml child in children {
-            xml updatedChild = removeEmptyParents(child);
+            xml updatedChild = check removeEmptyParents(child, appHdr, document, documentPrefix);
             if updatedChild != xml `` { 
                 filteredChildren = filteredChildren.concat(updatedChild);
             }
@@ -123,7 +177,9 @@ isolated function removeEmptyParents(xml node) returns xml {
         if filteredChildren == xml `` && node.data() == "" {
             return xml ``; 
         }
-        return xml:createElement(node.getName(), node.getAttributes(), filteredChildren);
+
+        string name = node.getName();
+        return addPrefixToElement(name, node.getAttributes(), filteredChildren, appHdr, document, documentPrefix);
     }
     return node; 
 }
