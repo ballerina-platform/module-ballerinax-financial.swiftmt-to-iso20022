@@ -31,3 +31,22 @@ public function main() returns error? {
     io:println(mtToMx:toIso20022Xml(finMessage));
 }
 ```
+
+### Conversion of SWIFT fin message to ISO 20022 Xml Standard with Prefix
+
+To convert a SWIFT FIN message to the ISO 20022 XML standard with a prefix, follow the steps below:
+
+#### Step 1: Create a Configuration File
+
+Create a configuration file in your working folder and name it `Config.Toml`
+
+#### Step 2: Add Configuration Settings
+
+Add the following configuration settings to the `Config.Toml` file:
+
+```ballerina
+[ballerinax.financial.swiftmtToIso20022]
+isAddPrefix = true
+```
+
+This configuration enables the addition of prefixes to the resulting XML elements.
