@@ -21,8 +21,8 @@ import ballerinax/financial.swift.mt as swiftmt;
 # The relevant fields from the MT112 message are extracted and mapped to the corresponding ISO 20022 structure.
 #
 # + message - The parsed MT112 message as a record value.
-# + return - Returns a `Camt108Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT111ToCamt100(swiftmt:MT112Message message) returns camtIsoRecord:Camt109Envelope|error =>{
+# + return - Returns a `Camt109Document` object if the transformation is successful, otherwise returns an error.
+isolated function transformMT112ToCamt109(swiftmt:MT112Message message) returns camtIsoRecord:Camt109Envelope|error =>{
     AppHdr: {
         Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
             message.block2.MIRLogicalTerminal)}}}, 
@@ -65,11 +65,11 @@ isolated function getChequeStopStatus(string? narration) returns camtIsoRecord:C
         string code = "";
         foreach int i in 1...narration.length() - 1 {
             if narration.substring(i, i + 1) == "/" {
-                if chequeCancelReasonCode[code] !is () {
+                if chequeCancelStatusCode[code] !is () {
                     if narration.length() - 1 > i {
-                        return {Sts: {Cd: chequeCancelReasonCode[code]}, AddtlInf: narration.substring((i + 1))};
+                        return {Sts: {Cd: chequeCancelStatusCode[code]}, AddtlInf: narration.substring((i + 1))};
                     } 
-                    return {Sts: {Cd: chequeCancelReasonCode[code]}};
+                    return {Sts: {Cd: chequeCancelStatusCode[code]}};
                 } 
                 break;
             }

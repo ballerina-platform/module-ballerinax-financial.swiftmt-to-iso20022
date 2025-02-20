@@ -22,7 +22,7 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MTn91 message as a record value.
 # + return - Returns a `Camt106Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMTn90ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error =>{
+isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error =>{
     AppHdr: {
         Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
             message.block2.MIRLogicalTerminal)}}}, 
