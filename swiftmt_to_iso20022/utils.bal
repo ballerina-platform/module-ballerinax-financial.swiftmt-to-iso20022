@@ -484,37 +484,104 @@ isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?
     return cntyNTwArray;
 }
 
-# Validates an account number based on the regex pattern.
+# Validates and processes account numbers from various sources
 #
-# + acc1 - Optional account number inputs to consider.
-# + acc2 - Optional account number inputs to consider.
-# + acc3 - Optional account number inputs to consider.
-# + prtyIdn - Optional party identifier that may contain an account number.
-# + return - Returns a tuple where the first element is the valid IBAN account number or `null`, 
-# and the second element is the invalid IBAN account number or `null`.
-isolated function validateAccountNumber(swiftmt:Acc? acc1 = (), swiftmt:PrtyIdn? prtyIdn = (), swiftmt:Acc? acc2 = (),
-    swiftmt:Acc? acc3 = ()) returns [string?, string?] {
-        string finalAccount = "";
-        if acc1 is swiftmt:Acc {
-            finalAccount = acc1.content;
-        } else if acc2 is swiftmt:Acc {
-            finalAccount = acc2.content;
-        } else if acc3 is swiftmt:Acc {
-            finalAccount = acc3.content;
-        } else if prtyIdn is swiftmt:PrtyIdn && prtyIdn.content.length() > 1 {
-            if prtyIdn.content.startsWith("/") {
-                finalAccount = prtyIdn.content.substring(1);
-            } else {
-                finalAccount = prtyIdn.content;
-            }
-        } else {
-            return [];
-        }
+# + acc1 - Primary account number
+# + prtyIdn - Party identifier
+# + acc2 - Secondary account number
+# + acc3 - Tertiary account number
+# + return - Tuple containing [IBAN-validated account, non-IBAN account]
+isolated function validateAccountNumber(
+    swiftmt:Acc? acc1 = (), 
+    swiftmt:PrtyIdn? prtyIdn = (), 
+    swiftmt:Acc? acc2 = (), 
+    swiftmt:Acc? acc3 = ()
+) returns [string?, string?] {
+    // Get first valid account number
+    string|error finalAccount = getFirstValidAccount(acc1, acc2, acc3, prtyIdn);
+    if finalAccount is error {
+        return [];
+    }
 
-        if finalAccount.matches(re `^[A-Z]{2}[0-9]{2}[a-zA-Z0-9]{1,30}`) {
-            return [finalAccount, ()];
-        }
+    // Validate IBAN format
+    if !finalAccount.matches(re `${IBAN_PATTERN}`) {
         return [(), finalAccount];
+    }
+
+    // Process IBAN validation
+    return validateIBAN(finalAccount);
+}
+
+# Gets the first valid account from multiple sources
+#
+# + acc1 - Primary account
+# + acc2 - Secondary account
+# + acc3 - Tertiary account
+# + prtyIdn - Party identifier
+# + return - First valid account or error
+isolated function getFirstValidAccount(
+    swiftmt:Acc? acc1, 
+    swiftmt:Acc? acc2, 
+    swiftmt:Acc? acc3, 
+    swiftmt:PrtyIdn? prtyIdn
+) returns string|error {
+    if acc1 is swiftmt:Acc {
+        return acc1.content;
+    } 
+    if acc2 is swiftmt:Acc {
+        return acc2.content;
+    }
+    if acc3 is swiftmt:Acc {
+        return acc3.content;
+    }
+    if prtyIdn is swiftmt:PrtyIdn && prtyIdn.content.length() > 1 {
+        return prtyIdn.content.startsWith("/") ? 
+            prtyIdn.content.substring(1) : prtyIdn.content;
+    }
+    return error("No valid account found");
+}
+
+# Validates IBAN number
+#
+# + account - Account number to validate
+# + return - Tuple containing [validated IBAN, empty string] or [empty, original account]
+isolated function validateIBAN(string account) returns [string?, string?] {
+    foreach string country in COUNTRY_CODES {
+        if !account.substring(0, COUNTRY_CODE_LENGTH).equalsIgnoreCaseAscii(country) {
+            continue;
+        }
+        
+        string|error result = processIBANValidation(account);
+        if result is string {
+            return [account, ""];
+        }
+    }
+    return ["", account];
+}
+
+# Processes IBAN validation calculation
+#
+# + account - Account number to process
+# + return - Validated account number or error
+isolated function processIBANValidation(string account) returns string|error {
+    string rearrangedAccount = account.substring(IBAN_CHECK_DIGITS_LENGTH) + 
+                              account.substring(0, IBAN_CHECK_DIGITS_LENGTH);
+    string numericAccount = "";
+    
+    foreach int index in 0 ... rearrangedAccount.length() - 1 {
+        string character = rearrangedAccount.substring(index, index + 1);
+        if character.matches(re `^[A-Z]+$`) {
+            numericAccount += check LETTER_LIST[character].ensureType(string);
+            continue;
+        }
+        numericAccount += character;
+    }
+    
+    decimal accountNumber = check decimal:fromString(numericAccount);
+    if (accountNumber % MOD_97).ensureType(int) == 1 {
+        return account;
+    }
+    return error("Invalid IBAN checksum");
 }
 
 # Retrieves the party identifier from up to three possible inputs.

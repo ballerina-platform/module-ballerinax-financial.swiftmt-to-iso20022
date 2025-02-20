@@ -45,6 +45,15 @@ const XML_NAMESPACE_ISO = "urn:iso:std:iso:20022:tech:xsd";
 const XML_NAMESPACE_SWIFT = "urn:swift:xsd:envelope";
 const XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance";
 const APP_HDR_VERSION = "head.001.001.02";
+const IBAN_PATTERN = "^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}";
+const MOD_97 = 97;
+const COUNTRY_CODE_LENGTH = 2;
+const IBAN_CHECK_DIGITS_LENGTH = 4;
+
+final readonly & map<string> chequeCancelStatusCode = {
+    "Accepted": "ACCP",
+    "Rejected": "REJT"
+};
 
 final readonly & map<string> chequeCancelReasonCode = {
     "DuplicateCheque": "DUPL",
@@ -94,3 +103,20 @@ final readonly & map<isolated function> transformFunctionMap =
     "995": transformMTn95ToCamt026,
     "996":transformMTn96ToCamt029
 };
+
+const COUNTRY_CODES = ["AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
+"BA",  "BB",  "BD",  "BE",  "BF",  "BG",  "BH",  "BI",  "BJ",  "BL",  "BM",  "BN",  "BO",  "BQ",  "BR",  "BS",  "BT", 
+"BV",  "BW", "BY", "BZ", "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV",
+"CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK",
+"FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU",
+"GW", "GY", "HK", "HM", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM",
+"JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS",
+"LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS",
+"MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM",
+"PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW",
+"SA", "SB", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ",
+"TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US",
+"UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WF", "WS", "XK", "YE", "YT", "ZA", "ZM", "ZW"
+];
+
+final readonly & map<string> LETTER_LIST = {"A": "10", "B": "11", "C": "12", "D": "13", "E": "14", "F": "15", "G": "16", "H": "17", "I": "18", "J": "19", "K": "20", "L": "21", "M": "22", "N": "23", "O": "24", "P": "25", "Q": "26", "R": "27", "S": "28", "T": "29", "U": "20", "V": "31", "W": "32", "X": "33", "Y": "34", "Z": "35"};
