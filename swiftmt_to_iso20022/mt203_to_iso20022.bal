@@ -33,13 +33,13 @@ isolated function transformMT203ToPacs009(swiftmt:MT203Message message) returns 
         MsgDefIdr: "pacs.009.001.11",
         BizSvc: "swift.cbprplus.02", 
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-            true).ensureType(string)
+            true).ensureType(string) + "+00:00"
     },
     Document: {
         FICdtTrf: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string),
+                    true).ensureType(string) + "+00:00",
                 CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),

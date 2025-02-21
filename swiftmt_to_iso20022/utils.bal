@@ -2480,10 +2480,10 @@ isolated function getCashAccount(swiftmt:PrtyIdn? acc1, swiftmt:PrtyIdn? acc2, s
         Id: {
             IBAN: iban,
             Othr: {
-                Id: bban,
-                SchmeNm: {
-                    Cd: getSchemaCode(prtyIdn1 = acc1, prtyIdn2 = acc2, prtyIdn3 = acc3, prtyIdn4 = acc4)
-                }
+                Id: bban
+                // SchmeNm: {
+                //     Cd: getSchemaCode(prtyIdn1 = acc1, prtyIdn2 = acc2, prtyIdn3 = acc3, prtyIdn4 = acc4)
+                // }
             }
         }
     }; 
@@ -2525,10 +2525,10 @@ isolated function getCashAccount2(swiftmt:Acc? acc1, swiftmt:Acc? acc2, swiftmt:
         Id: {
             IBAN: iban,
             Othr: {
-                Id: bban
-                // SchmeNm: bban == "NOTPROVIDED" || bban is () ? () : {
-                //     Cd: getSchemaCode(acc1, acc2, acc3, prtyIdn1 = acc4)
-                // }
+                Id: bban,
+                SchmeNm: bban == "NOTPROVIDED" ? {
+                    Cd: "TXID"
+                } : ()
             }
         }
     }; 

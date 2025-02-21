@@ -131,15 +131,17 @@ isolated function createEnvelopedXml(xml messageXml) returns xml|error {
 # + documentPrefix - The prefix to add to elements within the Document
 # + return - The XML element with the appropriate prefix
 isolated function addPrefixToElement(string name, map<string> attributes, xml children, boolean appHdr, boolean document, string documentPrefix) returns xml {
-    if appHdr {
-        xml:Element element = xml:createElement(name, attributes, children);
-        element.setName("head:" + name);
-        return element;
-    } 
-    if document {
-        xml:Element element = xml:createElement(name, attributes, children);
-        element.setName(documentPrefix + ":" + name);
-        return element;
+    if isAddPrefix {
+        if appHdr {
+            xml:Element element = xml:createElement(name, attributes, children);
+            element.setName("head:" + name);
+            return element;
+        } 
+        if document {
+            xml:Element element = xml:createElement(name, attributes, children);
+            element.setName(documentPrefix + ":" + name);
+            return element;
+        }
     }
     return xml:createElement(name, attributes, children);
 }
