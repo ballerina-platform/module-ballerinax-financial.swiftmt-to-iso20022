@@ -1644,6 +1644,11 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
                     Refs: {
                         EndToEndId: stmtLine.RefAccOwn.content
                     },
+                    Amt: {
+                        content: check convertToDecimalMandatory(stmtLine.Amnt),
+                        Ccy: getMandatoryFields(stmtLine.FndCd?.content)
+                    },
+                    CdtDbtInd: convertDbtOrCrdToISOStandard(stmtLine),
                     AddtlTxInf: stmtLine.SpmtDtls?.content
                 }]
             }]
@@ -2541,7 +2546,7 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
         [string?, string?, string?, string?, string?] [partyIdentifier, _, _, code, issr] = 
             getPartyIdentifierOrAccount(prtyIdn);
         string[]? adrsLine = getAddressLineForDbtrOrCdtr(address1, address2, country);
-
+        
         return {
             Id: identifierCode?.content is () && otherId is () && partyIdentifier is () ? () : { 
                 OrgId: identifierCode?.content is () && otherId is () ? () : {
@@ -2612,7 +2617,7 @@ isolated function getChargesAmount(string narration) returns camtIsoRecord:Charg
 
     foreach int i in 1 ... narration.length() - 1{
         if isAmount && (narration.substring(i, i + 1).matches(re `^[0-9]$`) || narration.substring(i, i + 1) == ",") {
-            amount = narration.substring(i, i + 1);
+            amount += narration.substring(i, i + 1);
             continue;
         }
         if narration.substring(i, i + 1) == "/" {
@@ -2631,7 +2636,9 @@ isolated function getChargesAmount(string narration) returns camtIsoRecord:Charg
     } else {
         amount = regex:replace(amount, "\\,", ".");
     }
-    return [{Amt: {content: check decimal:fromString(amount), Ccy: currency}, Tp: {Cd: code}}];
+    return [{Amt: {content: check decimal:fromString(amount), Ccy: currency},
+        Tp: {Cd: code},
+        CdtDbtInd: "DBIT"}];
 };
 
 isolated function get103REJTSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) returns 
@@ -2685,4 +2692,25 @@ isolated function getOrgnlUETR(string? narration) returns string? {
         }
     }
     return ();
+}
+
+isolated function getChrgRqstrAndInstrFrAgt(string? narration) returns [string?, string?, string?] {
+    if narration is string {
+        string[] infoArray = getCodeAndAddtnlInfo(narration);
+        [string?, string?, string?] [chrgRqstr, instr, info] = [];
+
+        foreach int i in 0 ... infoArray.length() - 1 {
+            if infoArray[i].equalsIgnoreCaseAscii("CHRQ") {
+                chrgRqstr = infoArray.length() > i ? infoArray[i + 1] : ();
+                continue;
+            }
+            if infoArray[i].length() == 4 {
+                instr = infoArray[i];
+                info = infoArray.length() > i && !infoArray[i + 1].equalsIgnoreCaseAscii("CHRQ") ?
+                    infoArray[i + 1] : ();
+            }
+        }
+        return [chrgRqstr, instr, info];
+    }
+    return [];
 }

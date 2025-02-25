@@ -32,7 +32,7 @@ isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns 
         To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
             message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt053.001.12",
+        MsgDefIdr: "camt053.001.08",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
             true).ensureType(string) + "+00:00"
@@ -51,10 +51,7 @@ isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns 
                         Id: {
                             IBAN: iban,
                             Othr: bban is () ? (): {
-                                Id: bban,
-                                SchmeNm: {
-                                    Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
-                                }
+                                Id: bban
                             }
                         },
                         Ownr: message.block4.MT25P is () ? () : {

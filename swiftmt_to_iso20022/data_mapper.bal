@@ -27,7 +27,7 @@ configurable boolean isAddPrefix = true;
 # + finMessage - The SWIFT message string that needs to be transformed to ISO 20022 XML.
 # + return - Returns the transformed ISO 20022 XML or an error if the transformation fails.
 public isolated function toIso20022Xml(string finMessage) returns xml|error {
-    record {} parsedMessage = check swiftmt:parseSwiftMt(finMessage);
+    record {} parsedMessage = check swiftmt:parse(finMessage);
     
     // Transform message based on type
     xml iso20022Xml = check transformMessage(parsedMessage);
@@ -114,9 +114,9 @@ isolated function createEnvelopedXml(xml messageXml) returns xml|error {
         );
     }    
     
-    xml:Element envelope = xml `<Envelope xmlns="urn:swift:xsd:envelope" 
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></Envelope>`;
-    envelope.setChildren(appHdr + document);
+    xml:Element envelope = xml:createElement("Envelope", {"xmlns": "urn:swift:xsd:envelope",
+    "{http://www.w3.org/2000/xmlns/}xsi": "http://www.w3.org/2001/XMLSchema-instance"},
+            appHdr + document);
     
     return envelope;
 } 
@@ -172,7 +172,7 @@ isolated function removeEmptyParents(xml node, boolean isAppHdr = false, boolean
         foreach xml child in children {
             xml updatedChild = check removeEmptyParents(child, appHdr, document, documentPrefix);
             if updatedChild != xml `` { 
-                filteredChildren = filteredChildren.concat(updatedChild);
+                filteredChildren = filteredChildren + updatedChild;
             }
         }
 

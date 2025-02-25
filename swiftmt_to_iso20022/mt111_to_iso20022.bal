@@ -29,7 +29,7 @@ isolated function transformMT111ToCamt108(swiftmt:MT111Message message) returns 
         To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
             message.block2.receiverAddress)}}}, 
         BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt107.001.12", 
+        MsgDefIdr: "camt.108.001.01", 
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
             true).ensureType(string) + "+00:00"
@@ -43,12 +43,13 @@ isolated function transformMT111ToCamt108(swiftmt:MT111Message message) returns 
                 MsgId: message.block4.MT20.msgId.content}, 
             Chq: [{
                 IsseDt: convertToISOStandardDateMandatory(message.block4.MT30.Dt),
-                ChqNb: message.block4.MT21.Ref.content, 
+                ChqNb: message.block4.MT21.Ref.content,
+                InstrId: message.block4.MT20.msgId.content,
                 Amt: message.block4.MT32A is () ? {content: check convertToDecimalMandatory(message.block4.MT32B?.Amnt), 
-                Ccy: message.block4.MT32B?.Ccy.toString()} : {content: check convertToDecimalMandatory(
+                Ccy: message.block4.MT32B?.Ccy?.content.toString()} : {content: check convertToDecimalMandatory(
                     message.block4.MT32A?.Amnt), 
-                Ccy: message.block4.MT32A?.Ccy.toString()},
-                FctvDt: {Dt: message.block4.MT32A is () ? "NOTPROVIDED" : convertToISOStandardDate(
+                Ccy: message.block4.MT32A?.Ccy?.content.toString()},
+                FctvDt: {Dt: message.block4.MT32A is () ? () : convertToISOStandardDate(
                     message.block4.MT32A?.Dt)},
                 DrwrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
                     message.block4.MT52A?.PrtyIdn, message.block4.MT52B?.PrtyIdn, message.block4.MT52D?.PrtyIdn,

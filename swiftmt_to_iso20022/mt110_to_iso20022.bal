@@ -31,7 +31,7 @@ isolated function transformMT110ToCamt107(swiftmt:MT110Message message)
             To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
                 message.block2.receiverAddress)}}}, 
             BizMsgIdr: message.block4.MT20.msgId.content, 
-            MsgDefIdr: "camt107.001.12", 
+            MsgDefIdr: "camt107.001.01", 
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string) + "+00:00"
@@ -53,10 +53,11 @@ isolated function getChequeInformation(swiftmt:MT110Block4 block4) returns camtI
         cheques.push({
             IsseDt: convertToISOStandardDateMandatory(cheque.MT30.Dt),
             ChqNb: cheque.MT21.Ref.content,
+            InstrId: block4.MT20.msgId.content,
             Amt: cheque.MT32A is () ? {content: check convertToDecimalMandatory(cheque.MT32B?.Amnt), 
-                Ccy: cheque.MT32B?.Ccy.toString()} : {content: check convertToDecimalMandatory(cheque.MT32A?.Amnt), 
-                Ccy: cheque.MT32A?.Ccy.toString()},
-            ValDt: {Dt: cheque.MT32A is () ? "NOTPROVIDED" : convertToISOStandardDate(cheque.MT32A?.Dt)},
+                Ccy: cheque.MT32B?.Ccy?.content.toString()} : {content: check convertToDecimalMandatory(cheque.MT32A?.Amnt), 
+                Ccy: cheque.MT32A?.Ccy?.content.toString()},
+            ValDt: {Dt: cheque.MT32A is () ? () : convertToISOStandardDate(cheque.MT32A?.Dt)},
             Pyer: getDebtorOrCreditor(cheque.MT50A?.IdnCd, cheque.MT50A?.Acc, cheque.MT50K?.Acc, (),
                 cheque.MT50F?.PrtyIdn, cheque.MT50F?.Nm, cheque.MT50K?.Nm, cheque.MT50F?.AdrsLine,
                 cheque.MT50K?.AdrsLine, cheque.MT50F?.CntyNTw, true),

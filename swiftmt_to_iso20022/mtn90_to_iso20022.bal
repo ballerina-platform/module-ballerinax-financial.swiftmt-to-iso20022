@@ -40,7 +40,10 @@ isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns 
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string) + "+00:00",
                 MsgId: message.block4.MT20.msgId.content,
-                ChrgsAcct: getCashAccount2(message.block4.MT25?.Acc, ())
+                ChrgsAcct: getCashAccount2(message.block4.MT25?.Acc, ()),
+                ChrgsRqstr: message.block4.MT72?.Cd?.content is string &&
+                    message.block4.MT72?.Cd?.content.toString().length() > 6 ? 
+                    {FinInstnId: {BICFI: message.block4.MT72?.Cd?.content.toString().substring(6)}} : ()
             }, 
             Chrgs: {
                 PerTx: {

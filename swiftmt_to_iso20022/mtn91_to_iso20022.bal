@@ -22,7 +22,9 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MTn91 message as a record value.
 # + return - Returns a `Camt106Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error =>{
+isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error => 
+    let [string?, string?, string?] [chrgRqstr, instr, info] = 
+        getChrgRqstrAndInstrFrAgt(message.block4.MT72?.Cd?.content) in {
     AppHdr: {
         Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
             message.block2.MIRLogicalTerminal)}}}, 
@@ -43,7 +45,8 @@ isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns 
                 ChrgsAcctAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
                     message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
                     message.block4.MT52D?.AdrsLine),
-                ChrgsAcctAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)}, 
+                ChrgsAcctAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn), 
+                ChrgsRqstr: chrgRqstr is () ? () : {FinInstnId: {BICFI: chrgRqstr}}},
             Chrgs: {
                 PerTx: {
                     ChrgsId: message.block4.MT20.msgId.content,
@@ -61,7 +64,10 @@ isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns 
                             message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
                             message.block4.MT52D?.PrtyIdn, (), (), message.block4.MT52D?.AdrsLine),
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                        ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content)
+                        ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content),
+                        InstrForInstdAgt: instr is () && info is () ? () : {
+                            Cd: instr is () ? () : instr, 
+                            InstrInf: info is () ? () : info}
                     }]
                 }
             }}}

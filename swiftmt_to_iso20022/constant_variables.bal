@@ -52,7 +52,7 @@ const IBAN_CHECK_DIGITS_LENGTH = 4;
 
 final readonly & map<string> chequeCancelStatusCode = {
     "Accepted": "ACCP",
-    "Rejected": "REJT"
+    "Rejected": "RJCR"
 };
 
 final readonly & map<string> chequeCancelReasonCode = {
