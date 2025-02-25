@@ -1,0 +1,66 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+    <head:Fr>
+      <head:FIId>
+        <head:FinInstnId>
+          <head:BICFI>MYMBGB2LXXX</head:BICFI>
+        </head:FinInstnId>
+      </head:FIId>
+    </head:Fr>
+    <head:To>
+      <head:FIId>
+        <head:FinInstnId>
+          <head:BICFI>RBSSGBKCXXX</head:BICFI>
+        </head:FinInstnId>
+      </head:FIId>
+    </head:To>
+    <head:BizMsgIdr>camt107bzmsgidr1</head:BizMsgIdr>
+    <head:MsgDefIdr>camt107.001.01</head:MsgDefIdr>
+    <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+    <head:CreDt>2022-10-20T09:05:00+00:00</head:CreDt>
+  </head:AppHdr>
+  <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt107.001.01">
+    <camt:ChqPresntmntNtfctn>
+      <camt:GrpHdr>
+        <camt:MsgId>camt107bzmsgidr1</camt:MsgId>
+        <camt:CreDtTm>2022-10-20T09:05:00+00:00</camt:CreDtTm>
+        <camt:NbOfChqs>1</camt:NbOfChqs>
+      </camt:GrpHdr>
+      <camt:Chq>
+        <camt:InstrId>camt107bzmsgidr1</camt:InstrId>
+        <camt:ChqNb>102145</camt:ChqNb>
+        <camt:IsseDt>2022-10-20</camt:IsseDt>
+        <camt:Amt Ccy="GBP">25250</camt:Amt>
+        <camt:Pyer>
+          <camt:Nm>Debtor Co</camt:Nm>
+          <camt:PstlAdr>
+            <camt:AdrLine>2/High Street</camt:AdrLine>
+            <camt:AdrLine>3/GB/Epping</camt:AdrLine>
+          </camt:PstlAdr>
+        </camt:Pyer>
+        <camt:PyerAcct>
+          <camt:Id>
+            <camt:Othr>
+              <camt:Id>60779854</camt:Id>
+            </camt:Othr>
+          </camt:Id>
+        </camt:PyerAcct>
+        <camt:Pyee>
+          <camt:Nm>Ardent Finance</camt:Nm>
+          <camt:PstlAdr>
+            <camt:AdrLine>2/Main Street</camt:AdrLine>
+            <camt:AdrLine>3/GB/London</camt:AdrLine>
+          </camt:PstlAdr>
+          <camt:Id>
+            <camt:OrgId>
+              <camt:Othr>
+                <camt:Id>NOTPROVIDED</camt:Id>
+              </camt:Othr>
+            </camt:OrgId>
+          </camt:Id>
+        </camt:Pyee>
+      </camt:Chq>
+    </camt:ChqPresntmntNtfctn>
+  </camt:Document>
+</Envelope>

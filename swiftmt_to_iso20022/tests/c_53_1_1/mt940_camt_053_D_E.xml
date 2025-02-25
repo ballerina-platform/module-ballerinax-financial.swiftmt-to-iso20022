@@ -1,0 +1,91 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+    <head:Fr>
+      <head:FIId>
+        <head:FinInstnId>
+          <head:BICFI>AAKRDK22XXX</head:BICFI>
+        </head:FinInstnId>
+      </head:FIId>
+    </head:Fr>
+    <head:To>
+      <head:FIId>
+        <head:FinInstnId>
+          <head:BICFI>BANODKKKXXX</head:BICFI>
+        </head:FinInstnId>
+      </head:FIId>
+    </head:To>
+    <head:BizMsgIdr>100-01</head:BizMsgIdr>
+    <head:MsgDefIdr>camt053.001.08</head:MsgDefIdr>
+    <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+    <head:CreDt>2022-10-20T11:00:00+00:00</head:CreDt>
+  </head:AppHdr>
+  <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt053.001.08">
+    <camt:BkToCstmrStmt>
+      <camt:GrpHdr>
+        <camt:MsgId>100-01</camt:MsgId>
+        <camt:CreDtTm>2022-10-20T11:00:00+00:00</camt:CreDtTm>
+      </camt:GrpHdr>
+      <camt:Stmt>
+        <camt:Id>100-01</camt:Id>
+        <camt:ElctrncSeqNb>1</camt:ElctrncSeqNb>
+        <camt:LglSeqNb>1001</camt:LglSeqNb>
+        <camt:Acct>
+          <camt:Id>
+            <camt:Othr>
+              <camt:Id>65479512</camt:Id>
+            </camt:Othr>
+          </camt:Id>
+        </camt:Acct>
+        <camt:Bal>
+          <camt:Tp>
+            <camt:CdOrPrtry>
+              <camt:Cd>OPBD</camt:Cd>
+            </camt:CdOrPrtry>
+          </camt:Tp>
+          <camt:Amt Ccy="DKK">8547.25</camt:Amt>
+          <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+          <camt:Dt>
+            <camt:Dt>2022-10-20</camt:Dt>
+          </camt:Dt>
+        </camt:Bal>
+        <camt:Bal>
+          <camt:Tp>
+            <camt:CdOrPrtry>
+              <camt:Cd>CLBD</camt:Cd>
+            </camt:CdOrPrtry>
+          </camt:Tp>
+          <camt:Amt Ccy="DKK">341452.75</camt:Amt>
+          <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+          <camt:Dt>
+            <camt:Dt>2022-10-20</camt:Dt>
+          </camt:Dt>
+        </camt:Bal>
+        <camt:Ntry>
+          <camt:Amt Ccy="">350000</camt:Amt>
+          <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+          <camt:Sts>
+            <camt:Cd>BOOK</camt:Cd>
+          </camt:Sts>
+          <camt:ValDt>
+            <camt:Dt>2022-10-20</camt:Dt>
+          </camt:ValDt>
+          <camt:BkTxCd>
+            <camt:Prtry>
+              <camt:Cd>N</camt:Cd>
+            </camt:Prtry>
+          </camt:BkTxCd>
+          <camt:NtryDtls>
+            <camt:TxDtls>
+              <camt:Refs>
+                <camt:EndToEndId>pacs010EndToEnd</camt:EndToEndId>
+              </camt:Refs>
+              <camt:Amt Ccy="">350000</camt:Amt>
+              <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+            </camt:TxDtls>
+          </camt:NtryDtls>
+        </camt:Ntry>
+      </camt:Stmt>
+    </camt:BkToCstmrStmt>
+  </camt:Document>
+</Envelope>
