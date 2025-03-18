@@ -49,4 +49,4 @@ Add the following configuration settings to the `Config.Toml` file:
 isAddPrefix = true
 ```
 
-This configuration enables the addition of prefixes to the resulting XML elements.
+This configuration enables the addition of prefixes to the resulting XML elements. By default, this setting is set to `true`.
