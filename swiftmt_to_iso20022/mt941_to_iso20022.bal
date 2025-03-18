@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -22,53 +22,65 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT941 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns camtIsoRecord:Camt052Envelope|error =>{
+isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns camtIsoRecord:Camt052Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "camt052.001.12",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-            true).ensureType(string) + "+00:00"
+                true).ensureType(string) + DEFAULT_TIME_OFFSET
     },
     Document: {
         BkToCstmrAcctRpt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + "+00:00",
+                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
                 MsgId: message.block4.MT20.msgId.content
             },
             Rpt: [
                 {
                     Id: message.block4.MT20.msgId.content,
-                    CreDtTm: message.block4.MT13D !is () ? 
-                        convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm).toString() + 
-                        message.block4.MT13D?.Sgn?.content.toString() + 
-                        message.block4.MT13D?.TmOfst?.content.toString().substring(0,2)
-                        + ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2,4) : () ,
+                    CreDtTm: message.block4.MT13D !is () ?
+                        convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm).toString() +
+                        message.block4.MT13D?.Sgn?.content.toString() +
+                        message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2)
+                        + ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2, 4) : (),
                     Acct: getCashAccount(message.block4.MT25?.Acc, message.block4.MT25P?.Acc) ?: {},
                     ElctrncSeqNb: message.block4.MT28.SeqNo?.content,
                     LglSeqNb: message.block4.MT28.StmtNo.content,
-                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64, 
-                        forwardAvailableBalance = message.block4.MT65),
+                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
+                            forwardAvailableBalance = message.block4.MT65),
                     TxsSummry: message.block4.MT90C is () && message.block4.MT90D is () ? () : {
-                        TtlNtries: {
-                            NbOfNtries: check getTotalNumOfEntries(message.block4.MT90C?.TtlNum, 
-                                message.block4.MT90D?.TtlNum),
-                            Sum: check getTotalSumOfEntries(message.block4.MT90C?.Amnt, message.block4.MT90D?.Amnt)
+                            TtlNtries: {
+                                NbOfNtries: check getTotalNumOfEntries(message.block4.MT90C?.TtlNum,
+                                        message.block4.MT90D?.TtlNum),
+                                Sum: check getTotalSumOfEntries(message.block4.MT90C?.Amnt, message.block4.MT90D?.Amnt)
+                            },
+                            TtlDbtNtries: message.block4.MT90D is () ? () : {
+                                    NbOfNtries: message.block4.MT90D?.TtlNum?.content,
+                                    Sum: check convertToDecimal(message.block4.MT90D?.Amnt)
+                                },
+                            TtlCdtNtries: message.block4.MT90C is () ? () : {
+                                    NbOfNtries: message.block4.MT90C?.TtlNum?.content,
+                                    Sum: check convertToDecimal(message.block4.MT90C?.Amnt)
+                                }
                         },
-                        TtlDbtNtries: message.block4.MT90D is () ? () : {
-                            NbOfNtries: message.block4.MT90D?.TtlNum?.content,
-                            Sum: check convertToDecimal(message.block4.MT90D?.Amnt)
-                        },
-                        TtlCdtNtries: message.block4.MT90C is () ? () : {
-                            NbOfNtries: message.block4.MT90C?.TtlNum?.content,
-                            Sum: check convertToDecimal(message.block4.MT90C?.Amnt)
-                        }
-                    },
                     AddtlRptInf: getInfoToAccOwnr(message.block4.MT86)
                 }
             ]

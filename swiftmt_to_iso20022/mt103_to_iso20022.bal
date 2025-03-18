@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -25,50 +25,63 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT103REMIT message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message) 
+isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?, 
-    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] = 
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
+    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
         check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
     [string, string?, string?] [remmitanceInfo, narration, xmlContent] = getEnvelopeContent(
-        message.block4.MT77T.EnvCntnt.content) in {
+            message.block4.MT77T.EnvCntnt.content)
+    in {
         AppHdr: {
-            Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-                message.block2.MIRLogicalTerminal)}}}, 
-            To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                message.block2.receiverAddress)}}}, 
-            BizMsgIdr: message.block4.MT20.msgId.content, 
-            MsgDefIdr: "pacs.008.001.08", 
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
+            },
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.008.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + "+00:00"
+                    true).ensureType(string) + DEFAULT_TIME_OFFSET
         },
         Document: {
             FIToFICstmrCdtTrf: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + "+00:00",
+                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
                         InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                            message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                            message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
-                            message.block4.MT53B?.Lctn?.content),
+                                message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+                                message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
+                                message.block4.MT53B?.Lctn?.content),
                         InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                            message.block4.MT53D?.PrtyIdn),
+                                message.block4.MT53D?.PrtyIdn),
                         InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                            message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
-                            message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine,
-                            message.block4.MT54B?.Lctn?.content),
+                                message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
+                                message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine,
+                                message.block4.MT54B?.Lctn?.content),
                         InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
-                            message.block4.MT54D?.PrtyIdn),
+                                message.block4.MT54D?.PrtyIdn),
                         ThrdRmbrsmntAgt: getFinancialInstitution(message.block4.MT55A?.IdnCd?.content,
-                            message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-                            message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine,
-                            message.block4.MT55B?.Lctn?.content),
+                                message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
+                                message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine,
+                                message.block4.MT55B?.Lctn?.content),
                         ThrdRmbrsmntAgtAcct: getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-                            message.block4.MT55D?.PrtyIdn)
+                                message.block4.MT55D?.PrtyIdn)
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
                     MsgId: message.block4.MT20.msgId.content
@@ -76,18 +89,18 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                 CdtTrfTxInf: [
                     {
                         Cdtr: getDebtorOrCreditor(message.block4.MT59A?.IdnCd, message.block4.MT59?.Acc,
-                            message.block4.MT59A?.Acc, message.block4.MT59F?.Acc, (),
-                            message.block4.MT59F?.Nm, message.block4.MT59?.Nm,
-                            message.block4.MT59F?.AdrsLine, message.block4.MT59?.AdrsLine,
-                            message.block4.MT59F?.CntyNTw, false, message.block4.MT77B?.Nrtv),
+                                message.block4.MT59A?.Acc, message.block4.MT59F?.Acc, (),
+                                message.block4.MT59F?.Nm, message.block4.MT59?.Nm,
+                                message.block4.MT59F?.AdrsLine, message.block4.MT59?.AdrsLine,
+                                message.block4.MT59F?.CntyNTw, false, message.block4.MT77B?.Nrtv),
                         CdtrAcct: getCashAccount2(message.block4.MT59?.Acc, message.block4.MT59A?.Acc,
-                            message.block4.MT59F?.Acc),
+                                message.block4.MT59F?.Acc),
                         CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
-                            message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
-                            message.block4.MT57D?.PrtyIdn,message.block4.MT57D?.AdrsLine,
-                            message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
+                                message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
+                                message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
+                                message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
-                            message.block4.MT57C?.PrtyIdn, message.block4.MT57D?.PrtyIdn),
+                                message.block4.MT57C?.PrtyIdn, message.block4.MT57D?.PrtyIdn),
                         IntrBkSttlmAmt: {
                             content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
                             Ccy: message.block4.MT32A.Ccy.content
@@ -100,56 +113,56 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         InstgAgt: {
                             FinInstnId: {
                                 BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                    message.block2.MIRLogicalTerminal)
+                                        message.block2.MIRLogicalTerminal)
                             }
                         },
                         InstdAgt: {
                             FinInstnId: {
                                 BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                    message.block2.receiverAddress)
+                                        message.block2.receiverAddress)
                             }
                         },
-                        SttlmTmReq: clsTime is () ? () :{
-                            CLSTm: clsTime
-                        },
+                        SttlmTmReq: clsTime is () ? () : {
+                                CLSTm: clsTime
+                            },
                         SttlmTmIndctn: crdtTime is () && dbitTime is () ? () : {
-                            CdtDtTm: crdtTime,
-                            DbtDtTm: dbitTime
-                        },
+                                CdtDtTm: crdtTime,
+                                DbtDtTm: dbitTime
+                            },
                         PmtTpInf: serviceLevel is () && purpose is () ? () : {
-                            SvcLvl: serviceLevel is () ? () : [
-                                {
-                                    Cd: serviceLevel
-                                }
-                            ],
-                            CtgyPurp: purpose
-                        },
+                                SvcLvl: serviceLevel is () ? () : [
+                                        {
+                                            Cd: serviceLevel
+                                        }
+                                    ],
+                                CtgyPurp: purpose
+                            },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
                         InstdAmt: {
                             content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                                stlmntAmnt = message.block4.MT32A),
+                                    stlmntAmnt = message.block4.MT32A),
                             Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
-                            message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (), 
-                            message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {}},
+                                message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
+                                message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
                         ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
                             pacsIsoRecord:ChargeBearerType1Code),
                         Dbtr: getDebtorOrCreditor(message.block4.MT50A?.IdnCd, message.block4.MT50A?.Acc,
-                            message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
-                            message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
-                            message.block4.MT50F?.AdrsLine, message.block4.MT50K?.AdrsLine,
-                            message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
+                                message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
+                                message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
+                                message.block4.MT50F?.AdrsLine, message.block4.MT50K?.AdrsLine,
+                                message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
                         DbtrAcct: getCashAccount2(message.block4.MT50A?.Acc, message.block4.MT50K?.Acc, (),
-                            message.block4.MT50F?.PrtyIdn),
+                                message.block4.MT50F?.PrtyIdn),
                         PrvsInstgAgt1: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
                         IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content,
-                            message.block4.MT56D?.Nm, message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
-                            message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),
+                                message.block4.MT56D?.Nm, message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
+                                message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
-                            message.block4.MT56D?.PrtyIdn),
+                                message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
                         ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
@@ -157,21 +170,21 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         InstrForNxtAgt: instrFrNxtAgt,
                         InstrForCdtrAgt: instrFrCdtrAgt,
                         Purp: message.block4.MT26T is () ? () : {
-                            Prtry: getMandatoryFields(message.block4.MT26T?.Typ?.content)
-                        },
+                                Prtry: getMandatoryFields(message.block4.MT26T?.Typ?.content)
+                            },
                         SplmtryData: narration is () && xmlContent is () ? () : [
-                            {
-                                Envlp: {
-                                    Nrtv: getEnvelopeContent(message.block4.MT77T.EnvCntnt.content)[2],
-                                    XmlContent: getEnvelopeContent(message.block4.MT77T.EnvCntnt.content)[1]
+                                {
+                                    Envlp: {
+                                        Nrtv: getEnvelopeContent(message.block4.MT77T.EnvCntnt.content)[2],
+                                        XmlContent: getEnvelopeContent(message.block4.MT77T.EnvCntnt.content)[1]
+                                    }
                                 }
-                            }
-                        ]
+                            ]
                     }
                 ]
             }
         }
-};
+    };
 
 # Transforms the given SWIFT MT103STP message to its corresponding ISO 20022 Pacs.008 format.
 #
@@ -181,41 +194,53 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
 # + message - The parsed MT103STP message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message) 
+isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?, 
-    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] = 
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
+    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
         check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content) in {
         AppHdr: {
-            Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-                message.block2.MIRLogicalTerminal)}}}, 
-            To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                message.block2.receiverAddress)}}}, 
-            BizMsgIdr: message.block4.MT20.msgId.content, 
-            MsgDefIdr: "pacs.008.001.08", 
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
+            },
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.008.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + "+00:00"
+                    true).ensureType(string) + DEFAULT_TIME_OFFSET
         },
         Document: {
             FIToFICstmrCdtTrf: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + "+00:00",
+                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B),
                         InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                            (), message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                            (), (), (), message.block4.MT53B?.Lctn?.content),
+                                (), message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+                                (), (), (), message.block4.MT53B?.Lctn?.content),
                         InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn,
-                            message.block4.MT53B?.PrtyIdn),
+                                message.block4.MT53B?.PrtyIdn),
                         InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                            (), message.block4.MT54A?.PrtyIdn, ()),
+                                (), message.block4.MT54A?.PrtyIdn, ()),
                         InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ()),
                         ThrdRmbrsmntAgt: getFinancialInstitution(message.block4.MT55A?.IdnCd?.content,
-                            (), message.block4.MT55A?.PrtyIdn, ()),
+                                (), message.block4.MT55A?.PrtyIdn, ()),
                         ThrdRmbrsmntAgtAcct: getCashAccount(message.block4.MT55A?.PrtyIdn, ())
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
@@ -224,15 +249,15 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                 CdtTrfTxInf: [
                     {
                         Cdtr: getDebtorOrCreditor(message.block4.MT59A?.IdnCd, message.block4.MT59?.Acc,
-                            message.block4.MT59A?.Acc, message.block4.MT59F?.Acc, (),
-                            message.block4.MT59F?.Nm, message.block4.MT59?.Nm,
-                            message.block4.MT59F?.AdrsLine, message.block4.MT59?.AdrsLine,
-                            message.block4.MT59F?.CntyNTw, false, message.block4.MT77B?.Nrtv),
+                                message.block4.MT59A?.Acc, message.block4.MT59F?.Acc, (),
+                                message.block4.MT59F?.Nm, message.block4.MT59?.Nm,
+                                message.block4.MT59F?.AdrsLine, message.block4.MT59?.AdrsLine,
+                                message.block4.MT59F?.CntyNTw, false, message.block4.MT77B?.Nrtv),
                         CdtrAcct: getCashAccount2(message.block4.MT59?.Acc, message.block4.MT59A?.Acc,
-                            message.block4.MT59F?.Acc),
+                                message.block4.MT59F?.Acc),
                         CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, (),
-                            message.block4.MT57A?.PrtyIdn,
-                            ()) ?: {FinInstnId: {}},
+                                message.block4.MT57A?.PrtyIdn,
+                                ()) ?: {FinInstnId: {}},
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, ()),
                         IntrBkSttlmAmt: {
                             content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
@@ -246,53 +271,53 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                         InstgAgt: {
                             FinInstnId: {
                                 BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                    message.block2.MIRLogicalTerminal)
+                                        message.block2.MIRLogicalTerminal)
                             }
                         },
                         InstdAgt: {
                             FinInstnId: {
                                 BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                    message.block2.receiverAddress)
+                                        message.block2.receiverAddress)
                             }
                         },
-                        SttlmTmReq: clsTime is () ? () :{
-                            CLSTm: clsTime
-                        },
+                        SttlmTmReq: clsTime is () ? () : {
+                                CLSTm: clsTime
+                            },
                         SttlmTmIndctn: crdtTime is () && dbitTime is () ? () : {
-                            CdtDtTm: crdtTime,
-                            DbtDtTm: dbitTime
-                        },
+                                CdtDtTm: crdtTime,
+                                DbtDtTm: dbitTime
+                            },
                         PmtTpInf: serviceLevel is () && purpose is () ? () : {
-                            SvcLvl: serviceLevel is () ? () : [
-                                {
-                                    Cd: serviceLevel
-                                }
-                            ],
-                            CtgyPurp: purpose
-                        },
+                                SvcLvl: serviceLevel is () ? () : [
+                                        {
+                                            Cd: serviceLevel
+                                        }
+                                    ],
+                                CtgyPurp: purpose
+                            },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
                         InstdAmt: {
                             content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                                stlmntAmnt = message.block4.MT32A),
+                                    stlmntAmnt = message.block4.MT32A),
                             Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, (),
-                            message.block4.MT52A?.PrtyIdn,
-                            ()) ?: {FinInstnId: {}},
+                                message.block4.MT52A?.PrtyIdn,
+                                ()) ?: {FinInstnId: {}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, ()),
                         ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
                             pacsIsoRecord:ChargeBearerType1Code),
                         Dbtr: getDebtorOrCreditor(message.block4.MT50A?.IdnCd, message.block4.MT50A?.Acc,
-                            message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
-                            message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
-                            message.block4.MT50F?.AdrsLine, message.block4.MT50K?.AdrsLine,
-                            message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
+                                message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
+                                message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
+                                message.block4.MT50F?.AdrsLine, message.block4.MT50K?.AdrsLine,
+                                message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
                         DbtrAcct: getCashAccount2(message.block4.MT50A?.Acc, message.block4.MT50K?.Acc, (),
-                            message.block4.MT50F?.PrtyIdn),
+                                message.block4.MT50F?.PrtyIdn),
                         PrvsInstgAgt1: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
                         IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content, (),
-                            message.block4.MT56A?.PrtyIdn, ()),
+                                message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
                         ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
@@ -301,13 +326,13 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                         InstrForNxtAgt: instrFrNxtAgt,
                         InstrForCdtrAgt: instrFrCdtrAgt,
                         Purp: message.block4.MT26T is () ? () : {
-                            Prtry: getMandatoryFields(message.block4.MT26T?.Typ?.content)
-                        }
+                                Prtry: getMandatoryFields(message.block4.MT26T?.Typ?.content)
+                            }
                     }
                 ]
             }
         }
-};
+    };
 
 # Transforms the given SWIFT MT103 message to its corresponding ISO 20022 Pacs.008 format.
 #
@@ -317,50 +342,62 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
 # + message - The parsed MT103 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT103ToPacs008(swiftmt:MT103Message message) 
+isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?, 
-    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] = 
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
+    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
         check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content) in {
         AppHdr: {
-            Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-                message.block2.MIRLogicalTerminal)}}}, 
-            To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                message.block2.receiverAddress)}}}, 
-            BizMsgIdr: message.block4.MT20.msgId.content, 
-            MsgDefIdr: "pacs.008.001.08", 
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
+            },
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.008.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + "+00:00"
+                    true).ensureType(string) + DEFAULT_TIME_OFFSET
         },
         Document: {
             FIToFICstmrCdtTrf: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + "+00:00",
+                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B,
-                            message.block4.MT53D),
+                                message.block4.MT53D),
                         InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                            message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                            message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
-                            message.block4.MT53B?.Lctn?.content),
+                                message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+                                message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
+                                message.block4.MT53B?.Lctn?.content),
                         InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn,
-                            message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn),
+                                message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn),
                         InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                            message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
-                            message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine,
-                            message.block4.MT54B?.Lctn?.content),
+                                message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
+                                message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine,
+                                message.block4.MT54B?.Lctn?.content),
                         InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn,
-                            message.block4.MT54B?.PrtyIdn, message.block4.MT54D?.PrtyIdn),
+                                message.block4.MT54B?.PrtyIdn, message.block4.MT54D?.PrtyIdn),
                         ThrdRmbrsmntAgt: getFinancialInstitution(message.block4.MT55A?.IdnCd?.content,
-                            message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-                            message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine,
-                            message.block4.MT55B?.Lctn?.content),
+                                message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
+                                message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine,
+                                message.block4.MT55B?.Lctn?.content),
                         ThrdRmbrsmntAgtAcct: getCashAccount(message.block4.MT55A?.PrtyIdn,
-                            message.block4.MT55B?.PrtyIdn, message.block4.MT55D?.PrtyIdn)
+                                message.block4.MT55B?.PrtyIdn, message.block4.MT55D?.PrtyIdn)
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
                     MsgId: message.block4.MT20.msgId.content
@@ -368,18 +405,18 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                 CdtTrfTxInf: [
                     {
                         Cdtr: getDebtorOrCreditor(message.block4.MT59A?.IdnCd, message.block4.MT59?.Acc,
-                            message.block4.MT59A?.Acc, message.block4.MT59F?.Acc, (),
-                            message.block4.MT59F?.Nm, message.block4.MT59?.Nm,
-                            message.block4.MT59F?.AdrsLine, message.block4.MT59?.AdrsLine,
-                            message.block4.MT59F?.CntyNTw, false, message.block4.MT77B?.Nrtv),
+                                message.block4.MT59A?.Acc, message.block4.MT59F?.Acc, (),
+                                message.block4.MT59F?.Nm, message.block4.MT59?.Nm,
+                                message.block4.MT59F?.AdrsLine, message.block4.MT59?.AdrsLine,
+                                message.block4.MT59F?.CntyNTw, false, message.block4.MT77B?.Nrtv),
                         CdtrAcct: getCashAccount2(message.block4.MT59?.Acc, message.block4.MT59A?.Acc,
-                            message.block4.MT59F?.Acc),
+                                message.block4.MT59F?.Acc),
                         CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
-                            message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
-                            message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
-                            message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
+                                message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
+                                message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
+                                message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
-                            message.block4.MT57C?.PrtyIdn, message.block4.MT57D?.PrtyIdn),
+                                message.block4.MT57C?.PrtyIdn, message.block4.MT57D?.PrtyIdn),
                         IntrBkSttlmAmt: {
                             content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
                             Ccy: message.block4.MT32A.Ccy.content
@@ -392,56 +429,56 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         InstgAgt: {
                             FinInstnId: {
                                 BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                    message.block2.MIRLogicalTerminal)
+                                        message.block2.MIRLogicalTerminal)
                             }
                         },
                         InstdAgt: {
                             FinInstnId: {
                                 BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                    message.block2.receiverAddress)
+                                        message.block2.receiverAddress)
                             }
                         },
-                        SttlmTmReq: clsTime is () ? () :{
-                            CLSTm: clsTime
-                        },
+                        SttlmTmReq: clsTime is () ? () : {
+                                CLSTm: clsTime
+                            },
                         SttlmTmIndctn: crdtTime is () && dbitTime is () ? () : {
-                            CdtDtTm: crdtTime,
-                            DbtDtTm: dbitTime
-                        },
+                                CdtDtTm: crdtTime,
+                                DbtDtTm: dbitTime
+                            },
                         PmtTpInf: serviceLevel is () && purpose is () ? () : {
-                            SvcLvl: serviceLevel is () ? () : [
-                                {
-                                    Cd: serviceLevel
-                                }
-                            ],
-                            CtgyPurp: purpose
-                        },
+                                SvcLvl: serviceLevel is () ? () : [
+                                        {
+                                            Cd: serviceLevel
+                                        }
+                                    ],
+                                CtgyPurp: purpose
+                            },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
                         InstdAmt: {
                             content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                                stlmntAmnt = message.block4.MT32A),
+                                    stlmntAmnt = message.block4.MT32A),
                             Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
-                            message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
-                            (), message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {}},
+                                message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
+                                (), message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
                         ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
                             pacsIsoRecord:ChargeBearerType1Code),
                         Dbtr: getDebtorOrCreditor(message.block4.MT50A?.IdnCd, message.block4.MT50A?.Acc,
-                            message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
-                            message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
-                            message.block4.MT50F?.AdrsLine, message.block4.MT50K?.AdrsLine,
-                            message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
+                                message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
+                                message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
+                                message.block4.MT50F?.AdrsLine, message.block4.MT50K?.AdrsLine,
+                                message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
                         DbtrAcct: getCashAccount2(message.block4.MT50A?.Acc, message.block4.MT50K?.Acc, (),
-                            message.block4.MT50F?.PrtyIdn),
+                                message.block4.MT50F?.PrtyIdn),
                         PrvsInstgAgt1: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
                         IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content,
-                            message.block4.MT56D?.Nm, message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
-                            message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),
+                                message.block4.MT56D?.Nm, message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
+                                message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
-                            message.block4.MT56D?.PrtyIdn),
+                                message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
                         ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
@@ -449,13 +486,13 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         InstrForNxtAgt: instrFrNxtAgt,
                         InstrForCdtrAgt: instrFrCdtrAgt,
                         Purp: message.block4.MT26T is () ? () : {
-                            Prtry: getMandatoryFields(message.block4.MT26T?.Typ?.content)
-                        }
+                                Prtry: getMandatoryFields(message.block4.MT26T?.Typ?.content)
+                            }
                     }
                 ]
             }
         }
-};
+    };
 
 # Transforms the given SWIFT MT103 message to its corresponding ISO 20022 Pacs.004 format.
 #
@@ -465,79 +502,94 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
 # + message - The parsed MT103 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs004Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT103ToPacs004(swiftmt:MT103Message message) 
+isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
     returns pacsIsoRecord:Pacs004Envelope|error => let
-    [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C), 
+    [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
     pacsIsoRecord:Charges16[]? charges = check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
-    [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]] [instructionId, endToEndId, 
-        returnReasonArray, sndRcvrInfoChrgs] = check get103RETNSndRcvrInfoForPacs004(message.block4.MT72) in {
-    AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "pacs.004.001.09", 
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-            true).ensureType(string) + "+00:00"
-    },
-    Document: {
-        PmtRtr: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + "+00:00",
-                SttlmInf: {
-                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
-                    SttlmAcct: getCashAccount(message.block4.MT53B?.PrtyIdn, ())
-                },
-                NbOfTxs: DEFAULT_NUM_OF_TX,
-                MsgId: message.block4.MT20.msgId.content
+    [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]] [instructionId, endToEndId,
+        returnReasonArray, sndRcvrInfoChrgs] = check get103RETNSndRcvrInfoForPacs004(message.block4.MT72)
+    in {
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
             },
-            TxInf: [{
-                RtrId: message.block4.MT20.msgId.content,
-                OrgnlUETR: message.block3?.NdToNdTxRef?.value,
-                OrgnlInstrId: instructionId,
-                OrgnlEndToEndId: endToEndId,
-                RtrdIntrBkSttlmAmt: {
-                    content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
-                    Ccy: message.block4.MT32A.Ccy.content
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.004.001.09",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+        },
+        Document: {
+            PmtRtr: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                    SttlmInf: {
+                        SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+                        SttlmAcct: getCashAccount(message.block4.MT53B?.PrtyIdn, ())
+                    },
+                    NbOfTxs: DEFAULT_NUM_OF_TX,
+                    MsgId: message.block4.MT20.msgId.content
                 },
-                IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
-                XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
-                SttlmTmIndctn: crdtTime is () && dbitTime is () ? () : {
-                    CdtDtTm: crdtTime,
-                    DbtDtTm: dbitTime
-                },
-                RtrdInstdAmt: {
-                    content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                        stlmntAmnt = message.block4.MT32A),
-                    Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
-                },
-                ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
-                    pacsIsoRecord:ChargeBearerType1Code),
-                ChrgsInf: getChargesInfo(charges, sndRcvrInfoChrgs),
-                RtrChain: {
-                   Cdtr: getCreditorForPacs004(message.block4.MT59, message.block4.MT59A, message.block4.MT59F,
-                    message.block4.MT77B?.Nrtv?.content),
-                    CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
-                        message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
-                        message.block4.MT57D?.PrtyIdn,message.block4.MT57D?.AdrsLine,
-                        message.block4.MT57B?.Lctn?.content),
-                    DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
-                        message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
-                        message.block4.MT52D?.AdrsLine),
-                    Dbtr: getDebtorForPacs004(message.block4.MT50A, message.block4.MT50F, message.block4.MT50K,
-                        message.block4.MT77B?.Nrtv?.content),
-                    IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content, message.block4.MT56D?.Nm,
-                        message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn, message.block4.MT56D?.PrtyIdn,
-                        (), message.block4.MT56D?.AdrsLine)
-                },
-                RtrRsnInf: returnReasonArray.length() == 0 ? () : returnReasonArray
-            }]
+                TxInf: [
+                    {
+                        RtrId: message.block4.MT20.msgId.content,
+                        OrgnlUETR: message.block3?.NdToNdTxRef?.value,
+                        OrgnlInstrId: instructionId,
+                        OrgnlEndToEndId: endToEndId,
+                        RtrdIntrBkSttlmAmt: {
+                            content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
+                            Ccy: message.block4.MT32A.Ccy.content
+                        },
+                        IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
+                        XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
+                        SttlmTmIndctn: crdtTime is () && dbitTime is () ? () : {
+                                CdtDtTm: crdtTime,
+                                DbtDtTm: dbitTime
+                            },
+                        RtrdInstdAmt: {
+                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
+                                    stlmntAmnt = message.block4.MT32A),
+                            Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
+                        },
+                        ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
+                        pacsIsoRecord:ChargeBearerType1Code),
+                        ChrgsInf: getChargesInfo(charges, sndRcvrInfoChrgs),
+                        RtrChain: {
+                            Cdtr: getCreditorForPacs004(message.block4.MT59, message.block4.MT59A, message.block4.MT59F,
+                                    message.block4.MT77B?.Nrtv?.content),
+                            CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
+                                    message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
+                                    message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
+                                    message.block4.MT57B?.Lctn?.content),
+                            DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
+                                    message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
+                                    message.block4.MT52D?.AdrsLine),
+                            Dbtr: getDebtorForPacs004(message.block4.MT50A, message.block4.MT50F, message.block4.MT50K,
+                                    message.block4.MT77B?.Nrtv?.content),
+                            IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content, message.block4.MT56D?.Nm,
+                                    message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn, message.block4.MT56D?.PrtyIdn,
+                                    (), message.block4.MT56D?.AdrsLine)
+                        },
+                        RtrRsnInf: returnReasonArray.length() == 0 ? () : returnReasonArray
+                    }
+                ]
+            }
         }
-    }
-};
+    };
 
 # Transforms the given SWIFT MT103 message to its corresponding ISO 20022 Pacs.002 format.
 #
@@ -547,46 +599,64 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
 # + message - The parsed MT103 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs002Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT103ToPacs002(swiftmt:MT103Message message) 
-    returns pacsIsoRecord:Pacs002Envelope|error => let 
-    [string?, string?, pacsIsoRecord:StatusReasonInformation14[]] [instructionId, endToEndId, 
-        statusReasonArray] = check get103REJTSndRcvrInfoForPacs004(message.block4.MT72) in {
+isolated function transformMT103ToPacs002(swiftmt:MT103Message message)
+    returns pacsIsoRecord:Pacs002Envelope|error => let
+    [string?, string?, pacsIsoRecord:StatusReasonInformation14[]] [instructionId, endToEndId,
+        statusReasonArray] = check get103REJTSndRcvrInfoForPacs004(message.block4.MT72)
+    in {
         AppHdr: {
-            Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-                message.block2.MIRLogicalTerminal)}}}, 
-            To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                message.block2.receiverAddress)}}}, 
-            BizMsgIdr: message.block4.MT20.msgId.content, 
-            MsgDefIdr: "pacs.002.001.10", 
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
+            },
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.002.001.10",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + "+00:00"
+                    true).ensureType(string) + DEFAULT_TIME_OFFSET
         },
         Document: {
             FIToFIPmtStsRpt: {
                 GrpHdr: {
-                    MsgId: message.block4.MT20.msgId.content, 
+                    MsgId: message.block4.MT20.msgId.content,
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + "+00:00"},
-                TxInfAndSts: [{
-                    InstgAgt: {
-                        FinInstnId: {
-                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                        }
-                    },
-                    InstdAgt: {
-                        FinInstnId: {
-                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                        }
-                    },
-                    OrgnlGrpInf: {
-                        OrgnlMsgId: instructionId is () ? "NOTPROVIDED" : instructionId, 
-                        OrgnlMsgNmId: "MT103"
-                    },
-                    OrgnlInstrId: instructionId is () ? "NOTPROVIDED" : instructionId,
-                    OrgnlUETR: message.block3?.NdToNdTxRef?.value,
-                    OrgnlEndToEndId: endToEndId is () ? "NOTPROVIDED" : endToEndId,
-                    TxSts: "RJCT",
-                    StsRsnInf: statusReasonArray.length() == 0 ? () : statusReasonArray
-                }]}}
-};
+                            true).ensureType(string) + DEFAULT_TIME_OFFSET
+                },
+                TxInfAndSts: [
+                    {
+                        InstgAgt: {
+                            FinInstnId: {
+                                BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                            }
+                        },
+                        InstdAgt: {
+                            FinInstnId: {
+                                BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                            }
+                        },
+                        OrgnlGrpInf: {
+                            OrgnlMsgId: instructionId is () ? "NOTPROVIDED" : instructionId,
+                            OrgnlMsgNmId: "MT103"
+                        },
+                        OrgnlInstrId: instructionId is () ? "NOTPROVIDED" : instructionId,
+                        OrgnlUETR: message.block3?.NdToNdTxRef?.value,
+                        OrgnlEndToEndId: endToEndId is () ? "NOTPROVIDED" : endToEndId,
+                        TxSts: "RJCT",
+                        StsRsnInf: statusReasonArray.length() == 0 ? () : statusReasonArray
+                    }
+                ]
+            }
+        }
+    };

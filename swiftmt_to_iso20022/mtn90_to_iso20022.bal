@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -22,52 +22,74 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MTn90 message as a record value.
 # + return - Returns a `Camt105Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns camtIsoRecord:Camt105Envelope|error =>{
+isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns camtIsoRecord:Camt105Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt105.001.02", 
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
+        MsgDefIdr: "camt105.001.02",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-            true).ensureType(string) + "+00:00"
+                true).ensureType(string) + DEFAULT_TIME_OFFSET
     },
     Document: {
         ChrgsPmtNtfctn: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + "+00:00",
+                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
                 MsgId: message.block4.MT20.msgId.content,
                 ChrgsAcct: getCashAccount2(message.block4.MT25?.Acc, ()),
                 ChrgsRqstr: message.block4.MT72?.Cd?.content is string &&
-                    message.block4.MT72?.Cd?.content.toString().length() > 6 ? 
+                    message.block4.MT72?.Cd?.content.toString().length() > 6 ?
                     {FinInstnId: {BICFI: message.block4.MT72?.Cd?.content.toString().substring(6)}} : ()
-            }, 
+            },
             Chrgs: {
                 PerTx: {
                     ChrgsId: message.block4.MT20.msgId.content,
-                    Rcrd: [{
-                        UndrlygTx: {
-                            InstrId: message.block4.MT21.Ref.content,
-                            UETR: message.block3?.NdToNdTxRef?.value
-                        },
-                        TtlChrgsPerRcrd: {
-                            NbOfChrgsBrkdwnItms: "1",
-                            TtlChrgsAmt: {content: message.block4.MT32C is () ? 
-                                check convertToDecimalMandatory(message.block4.MT32D?.Amnt) : 
-                                check convertToDecimalMandatory(message.block4.MT32C?.Amnt), 
-                                Ccy: message.block4.MT32C is () ? message.block4.MT32D?.Ccy?.content.toString() : 
-                                    message.block4.MT32C?.Ccy?.content.toString()},
-                            CdtDbtInd: message.block4.MT32C is () ? "DBIT" : "CRDT"},
-                        ValDt: {Dt: message.block4.MT32C is () ? convertToISOStandardDate(message.block4.MT32D?.Dt) : 
-                            convertToISOStandardDate(message.block4.MT32C?.Dt)},
-                        DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
-                            message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
-                            (), message.block4.MT52D?.AdrsLine),
-                        DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                        ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content)}]
+                    Rcrd: [
+                        {
+                            UndrlygTx: {
+                                InstrId: message.block4.MT21.Ref.content,
+                                UETR: message.block3?.NdToNdTxRef?.value
+                            },
+                            TtlChrgsPerRcrd: {
+                                NbOfChrgsBrkdwnItms: "1",
+                                TtlChrgsAmt: {
+                                    content: message.block4.MT32C is () ?
+                                        check convertToDecimalMandatory(message.block4.MT32D?.Amnt) :
+                                        check convertToDecimalMandatory(message.block4.MT32C?.Amnt),
+                                    Ccy: message.block4.MT32C is () ? message.block4.MT32D?.Ccy?.content.toString() :
+                                        message.block4.MT32C?.Ccy?.content.toString()
+                                },
+                                CdtDbtInd: message.block4.MT32C is () ? "DBIT" : "CRDT"
+                            },
+                            ValDt: {
+                                Dt: message.block4.MT32C is () ? convertToISOStandardDate(message.block4.MT32D?.Dt) :
+                                    convertToISOStandardDate(message.block4.MT32C?.Dt)
+                            },
+                            DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
+                                    message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
+                                    (), message.block4.MT52D?.AdrsLine),
+                            DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
+                            ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content)
+                        }
+                    ]
                 }
-            }}}
+            }
+        }
+    }
 };

@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -22,56 +22,80 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT112 message as a record value.
 # + return - Returns a `Camt109Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT112ToCamt109(swiftmt:MT112Message message) returns camtIsoRecord:Camt109Envelope|error =>{
+isolated function transformMT112ToCamt109(swiftmt:MT112Message message) returns camtIsoRecord:Camt109Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt.109.001.01", 
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
+        MsgDefIdr: "camt.109.001.01",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-            true).ensureType(string) + "+00:00"
+                true).ensureType(string) + DEFAULT_TIME_OFFSET
     },
     Document: {
         ChqCxlOrStopRpt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + "+00:00",
+                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
                 NbOfChqs: "1",
-                MsgId: message.block4.MT20.msgId.content}, 
-            Chq: [{
-                IsseDt: convertToISOStandardDateMandatory(message.block4.MT30.Dt),
-                ChqNb: message.block4.MT21.Ref.content,
-                InstrId: message.block4.MT20.msgId.content,
-                Amt: message.block4.MT32A is () ? {content: check convertToDecimalMandatory(message.block4.MT32B?.Amnt), 
-                Ccy: message.block4.MT32B?.Ccy?.content.toString()} : {content: check convertToDecimalMandatory(
-                    message.block4.MT32A?.Amnt), 
-                Ccy: message.block4.MT32A?.Ccy?.content.toString()},
-                FctvDt: {Dt: message.block4.MT32A is () ? () : convertToISOStandardDate(
-                    message.block4.MT32A?.Dt)},
-                DrwrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
-                    message.block4.MT52A?.PrtyIdn, message.block4.MT52B?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
-                    message.block4.MT52D?.AdrsLine, message.block4.MT52B?.Lctn?.content),
-                DrwrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52B?.PrtyIdn,
-                    message.block4.MT52D?.PrtyIdn),
-                Pyee: getDebtorOrCreditor((), message.block4.MT59?.Acc, (), (), (), message.block4.MT59?.Nm, (),
-                    message.block4.MT59?.AdrsLine, ()),
-                ChqCxlOrStopSts: getChequeStopStatus(message.block4.MT76?.Nrtv?.content)}]}}
+                MsgId: message.block4.MT20.msgId.content
+            },
+            Chq: [
+                {
+                    IsseDt: convertToISOStandardDateMandatory(message.block4.MT30.Dt),
+                    ChqNb: message.block4.MT21.Ref.content,
+                    InstrId: message.block4.MT20.msgId.content,
+                    Amt: message.block4.MT32A is () ? {
+                            content: check convertToDecimalMandatory(message.block4.MT32B?.Amnt),
+                            Ccy: message.block4.MT32B?.Ccy?.content.toString()
+                        } : {
+                            content: check convertToDecimalMandatory(
+                                    message.block4.MT32A?.Amnt),
+                            Ccy: message.block4.MT32A?.Ccy?.content.toString()
+                        },
+                    FctvDt: {
+                        Dt: message.block4.MT32A is () ? () : convertToISOStandardDate(
+                                    message.block4.MT32A?.Dt)
+                    },
+                    DrwrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
+                            message.block4.MT52A?.PrtyIdn, message.block4.MT52B?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
+                            message.block4.MT52D?.AdrsLine, message.block4.MT52B?.Lctn?.content),
+                    DrwrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52B?.PrtyIdn,
+                            message.block4.MT52D?.PrtyIdn),
+                    Pyee: getDebtorOrCreditor((), message.block4.MT59?.Acc, (), (), (), message.block4.MT59?.Nm, (),
+                            message.block4.MT59?.AdrsLine, ()),
+                    ChqCxlOrStopSts: getChequeStopStatus(message.block4.MT76?.Nrtv?.content)
+                }
+            ]
+        }
+    }
 };
 
 isolated function getChequeStopStatus(string? narration) returns camtIsoRecord:ChequeCancellationStatus1 {
     if narration is string {
         string code = "";
-        foreach int i in 1...narration.length() - 1 {
+        foreach int i in 1 ... narration.length() - 1 {
             if narration.substring(i, i + 1) == "/" {
                 if chequeCancelStatusCode[code] !is () {
                     if narration.length() - 1 > i {
                         return {Sts: {Cd: chequeCancelStatusCode[code]}, AddtlInf: narration.substring((i + 1))};
-                    } 
+                    }
                     return {Sts: {Cd: chequeCancelStatusCode[code]}};
-                } 
+                }
                 break;
             }
             code += narration.substring(i, i + 1);

@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -24,35 +24,47 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
 isolated function transformMT972ToCamt052(swiftmt:MT972Message message) returns camtIsoRecord:Camt052Envelope|error =>
     let camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61) in {
-    AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt052.001.12",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
-            true).ensureType(string) + "+00:00"
-    },
-    Document: {
-        BkToCstmrAcctRpt: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
-                    true).ensureType(string) + "+00:00",
-                MsgId: message.block4.MT20.msgId.content
-            },
-            Rpt: [
-                {
-                    Id: message.block4.MT20.msgId.content,
-                    Acct: getCashAccount(message.block4.MT25?.Acc, ()) ?: {},
-                    ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
-                    LglSeqNb: message.block4.MT28C.StmtNo.content,
-                    Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
-                        message.block4.MT60M, message.block4.MT62M),
-                    Ntry: entries.length() == 0 ? () : entries
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
                 }
-            ]
+            },
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "camt052.001.12",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+        },
+        Document: {
+            BkToCstmrAcctRpt: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                Rpt: [
+                    {
+                        Id: message.block4.MT20.msgId.content,
+                        Acct: getCashAccount(message.block4.MT25?.Acc, ()) ?: {},
+                        ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
+                        LglSeqNb: message.block4.MT28C.StmtNo.content,
+                        Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
+                                message.block4.MT60M, message.block4.MT62M),
+                        Ntry: entries.length() == 0 ? () : entries
+                    }
+                ]
+            }
         }
-    }
-};
+    };

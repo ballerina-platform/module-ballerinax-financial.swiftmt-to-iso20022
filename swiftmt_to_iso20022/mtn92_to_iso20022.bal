@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -25,23 +25,35 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The MT192 message to be transformed, which should be in the `swiftmt:MTn92Message` format.
 # + return - Returns a record in `camtIsoRecord:Camt055Document` format if successful, otherwise returns an error.
-isolated function transformMTn92ToCamt055(swiftmt:MTn92Message message) returns camtIsoRecord:Camt055Envelope|error =>{
+isolated function transformMTn92ToCamt055(swiftmt:MTn92Message message) returns camtIsoRecord:Camt055Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "camt055.001.12",
         BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
-            true).ensureType(string)
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                true).ensureType(string)
     },
     Document: {
         CstmrPmtCxlReq: {
             Assgnmt: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
-                    true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                        true).ensureType(string),
                 Assgne: {
                     Agt: {
                         FinInstnId: {
@@ -58,37 +70,39 @@ isolated function transformMTn92ToCamt055(swiftmt:MTn92Message message) returns 
                     }
                 }
             },
-            Undrlyg: [{
-                OrgnlGrpInfAndCxl: {
-                    OrgnlMsgId: "",
-                    OrgnlMsgNmId: getOrignalMessageName(message.block4.MT11S.MtNum.content),
-                    OrgnlCreDtTm: convertToISOStandardDate(message.block4.MT11S.Dt),
-                    Case: {
-                        Id: message.block4.MT20.msgId.content,
-                        Cretr: {
-                            Agt: {
-                                FinInstnId: {
-                                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                        message.block2.MIRLogicalTerminal)
+            Undrlyg: [
+                {
+                    OrgnlGrpInfAndCxl: {
+                        OrgnlMsgId: "",
+                        OrgnlMsgNmId: getOrignalMessageName(message.block4.MT11S.MtNum.content),
+                        OrgnlCreDtTm: convertToISOStandardDate(message.block4.MT11S.Dt),
+                        Case: {
+                            Id: message.block4.MT20.msgId.content,
+                            Cretr: {
+                                Agt: {
+                                    FinInstnId: {
+                                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                                message.block2.MIRLogicalTerminal)
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                OrgnlPmtInfAndCxl: [
-                    {
-                        OrgnlPmtInfId: message.block4.MT21.Ref.content,
-                        CxlRsnInf: [
-                            {
-                                Rsn: {
-                                    Cd: getCancellationReasonCode(message.block4.MT79)
-                                },
-                                AddtlInf: getAdditionalCancellationInfo(message.block4.MT79)
-                            }
-                        ]
-                    }
-                ]
-            }],
+                    },
+                    OrgnlPmtInfAndCxl: [
+                        {
+                            OrgnlPmtInfId: message.block4.MT21.Ref.content,
+                            CxlRsnInf: [
+                                {
+                                    Rsn: {
+                                        Cd: getCancellationReasonCode(message.block4.MT79)
+                                    },
+                                    AddtlInf: getAdditionalCancellationInfo(message.block4.MT79)
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
             SplmtryData: [
                 {
                     Envlp: {
@@ -108,23 +122,35 @@ isolated function transformMTn92ToCamt055(swiftmt:MTn92Message message) returns 
 #
 # + message - The MT292 or MT992 message to be transformed, which should be in the `swiftmt:MTn92Message` format.
 # + return - Returns a record in `camtIsoRecord:Camt056Document` format if successful, otherwise returns an error.
-isolated function transformMTn92ToCamt056(swiftmt:MTn92Message message) returns camtIsoRecord:Camt056Envelope|error =>{
+isolated function transformMTn92ToCamt056(swiftmt:MTn92Message message) returns camtIsoRecord:Camt056Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal,
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "camt056.001.11",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-            true).ensureType(string) + "+00:00"
+                true).ensureType(string) + DEFAULT_TIME_OFFSET
     },
     Document: {
         FIToFIPmtCxlReq: {
             Assgnmt: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + "+00:00",
+                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
                 Assgne: {
                     Agt: {
                         FinInstnId: {
@@ -141,36 +167,40 @@ isolated function transformMTn92ToCamt056(swiftmt:MTn92Message message) returns 
                     }
                 }
             },
-            Undrlyg: [{
-                TxInf: [{
-                    OrgnlGrpInf: {
-                        OrgnlMsgId: "",
-                        OrgnlMsgNmId: getOrignalMessageName(message.block4.MT11S.MtNum.content),
-                        OrgnlCreDtTm: convertToISOStandardDate(message.block4.MT11S.Dt)
-                    },
-                    Case: {
-                        Id: message.block4.MT20.msgId.content,
-                        Cretr: {
-                            Agt: {
-                                FinInstnId: {
-                                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                        message.block2.MIRLogicalTerminal)
-                                }
-                            }
-                        }
-                    },
-                    OrgnlInstrId: message.block4.MT21.Ref.content,
-                    OrgnlUETR: message.block3?.NdToNdTxRef?.value,
-                    CxlRsnInf: [
+            Undrlyg: [
+                {
+                    TxInf: [
                         {
-                            Rsn: {
-                                Cd: getCancellationReasonCode(message.block4.MT79)
+                            OrgnlGrpInf: {
+                                OrgnlMsgId: "",
+                                OrgnlMsgNmId: getOrignalMessageName(message.block4.MT11S.MtNum.content),
+                                OrgnlCreDtTm: convertToISOStandardDate(message.block4.MT11S.Dt)
                             },
-                            AddtlInf: getAdditionalCancellationInfo(message.block4.MT79)
+                            Case: {
+                                Id: message.block4.MT20.msgId.content,
+                                Cretr: {
+                                    Agt: {
+                                        FinInstnId: {
+                                            BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                                    message.block2.MIRLogicalTerminal)
+                                        }
+                                    }
+                                }
+                            },
+                            OrgnlInstrId: message.block4.MT21.Ref.content,
+                            OrgnlUETR: message.block3?.NdToNdTxRef?.value,
+                            CxlRsnInf: [
+                                {
+                                    Rsn: {
+                                        Cd: getCancellationReasonCode(message.block4.MT79)
+                                    },
+                                    AddtlInf: getAdditionalCancellationInfo(message.block4.MT79)
+                                }
+                            ]
                         }
                     ]
-                }]
-            }],
+                }
+            ],
             SplmtryData: [
                 {
                     Envlp: {

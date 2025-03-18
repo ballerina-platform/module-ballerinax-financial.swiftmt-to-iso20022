@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -29,11 +29,10 @@ isolated function testMt210ToMx(string finMessage, xml mxXml) returns error? {
     test:assertEquals(actualResult, expectedResult, "Invalid transformation of MT to MX");
 }
 
-
 function dataProvider_mt210() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
-        "c_29_1_1_camt057_A_B_210" : [finMessage_5811_mt210_A_B, check io:fileReadXml("./tests/c_58_1_1/mt210_camt_057_A_B.xml")]
+        "c_29_1_1_camt057_A_B_210": [finMessage_5811_mt210_A_B, check io:fileReadXml("./tests/c_58_1_1/mt210_camt_057_A_B.xml")]
     };
     return dataSet;
 }

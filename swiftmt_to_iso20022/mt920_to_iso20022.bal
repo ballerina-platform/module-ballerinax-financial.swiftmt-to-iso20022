@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -22,23 +22,35 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT920 message as a record value.
 # + return - Returns a `Camt060Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT920ToCamt060(swiftmt:MT920Message message) returns camtIsoRecord:Camt060Envelope|error =>{
+isolated function transformMT920ToCamt060(swiftmt:MT920Message message) returns camtIsoRecord:Camt060Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, 
-            message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, 
-            message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "camt060.001.07",
         BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
-            true).ensureType(string) + "+00:00"
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                true).ensureType(string) + DEFAULT_TIME_OFFSET
     },
     Document: {
         AcctRptgReq: {
             GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, 
-                    true).ensureType(string) + "+00:00",
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
                 MsgId: message.block4.MT20.msgId.content
             },
             RptgReq: [

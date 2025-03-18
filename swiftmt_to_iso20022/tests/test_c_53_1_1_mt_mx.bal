@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -29,14 +29,13 @@ isolated function testMt940ToMx(string finMessage, xml mxXml) returns error? {
     test:assertEquals(actualResult, expectedResult, "Invalid transformation of MT to MX");
 }
 
-
 function dataProvider_mt940() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
-        "c_53_1_1_camt053_B_D_940" : [finMessage_5311_mt940_B_D, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_B_D.xml")],
-        "c_53_1_1_camt053_B_Dbtr_940" : [finMessage_5311_mt940_B_Dbtr, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_B_Dbtr.xml")],
-        "c_53_1_1_camt053_C_D_940" : [finMessage_5311_mt940_C_D, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_C_D.xml")],
-        "c_53_1_1_camt053_D_E_940" : [finMessage_5311_mt940_D_E, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_D_E.xml")]
+        "c_53_1_1_camt053_B_D_940": [finMessage_5311_mt940_B_D, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_B_D.xml")],
+        "c_53_1_1_camt053_B_Dbtr_940": [finMessage_5311_mt940_B_Dbtr, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_B_Dbtr.xml")],
+        "c_53_1_1_camt053_C_D_940": [finMessage_5311_mt940_C_D, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_C_D.xml")],
+        "c_53_1_1_camt053_D_E_940": [finMessage_5311_mt940_D_E, check io:fileReadXml("./tests/c_53_1_1/mt940_camt_053_D_E.xml")]
     };
     return dataSet;
 }
