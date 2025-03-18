@@ -46,31 +46,31 @@ isolated function transformMT200ToPacs009(swiftmt:MT200Message message) returns 
         MsgDefIdr: "pacs.009.001.11",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         FICdtTrf: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(mt53B = message.block4.MT53B)
-                },
-                InstgAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                    }
-                },
-                InstdAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                    }
                 },
                 NbOfTxs: DEFAULT_NUM_OF_TX,
                 MsgId: message.block4.MT20.msgId.content
             },
             CdtTrfTxInf: [
                 {
+                    InstgAgt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    },
+                    InstdAgt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    },
                     Cdtr: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
                             message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, (),
                             message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
@@ -128,14 +128,14 @@ isolated function transformMT200ToCamt050(swiftmt:MT200Message message) returns 
         BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "camt.050.001.07",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         LqdtyCdtTrf: {
             MsgHdr: {
                 MsgId: uuid:createType4AsString().substring(0, 35),
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) 
+                        true).ensureType(string)
             },
             LqdtyCdtTrf: {
                 LqdtyTrfId: {

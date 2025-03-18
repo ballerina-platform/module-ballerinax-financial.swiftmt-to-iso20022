@@ -48,13 +48,13 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
         MsgDefIdr: "pacs.008.001.12",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         FIToFICstmrCdtTrf: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A),
                     InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
@@ -212,13 +212,13 @@ isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns p
         MsgDefIdr: "pacs.008.001.12",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         FIToFICstmrCdtTrf: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A),
                     InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,

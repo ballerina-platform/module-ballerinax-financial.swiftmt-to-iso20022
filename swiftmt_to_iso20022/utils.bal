@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/data.xmldata;
+import ballerina/log;
 import ballerina/regex;
 import ballerina/time;
 import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
@@ -27,9 +28,12 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - MT104 SWIFT message to transform
 # + return - XML message or error
 isolated function getMT104TransformFunction(swiftmt:MT104Message message) returns xml|error {
+    log:printDebug("Starting getMT104TransformFunction with message type MT104");
     if message.block4.MT23E?.InstrnCd?.content is () {
+        log:printDebug("No instruction code found in message, handling as transaction level instruction");
         return handleMT104Transaction(message);
     }
+    log:printDebug("Instruction code found in message, handling as message level instruction");
     return handleMT104MessageInstruction(message);
 }
 
@@ -38,23 +42,29 @@ isolated function getMT104TransformFunction(swiftmt:MT104Message message) return
 # + message - MT104 message to process
 # + return - XML message or error
 isolated function handleMT104Transaction(swiftmt:MT104Message message) returns xml|error {
+    log:printDebug("Starting handleMT104Transaction for MT104 message");
     foreach swiftmt:MT104Transaction transaxion in message.block4.Transaction {
         if transaxion.MT23E is swiftmt:MT23E {
             string instructionCode = check transaxion.MT23E?.InstrnCd?.content.ensureType(string);
+            log:printDebug("Found instruction code in transaction: " + instructionCode);
 
             if instructionCode.equalsIgnoreCaseAscii("RTND") {
+                log:printDebug("Rejecting message due to RTND instruction code");
                 return error("Return direct debit transfer message is not supported.");
             }
 
             if isValidInstructionCode(instructionCode) {
+                log:printDebug("Valid instruction code found for pacs.003: " + instructionCode);
                 return xmldata:toXml(check transformMT104ToPacs003(message));
             }
 
             if isValidInstructionCode(instructionCode, true) {
+                log:printDebug("Valid instruction code found for pain.008: " + instructionCode);
                 return xmldata:toXml(check transformMT104ToPain008(message));
             }
         }
     }
+    log:printDebug("No valid instruction code found in message");
     return error("Instruction code is required to identify ISO 20022 message type.");
 }
 
@@ -63,16 +73,21 @@ isolated function handleMT104Transaction(swiftmt:MT104Message message) returns x
 # + message - MT104 message to process
 # + return - XML message or error
 isolated function handleMT104MessageInstruction(swiftmt:MT104Message message) returns xml|error {
+    log:printDebug("Starting handleMT104MessageInstruction for MT104 message");
     string instructionCode = check message.block4.MT23E?.InstrnCd?.content.ensureType(string);
+    log:printDebug("Found message level instruction code: " + instructionCode);
 
     if isValidInstructionCode(instructionCode) {
+        log:printDebug("Valid instruction code found for pacs.003: " + instructionCode);
         return xmldata:toXml(check transformMT104ToPacs003(message));
     }
 
     if isValidInstructionCode(instructionCode, true) {
+        log:printDebug("Valid instruction code found for pain.008: " + instructionCode);
         return xmldata:toXml(check transformMT104ToPain008(message));
     }
 
+    log:printDebug("Message rejected due to unsupported instruction code");
     return error("Return direct debit transfer message is not supported.");
 }
 
@@ -81,21 +96,27 @@ isolated function handleMT104MessageInstruction(swiftmt:MT104Message message) re
 # + message - The MT107 SWIFT message to be transformed
 # + return - Returns the transformed XML message or an error if transformation fails
 isolated function getMT107TransformFunction(swiftmt:MT107Message message) returns xml|error {
+    log:printDebug("Starting getMT107TransformFunction with message type MT107");
     // Handle message level instruction code
     if message.block4.MT23E?.InstrnCd?.content is string {
         string msgInstructionCode = check message.block4.MT23E?.InstrnCd?.content.ensureType(string);
+        log:printDebug("Found message level instruction code: " + msgInstructionCode);
         return check handleMessageLevelInstruction(message, msgInstructionCode);
     }
 
     // Handle transaction level instruction codes
+    log:printDebug("No message level instruction code found, checking transaction level codes");
     foreach swiftmt:MT107Transaction transaxion in message.block4.Transaction {
         if transaxion.MT23E is swiftmt:MT23E {
             string? txnInstructionCode = check transaxion.MT23E?.InstrnCd?.content.ensureType(string);
             if txnInstructionCode is string {
+                log:printDebug("Found transaction level instruction code: " + txnInstructionCode);
                 if txnInstructionCode.equalsIgnoreCaseAscii(RTND_CODE) {
+                    log:printDebug("Rejecting message due to RTND instruction code");
                     return error(UNSUPPORTED_MSG);
                 }
                 if isValidInstructionCode(txnInstructionCode) {
+                    log:printDebug("Valid instruction code found for pacs.003: " + txnInstructionCode);
                     return xmldata:toXml(check transformMT107ToPacs003(message));
                 }
             }
@@ -103,6 +124,7 @@ isolated function getMT107TransformFunction(swiftmt:MT107Message message) return
     }
 
     // Default transformation if no specific instruction code found
+    log:printDebug("No specific instruction code found, using default transformation to pacs.003");
     return xmldata:toXml(check transformMT107ToPacs003(message));
 }
 
@@ -115,9 +137,12 @@ isolated function handleMessageLevelInstruction(
         swiftmt:MT107Message message,
         string instructionCode
 ) returns xml|error {
+    log:printDebug("Starting handleMessageLevelInstruction with instruction code: " + instructionCode);
     if isValidInstructionCode(instructionCode) {
+        log:printDebug("Valid instruction code found for pacs.003: " + instructionCode);
         return xmldata:toXml(check transformMT107ToPacs003(message));
     }
+    log:printDebug("Invalid or unsupported instruction code");
     return error(UNSUPPORTED_MSG);
 }
 
@@ -126,12 +151,19 @@ isolated function handleMessageLevelInstruction(
 # + message - MTn96 SWIFT message to transform
 # + return - XML message or error if transformation fails
 isolated function getMTn96TransformFunction(swiftmt:MTn96Message message) returns xml|error {
+    log:printDebug("Starting getMTn96TransformFunction for MTn96 message");
+
     if message.block4.MT76?.Nrtv.content.length() < 5 {
+        log:printDebug("Invalid MTn96 message: Missing answer code");
         return error("Invalid MTn96 message: Missing answer code.");
     }
 
     string answerCode = message.block4.MT76.Nrtv.content.substring(1, 5);
-    return check transformBasedOnAnswerCode(message, answerCode);
+    log:printDebug("Extracted answer code from message: " + answerCode);
+
+    xml result = check transformBasedOnAnswerCode(message, answerCode);
+    log:printDebug("Completed MTn96 transformation");
+    return result;
 }
 
 # Transform message based on answer code
@@ -140,9 +172,14 @@ isolated function getMTn96TransformFunction(swiftmt:MTn96Message message) return
 # + answerCode - Answer code from the message
 # + return - Transformed XML or error
 isolated function transformBasedOnAnswerCode(swiftmt:MTn96Message message, string answerCode) returns xml|error {
+    log:printDebug("Starting transformBasedOnAnswerCode with answerCode: " + answerCode);
+
     if isAnswerCodeValid(answerCode) {
+        log:printDebug("Answer code is valid for camt.031: " + answerCode);
         return xmldata:toXml(check transformMTn96ToCamt031(message));
     }
+
+    log:printDebug("Answer code not valid for camt.031, transforming to camt.028: " + answerCode);
     return xmldata:toXml(check transformMTn96ToCamt028(message));
 }
 
@@ -151,9 +188,14 @@ isolated function transformBasedOnAnswerCode(swiftmt:MTn96Message message, strin
 # + code - Answer code to validate
 # + return - True if valid, false otherwise
 isolated function isAnswerCodeValid(string code) returns boolean {
-    return code.equalsIgnoreCaseAscii(CANCEL_CODE) ||
+    log:printDebug("Checking if answer code is valid: " + code);
+
+    boolean result = code.equalsIgnoreCaseAscii(CANCEL_CODE) ||
             code.equalsIgnoreCaseAscii(PENDING_CANCEL_CODE) ||
             code.equalsIgnoreCaseAscii(REJECT_CODE);
+
+    log:printDebug("Answer code " + code + " is valid: " + result.toString());
+    return result;
 }
 
 # Validates if the given instruction code is valid based on context
@@ -162,13 +204,18 @@ isolated function isAnswerCodeValid(string code) returns boolean {
 # + checkForRequest - Whether to check for request-specific codes
 # + return - True if valid, false otherwise
 isolated function isValidInstructionCode(string code, boolean checkForRequest = false) returns boolean {
+    log:printDebug("Validating instruction code: " + code + ", checkForRequest: " + checkForRequest.toString());
+
     string[] validCodes = [AUTH_CODE, NAUT_CODE, OTHR_CODE];
 
     if checkForRequest {
         validCodes.push(RFDD_CODE);
+        log:printDebug("Added request-specific code to valid codes");
     }
 
-    return validCodes.some(validCode => code.equalsIgnoreCaseAscii(validCode));
+    boolean result = validCodes.some(validCode => code.equalsIgnoreCaseAscii(validCode));
+    log:printDebug("Instruction code " + code + " is valid: " + result.toString());
+    return result;
 }
 
 # Converts SWIFT amount/rate to decimal value
@@ -176,20 +223,32 @@ isolated function isValidInstructionCode(string code, boolean checkForRequest = 
 # + value - The SWIFT amount or rate to convert
 # + return - Decimal value or error if conversion fails
 isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns decimal|error? {
+    log:printDebug("Starting convertToDecimal with value: " + value.toString());
 
     if value is () {
+        log:printDebug("Value is null, returning null");
         return ();
     }
 
     do {
         string numericString = value.content;
+        log:printDebug("Converting numeric string: " + numericString);
+
         int? lastCommaIndex = numericString.lastIndexOf(",");
 
         if lastCommaIndex is int && lastCommaIndex == numericString.length() - 1 {
-            return check decimal:fromString(numericString.substring(0, lastCommaIndex));
+            log:printDebug("Found trailing comma, removing it before conversion");
+            decimal result = check decimal:fromString(numericString.substring(0, lastCommaIndex));
+            log:printDebug("Converted value: " + result.toString());
+            return result;
         }
-        return check decimal:fromString(regex:replace(numericString, "\\,", "."));
+
+        log:printDebug("Converting with comma replacement");
+        decimal result = check decimal:fromString(regex:replace(numericString, "\\,", "."));
+        log:printDebug("Converted value: " + result.toString());
+        return result;
     } on fail {
+        log:printDebug("Error converting decimal value: " + value.toString());
         return error(DECIMAL_ERROR);
     }
 }
@@ -200,19 +259,32 @@ isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns deci
 # + value - The optional `Amnt` or `Rt` content containing the string value to be converted to a decimal.
 # + return - Returns the converted decimal value.
 isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) returns decimal|error {
+    log:printDebug("Starting convertToDecimalMandatory with value: " + value.toString());
+
     if value is () {
+        log:printDebug("Value is null, returning 0");
         return 0;
     }
 
     do {
         string numericString = value.content;
+        log:printDebug("Converting numeric string: " + numericString);
+
         int? lastCommaIndex = numericString.lastIndexOf(",");
 
         if lastCommaIndex is int && lastCommaIndex == numericString.length() - 1 {
-            return check decimal:fromString(numericString.substring(0, lastCommaIndex));
+            log:printDebug("Found trailing comma, removing it before conversion");
+            decimal result = check decimal:fromString(numericString.substring(0, lastCommaIndex));
+            log:printDebug("Converted value: " + result.toString());
+            return result;
         }
-        return check decimal:fromString(regex:replace(numericString, "\\,", "."));
+
+        log:printDebug("Converting with comma replacement");
+        decimal result = check decimal:fromString(regex:replace(numericString, "\\,", "."));
+        log:printDebug("Converted value: " + result.toString());
+        return result;
     } on fail {
+        log:printDebug("Error converting decimal value: " + value.toString());
         return error(DECIMAL_ERROR);
     }
 }
@@ -223,9 +295,14 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
 # + remmitanceInfo - The optional `MT70` object containing remittance information.
 # + return - Returns remmitance information as a string or an empty string if no remmitance information was found.
 isolated function getRemmitanceInformation(string? remmitanceInfo) returns string {
+    log:printDebug("Starting getRemmitanceInformation with remmitanceInfo: " + remmitanceInfo.toString());
+
     if remmitanceInfo is () {
+        log:printDebug("No remittance information found, returning empty string");
         return "";
     }
+
+    log:printDebug("Returning remittance information: " + remmitanceInfo);
     return remmitanceInfo;
 }
 
@@ -235,19 +312,26 @@ isolated function getRemmitanceInformation(string? remmitanceInfo) returns strin
 # + content - The optional field that may be of type string.
 # + return - Returns the string content if the content is a string; otherwise, returns an empty string.
 isolated function getMandatoryFields(string? content) returns string {
+    log:printDebug("Starting getMandatoryFields with content: " + content.toString());
     if content is () {
+        log:printDebug("Content is null, returning empty string");
         return "";
     }
+    log:printDebug("Returning content: " + content);
     return content;
 }
 
 isolated function getCurrency(string? currency1, string? currency2) returns string {
+    log:printDebug("Starting getCurrency with currency1: " + currency1.toString() + ", currency2: " + currency2.toString());
     if currency1 is string {
+        log:printDebug("Using currency1: " + currency1);
         return currency1;
     }
     if currency2 is string {
+        log:printDebug("Using currency2: " + currency2);
         return currency2;
     }
+    log:printDebug("No valid currency found, returning empty string");
     return "";
 }
 
@@ -263,18 +347,28 @@ isolated function getCurrency(string? currency1, string? currency2) returns stri
 # otherwise, returns `null`.
 isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]? address2 = (),
         string? address3 = ()) returns string[]? {
+    log:printDebug("Starting getAddressLine with address1: " + address1.toString() + ", address2: " + address2.toString() + ", address3: " + address3.toString());
+
     swiftmt:AdrsLine[] finalAddress = [];
     if address1 is swiftmt:AdrsLine[] {
+        log:printDebug("Using address1");
         finalAddress = address1;
     } else if address2 is swiftmt:AdrsLine[] {
+        log:printDebug("Using address2");
         finalAddress = address2;
     } else if address3 is string {
+        log:printDebug("Using address3 string: " + address3);
         return [address3];
     } else {
+        log:printDebug("No valid address found, returning null");
         return ();
     }
-    return from swiftmt:AdrsLine adrsLine in finalAddress
+
+    string[] result = from swiftmt:AdrsLine adrsLine in finalAddress
         select adrsLine.content;
+
+    log:printDebug("Returning address lines: " + result.toString());
+    return result;
 }
 
 # Retrieves the details charges code based on the provided `Cd` code.
@@ -285,15 +379,22 @@ isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[
 # + return - Returns the details charge description associated with the provided code;
 # Otherwise an error.
 isolated function getDetailsChargesCd(swiftmt:Cd? code) returns string|error {
+    log:printDebug("Starting getDetailsChargesCd with code: " + code.toString());
+
     string[][] chargesCodeArray = DETAILS_CHRGS;
     if code is () {
+        log:printDebug("Code is null, returning error");
         return error("Details of charges code is madatory.");
     }
+
     foreach string[] line in chargesCodeArray {
         if line[0].equalsIgnoreCaseAscii(code.content) {
+            log:printDebug("Found matching charge code: " + line[0] + ", returning: " + line[1]);
             return line[1];
         }
     }
+
+    log:printDebug("No matching charge code found, returning error");
     return error("Details of charges code is invalid.");
 }
 
@@ -305,13 +406,20 @@ isolated function getDetailsChargesCd(swiftmt:Cd? code) returns string|error {
 # + return - Returns an array of `RgltryRptg` objects with the extracted regulatory reporting details.
 # The details are based on the content of the `Nrtv` field within the `MT77B` object.
 isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecord:RegulatoryReporting3[]? {
+    log:printDebug("Starting getRegulatoryReporting with rgltyRptg: " + rgltyRptg.toString());
+
     if rgltyRptg is () {
+        log:printDebug("Regulatory reporting is null, returning null");
         return ();
     }
+
     if rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("BENEFRES") ||
         rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("ORDERRES") {
+        log:printDebug("Found BENEFRES or ORDERRES pattern");
+
         string additionalInfo = "";
         if rgltyRptg.length() > 14 {
+            log:printDebug("Extracting additional info from position 14 onwards");
             foreach int i in 14 ... rgltyRptg.length() - 1 {
                 if rgltyRptg.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
                     continue;
@@ -323,6 +431,8 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecor
                 additionalInfo += rgltyRptg.substring(i, i + 1);
             }
         }
+
+        log:printDebug("Regulatory reporting country code: " + rgltyRptg.substring(10, 12) + ", additional info: " + additionalInfo);
         return [
             {
                 Dtls: [
@@ -335,6 +445,8 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecor
             }
         ];
     }
+
+    log:printDebug("No specific pattern found, using full content as regulatory reporting info");
     return [
         {
             Dtls: [
@@ -355,40 +467,66 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecor
 # parameter.
 isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc)
     returns [string?, string?, string?, string?, string?] {
+    log:printDebug("Starting getPartyIdentifierOrAccount with prtyIdnOrAcc: " + prtyIdnOrAcc.toString());
+
     if prtyIdnOrAcc is () {
+        log:printDebug("Party identifier is null, returning empty tuple");
         return [];
     }
+
     string content = prtyIdnOrAcc.content;
+    log:printDebug("Processing party identifier content: " + content);
+
     if content.length() > 4 {
+        log:printDebug("Content length > 4, checking format");
+
         if content.substring(0, 1).equalsIgnoreCaseAscii("/") {
-            return [(), ...validateAccountNumber(prtyIdn = prtyIdnOrAcc), (), ()];
+            log:printDebug("Content starts with /, validating as account number");
+            [string?, string?] result = validateAccountNumber(prtyIdn = prtyIdnOrAcc);
+            log:printDebug("Account validation result: " + result.toString());
+            return [(), ...result, (), ()];
         }
+
         string? partyIdentifier = ();
         string? schemaCode = ();
         string? issuer = ();
+
         foreach string code in SCHEMA_CODE {
             if !code.equalsIgnoreCaseAscii(content.substring(0, 4)) {
                 continue;
             }
+
+            log:printDebug("Found matching schema code: " + code);
             schemaCode = code;
             int count = 0;
+
             foreach int i in 0 ... content.length() - 1 {
                 if content.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
                     count += 1;
+                    log:printDebug("Found / at position " + i.toString() + ", count: " + count.toString());
                 }
+
                 if count == 2 {
                     partyIdentifier = content.substring(i + 1);
+                    log:printDebug("Found party identifier after second /: " + partyIdentifier.toString());
                 }
+
                 if count == 3 {
                     partyIdentifier = content.substring(i + 1);
                     issuer = content.substring(8, i);
+                    log:printDebug("Found party identifier after third /: " + partyIdentifier.toString() + ", issuer: " + issuer.toString());
                     break;
                 }
             }
             break;
         }
+
+        log:printDebug("Returning party identifier result: [" + partyIdentifier.toString() + ", (), (), " +
+                    schemaCode.toString() + ", " + issuer.toString() + "]");
         return [partyIdentifier, (), (), schemaCode, issuer];
     }
+
+    log:printDebug("Content length <= 4, returning empty tuple");
     return [];
 }
 
@@ -405,35 +543,64 @@ isolated function getPartyIdentifierOrAccount(swiftmt:PrtyIdn? prtyIdnOrAcc)
 # + return - Returns a tuple of strings and/or null values based on the party identifier content.
 isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2 = (),
         swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = ()) returns [string?, string?, string?] {
+    log:printDebug("Starting getPartyIdentifierOrAccount2 with prtyIdn1: " + prtyIdn1.toString() +
+                ", prtyIdn2: " + prtyIdn2.toString() +
+                ", prtyIdn3: " + prtyIdn3.toString() +
+                ", prtyIdn4: " + prtyIdn4.toString());
+
     if prtyIdn1 is swiftmt:PrtyIdn && isValidPartyIdentifier(prtyIdn1.content) {
+        log:printDebug("prtyIdn1 is valid party identifier: " + prtyIdn1.content);
         return [prtyIdn1.content.substring(1), (), ()];
     }
+
     if prtyIdn2 is swiftmt:PrtyIdn && isValidPartyIdentifier(prtyIdn2.content) {
+        log:printDebug("prtyIdn2 is valid party identifier: " + prtyIdn2.content);
         return [prtyIdn2.content.substring(1), (), ()];
     }
+
     if prtyIdn3 is swiftmt:PrtyIdn && isValidPartyIdentifier(prtyIdn3.content) {
+        log:printDebug("prtyIdn3 is valid party identifier: " + prtyIdn3.content);
         return [prtyIdn3.content.substring(1), (), ()];
     }
+
     if prtyIdn1 is swiftmt:PrtyIdn && isValidAccountNumber(prtyIdn1.content) {
+        log:printDebug("prtyIdn1 is valid account number: " + prtyIdn1.content);
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn1)];
     }
+
     if prtyIdn2 is swiftmt:PrtyIdn && isValidAccountNumber(prtyIdn2.content) {
+        log:printDebug("prtyIdn2 is valid account number: " + prtyIdn2.content);
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn2)];
     }
+
     if prtyIdn3 is swiftmt:PrtyIdn && isValidAccountNumber(prtyIdn3.content) {
+        log:printDebug("prtyIdn3 is valid account number: " + prtyIdn3.content);
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn3)];
     }
+
+    log:printDebug("No valid party identifier or account number found, returning empty tuple");
     return [];
 }
 
 isolated function isValidPartyIdentifier(string content) returns boolean {
+    log:printDebug("Checking if content is valid party identifier: " + content);
+
     string[] excluded_prefixes = ["/CH", "/FW", "/RT"];
     int? index = excluded_prefixes.indexOf(content.substring(0, 3));
-    return content.length() > 1 && content.startsWith("/") && index is ();
+
+    boolean result = content.length() > 1 && content.startsWith("/") && index is ();
+    log:printDebug("Content is valid party identifier: " + result.toString());
+
+    return result;
 }
 
 isolated function isValidAccountNumber(string content) returns boolean {
-    return content.length() > 0 && (!content.startsWith("/") || content.startsWith("/CH"));
+    log:printDebug("Checking if content is valid account number: " + content);
+
+    boolean result = content.length() > 0 && (!content.startsWith("/") || content.startsWith("/CH"));
+    log:printDebug("Content is valid account number: " + result.toString());
+
+    return result;
 }
 
 # Concatenates the contents of `Nm` elements from one of two possible arrays into a single string.
@@ -444,22 +611,33 @@ isolated function isValidAccountNumber(string content) returns boolean {
 # + return - Returns a single concatenated string of all name components, separated by spaces, or `null` if no valid 
 # input is provided.
 isolated function getName(swiftmt:Nm[]? name1, swiftmt:Nm[]? name2 = ()) returns string? {
+    log:printDebug("Starting getName with name1: " + name1.toString() + ", name2: " + name2.toString());
+
     string finalName = "";
     swiftmt:Nm[] nameArray;
+
     if name1 is swiftmt:Nm[] {
+        log:printDebug("Using name1 array with " + name1.length().toString() + " elements");
         nameArray = name1;
     } else if name2 is swiftmt:Nm[] {
+        log:printDebug("Using name2 array with " + name2.length().toString() + " elements");
         nameArray = name2;
     } else {
+        log:printDebug("No valid name array found, returning null");
         return ();
     }
+
     foreach int index in 0 ... nameArray.length() - 1 {
         if index == nameArray.length() - 1 {
             finalName += nameArray[index].content;
+            log:printDebug("Added final name component: " + nameArray[index].content);
             break;
         }
         finalName = finalName + nameArray[index].content + " ";
+        log:printDebug("Added name component: " + nameArray[index].content);
     }
+
+    log:printDebug("Returning final name: " + finalName);
     return finalName;
 }
 
@@ -471,16 +649,25 @@ isolated function getName(swiftmt:Nm[]? name1, swiftmt:Nm[]? name2 = ()) returns
 # + return - Returns a tuple with two elements: the country (first two characters) and the town 
 # (remainder of the string), or `[null, null]` if the input is invalid.
 isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?, string?] {
+    log:printDebug("Starting getCountryAndTown with cntyNTw: " + cntyNTw.toString());
+
     if cntyNTw is () {
+        log:printDebug("Country and town info is null, returning empty tuple");
         return [];
     }
+
     [string?, string?] cntyNTwArray = [];
     cntyNTwArray[0] = cntyNTw[0].content.substring(0, 2);
+    log:printDebug("Extracted country code: " + cntyNTwArray[0].toString());
+
     if cntyNTw[0].content.length() > 3 {
         cntyNTwArray[1] = cntyNTw[0].content.substring(3);
+        log:printDebug("Extracted town name: " + cntyNTwArray[1].toString());
         return cntyNTwArray;
     }
+
     cntyNTwArray[1] = ();
+    log:printDebug("No town name found, returning country only");
     return cntyNTwArray;
 }
 
@@ -497,17 +684,27 @@ isolated function validateAccountNumber(
         swiftmt:Acc? acc2 = (),
         swiftmt:Acc? acc3 = ()
 ) returns [string?, string?] {
+    log:printDebug("Starting validateAccountNumber with acc1: " + acc1.toString() +
+                ", prtyIdn: " + prtyIdn.toString() +
+                ", acc2: " + acc2.toString() +
+                ", acc3: " + acc3.toString());
+
     // Get first valid account number
     string|error finalAccount = getFirstValidAccount(acc1, acc2, acc3, prtyIdn);
     if finalAccount is error {
+        log:printDebug("No valid account found: " + finalAccount.message());
         return [];
     }
 
+    log:printDebug("Found valid account: " + finalAccount);
+
     // Validate IBAN format
     if !finalAccount.matches(re `${IBAN_PATTERN}`) {
+        log:printDebug("Account doesn't match IBAN pattern, returning as non-IBAN account");
         return [(), finalAccount];
     }
 
+    log:printDebug("Account matches IBAN pattern, validating IBAN");
     // Process IBAN validation
     return validateIBAN(finalAccount);
 }
@@ -525,19 +722,31 @@ isolated function getFirstValidAccount(
         swiftmt:Acc? acc3,
         swiftmt:PrtyIdn? prtyIdn
 ) returns string|error {
+    log:printDebug("Starting getFirstValidAccount with acc1: " + acc1.toString() +
+                ", acc2: " + acc2.toString() +
+                ", acc3: " + acc3.toString() +
+                ", prtyIdn: " + prtyIdn.toString());
+
     if acc1 is swiftmt:Acc {
+        log:printDebug("Using acc1: " + acc1.content);
         return acc1.content;
     }
     if acc2 is swiftmt:Acc {
+        log:printDebug("Using acc2: " + acc2.content);
         return acc2.content;
     }
     if acc3 is swiftmt:Acc {
+        log:printDebug("Using acc3: " + acc3.content);
         return acc3.content;
     }
     if prtyIdn is swiftmt:PrtyIdn && prtyIdn.content.length() > 1 {
-        return prtyIdn.content.startsWith("/") ?
+        string result = prtyIdn.content.startsWith("/") ?
             prtyIdn.content.substring(1) : prtyIdn.content;
+        log:printDebug("Using party identifier: " + result);
+        return result;
     }
+
+    log:printDebug("No valid account found in any source");
     return error("No valid account found");
 }
 
@@ -546,16 +755,23 @@ isolated function getFirstValidAccount(
 # + account - Account number to validate
 # + return - Tuple containing [validated IBAN, empty string] or [empty, original account]
 isolated function validateIBAN(string account) returns [string?, string?] {
+    log:printDebug("Starting validateIBAN with account: " + account);
+
     foreach string country in COUNTRY_CODES {
         if !account.substring(0, COUNTRY_CODE_LENGTH).equalsIgnoreCaseAscii(country) {
             continue;
         }
 
+        log:printDebug("Found matching country code: " + country);
         string|error result = processIBANValidation(account);
         if result is string {
+            log:printDebug("IBAN validation successful");
             return [account, ""];
         }
+        log:printDebug("IBAN validation failed: " + (result is error ? result.message() : "Unknown error"));
     }
+
+    log:printDebug("No country code match or IBAN validation failed, returning as non-IBAN account");
     return ["", account];
 }
 
@@ -564,8 +780,12 @@ isolated function validateIBAN(string account) returns [string?, string?] {
 # + account - Account number to process
 # + return - Validated account number or error
 isolated function processIBANValidation(string account) returns string|error {
+    log:printDebug("Starting processIBANValidation with account: " + account);
+
     string rearrangedAccount = account.substring(IBAN_CHECK_DIGITS_LENGTH) +
                             account.substring(0, IBAN_CHECK_DIGITS_LENGTH);
+    log:printDebug("Rearranged account: " + rearrangedAccount);
+
     string numericAccount = "";
 
     foreach int index in 0 ... rearrangedAccount.length() - 1 {
@@ -581,6 +801,8 @@ isolated function processIBANValidation(string account) returns string|error {
     if (accountNumber % MOD_97).ensureType(int) == 1 {
         return account;
     }
+
+    log:printDebug("IBAN checksum validation failed");
     return error("Invalid IBAN checksum");
 }
 
@@ -595,18 +817,29 @@ isolated function processIBANValidation(string account) returns string|error {
 # + return - Returns the party identifier as a string or an empty string if none are valid.
 isolated function getPartyIdentifier(swiftmt:PrtyIdn? identifier1, swiftmt:PrtyIdn? identifier2 = (),
         swiftmt:PrtyIdn? identifier3 = (), swiftmt:PrtyIdn? identifier4 = ()) returns string? {
+    log:printDebug("Starting getPartyIdentifier with identifier1: " + identifier1.toString() +
+                ", identifier2: " + identifier2.toString() +
+                ", identifier3: " + identifier3.toString() +
+                ", identifier4: " + identifier4.toString());
+
     if identifier1 is swiftmt:PrtyIdn && (identifier1.content).length() > 1 {
+        log:printDebug("Using identifier1: " + identifier1.content);
         return identifier1?.content;
     }
     if identifier2 is swiftmt:PrtyIdn && (identifier2.content).length() > 1 {
+        log:printDebug("Using identifier2: " + identifier2.content);
         return identifier2?.content;
     }
     if identifier3 is swiftmt:PrtyIdn && (identifier3.content).length() > 1 {
+        log:printDebug("Using identifier3: " + identifier3.content);
         return identifier3?.content;
     }
     if identifier4 is swiftmt:PrtyIdn && (identifier4.content).length() > 1 {
+        log:printDebug("Using identifier4: " + identifier4.content);
         return identifier4?.content;
     }
+
+    log:printDebug("No valid party identifier found");
     return ();
 }
 
@@ -620,15 +853,30 @@ isolated function getPartyIdentifier(swiftmt:PrtyIdn? identifier1, swiftmt:PrtyI
 # + return - Returns the instructed amount as a decimal or 0 if the amount cannot be converted.
 isolated function getInstructedAmount(swiftmt:MT32B? transAmnt = (), swiftmt:MT33B? instrdAmnt = (),
         swiftmt:MT32A? stlmntAmnt = ()) returns decimal|error {
+    log:printDebug("Starting getInstructedAmount with transAmnt: " + transAmnt.toString() +
+                ", instrdAmnt: " + instrdAmnt.toString() +
+                ", stlmntAmnt: " + stlmntAmnt.toString());
+
     if instrdAmnt is swiftmt:MT33B {
-        return convertToDecimalMandatory(instrdAmnt.Amnt);
+        log:printDebug("Using instructed amount from MT33B");
+        decimal|error amount = convertToDecimalMandatory(instrdAmnt.Amnt);
+        log:printDebug("Converted amount: " + (amount is decimal ? amount.toString() : "error"));
+        return amount;
     }
     if transAmnt is swiftmt:MT32B {
-        return convertToDecimalMandatory(transAmnt.Amnt);
+        log:printDebug("Using transaction amount from MT32B");
+        decimal|error amount = convertToDecimalMandatory(transAmnt.Amnt);
+        log:printDebug("Converted amount: " + (amount is decimal ? amount.toString() : "error"));
+        return amount;
     }
     if stlmntAmnt is swiftmt:MT32A {
-        return convertToDecimalMandatory(stlmntAmnt.Amnt);
+        log:printDebug("Using settlement amount from MT32A");
+        decimal|error amount = convertToDecimalMandatory(stlmntAmnt.Amnt);
+        log:printDebug("Converted amount: " + (amount is decimal ? amount.toString() : "error"));
+        return amount;
     }
+
+    log:printDebug("No valid amount found, returning 0");
     return 0;
 }
 
@@ -641,12 +889,24 @@ isolated function getInstructedAmount(swiftmt:MT32B? transAmnt = (), swiftmt:MT3
 # + return - Returns the total interbank settlement amount as a decimal or 0 if the amount cannot be converted.
 isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = (),
         swiftmt:MT32A?|swiftmt:MT32B? stlmntAmnt = ()) returns decimal|error {
+    log:printDebug("Starting getTotalInterBankSettlementAmount with sumAmnt: " + sumAmnt.toString() +
+                    ", stlmntAmnt: " + stlmntAmnt.toString());
+
     if sumAmnt is swiftmt:MT19 {
-        return convertToDecimalMandatory(sumAmnt.Amnt);
+        log:printDebug("Using sum amount from MT19");
+        decimal|error result = convertToDecimalMandatory(sumAmnt.Amnt);
+        log:printDebug("Converted sum amount: " + (result is decimal ? result.toString() : "error"));
+        return result;
     }
+
     if stlmntAmnt is swiftmt:MT32A|swiftmt:MT32B {
-        return convertToDecimalMandatory(stlmntAmnt.Amnt);
+        log:printDebug("Using settlement amount from MT32A or MT32B");
+        decimal|error result = convertToDecimalMandatory(stlmntAmnt.Amnt);
+        log:printDebug("Converted settlement amount: " + (result is decimal ? result.toString() : "error"));
+        return result;
     }
+
+    log:printDebug("No valid amount found, returning 0");
     return 0;
 }
 
@@ -664,16 +924,29 @@ isolated function getTotalInterBankSettlementAmount(swiftmt:MT19? sumAmnt = (),
 isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (), swiftmt:Acc? account3 = (),
         swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (), swiftmt:PrtyIdn? prtyIdn3 = (),
         swiftmt:PrtyIdn? prtyIdn4 = ()) returns string? {
+    log:printDebug("Starting getSchemaCode with account1: " + account1.toString() +
+                ", account2: " + account2.toString() +
+                ", account3: " + account3.toString() +
+                ", prtyIdn1: " + prtyIdn1.toString() +
+                ", prtyIdn2: " + prtyIdn2.toString() +
+                ", prtyIdn3: " + prtyIdn3.toString() +
+                ", prtyIdn4: " + prtyIdn4.toString());
+
     if account1?.content != "NOTPROVIDED" || account2?.content != "NOTPROVIDED" || account3?.content != "NOTPROVIDED"
             || prtyIdn1?.content != "NOTPROVIDED" || prtyIdn2?.content != "NOTPROVIDED"
             || prtyIdn3?.content != "NOTPROVIDED" || prtyIdn4?.content != "NOTPROVIDED" {
+        log:printDebug("At least one account/identifier is not 'NOTPROVIDED', checking validation");
+
         if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ())
                 || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount2(prtyIdn1)[2] is ())
                 || !(getPartyIdentifierOrAccount2(prtyIdn2)[2] is ()) ||
                 !(getPartyIdentifierOrAccount2(prtyIdn3)[2] is ()) {
+            log:printDebug("Found valid account or party identifier, returning 'BBAN'");
             return "BBAN";
         }
     }
+
+    log:printDebug("No valid account or party identifier found, returning null");
     return ();
 }
 
@@ -691,15 +964,28 @@ isolated function getSchemaCode(swiftmt:Acc? account1 = (), swiftmt:Acc? account
 isolated function getSchemaCodeForDbtr(swiftmt:Acc? account1 = (), swiftmt:Acc? account2 = (),
         swiftmt:Acc? account3 = (), swiftmt:PrtyIdn? prtyIdn1 = (), swiftmt:PrtyIdn? prtyIdn2 = (),
         swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = ()) returns string? {
+    log:printDebug("Starting getSchemaCodeForDbtr with account1: " + account1.toString() +
+                ", account2: " + account2.toString() +
+                ", account3: " + account3.toString() +
+                ", prtyIdn1: " + prtyIdn1.toString() +
+                ", prtyIdn2: " + prtyIdn2.toString() +
+                ", prtyIdn3: " + prtyIdn3.toString() +
+                ", prtyIdn4: " + prtyIdn4.toString());
+
     if account1?.content != "NOTPROVIDED" || account2?.content != "NOTPROVIDED" || account3?.content != "NOTPROVIDED"
             || prtyIdn1?.content != "NOTPROVIDED" || prtyIdn2?.content != "NOTPROVIDED"
             || prtyIdn3?.content != "NOTPROVIDED" || prtyIdn4?.content != "NOTPROVIDED" {
+        log:printDebug("At least one account/identifier is not 'NOTPROVIDED', checking validation");
+
         if !(validateAccountNumber(account1)[1] is ()) || !(validateAccountNumber(account2)[1] is ())
                 || !(validateAccountNumber(account3)[1] is ()) || !(getPartyIdentifierOrAccount(prtyIdn1)[2] is ())
                 || !(getPartyIdentifierOrAccount(prtyIdn2)[2] is ()) || !(getPartyIdentifierOrAccount(prtyIdn3)[2] is ()) {
+            log:printDebug("Found valid account or party identifier, returning 'BBAN'");
             return "BBAN";
         }
     }
+
+    log:printDebug("No valid account or party identifier found, returning null");
     return ();
 }
 
@@ -710,12 +996,19 @@ isolated function getSchemaCodeForDbtr(swiftmt:Acc? account1 = (), swiftmt:Acc? 
 # + prtyIdn - A string that may represent a party identifier.
 # + return - Returns the `account` if it is not null; otherwise, returns `prtyIdn` if it is not null.
 isolated function getAccountId(string? account, string? prtyIdn) returns string? {
+    log:printDebug("Starting getAccountId with account: " + account.toString() + ", prtyIdn: " + prtyIdn.toString());
+
     if account !is () {
+        log:printDebug("Using account: " + account);
         return account;
     }
+
     if prtyIdn !is () {
+        log:printDebug("Using party identifier: " + prtyIdn);
         return prtyIdn;
     }
+
+    log:printDebug("No account or party identifier found, returning null");
     return ();
 }
 
@@ -732,13 +1025,24 @@ isolated function getAccountId(string? account, string? prtyIdn) returns string?
 # `getMandatoryFields` to fetch the currency.
 isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71G? rcvsChrgs)
     returns camtIsoRecord:Charges16[]?|error {
+    log:printDebug("Starting getChargesInformation with sndsChrgs: " + sndsChrgs.toString() +
+                ", rcvsChrgs: " + rcvsChrgs.toString());
+
     camtIsoRecord:Charges16[] chrgsInf = [];
+
     if sndsChrgs is swiftmt:MT71F[] {
+        log:printDebug("Processing sender's charges, count: " + sndsChrgs.length().toString());
+
         foreach swiftmt:MT71F charges in sndsChrgs {
+            decimal amount = check convertToDecimalMandatory(charges?.Amnt);
+            string currency = getMandatoryFields(charges?.Ccy.content);
+
+            log:printDebug("Adding sender charge: amount=" + amount.toString() + ", currency=" + currency);
+
             chrgsInf.push({
                 Amt: {
-                    content: check convertToDecimalMandatory(charges?.Amnt),
-                    Ccy: getMandatoryFields(charges?.Ccy.content)
+                    content: amount,
+                    Ccy: currency
                 },
                 Agt: {
                     FinInstnId: {
@@ -749,11 +1053,17 @@ isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71
             });
         }
     }
+
     if rcvsChrgs is swiftmt:MT71G {
+        decimal amount = check convertToDecimalMandatory(rcvsChrgs?.Amnt);
+        string currency = getMandatoryFields(rcvsChrgs?.Ccy.content);
+
+        log:printDebug("Adding receiver charge: amount=" + amount.toString() + ", currency=" + currency);
+
         chrgsInf.push({
             Amt: {
-                content: check convertToDecimalMandatory(rcvsChrgs?.Amnt),
-                Ccy: getMandatoryFields(rcvsChrgs?.Ccy.content)
+                content: amount,
+                Ccy: currency
             },
             Agt: {
                 FinInstnId: {
@@ -763,9 +1073,13 @@ isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71
             }
         });
     }
+
     if chrgsInf.length() == 0 {
+        log:printDebug("No charges information found, returning null");
         return ();
     }
+
+    log:printDebug("Returning charges information with " + chrgsInf.length().toString() + " entries");
     return chrgsInf;
 }
 
@@ -775,39 +1089,49 @@ isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71
 # + return - Returns a tuple with the time in "HH:MM:SS" format based on the content of `tmInd`.
 # - If no code matches, it returns a tuple of `null` values.
 isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, string?, string?] {
+    log:printDebug("Starting getTimeIndication with tmInd: " + tmInd.toString());
+
     if tmInd is swiftmt:MT13C {
-        match (tmInd.Cd.content) {
+        string code = tmInd.Cd.content;
+        string time = tmInd.Tm.content;
+        string sign = tmInd.Sgn.content;
+        string timeOffset = tmInd.TmOfst.content;
+
+        log:printDebug("Processing time indication with code: " + code +
+                    ", time: " + time +
+                    ", sign: " + sign +
+                    ", offset: " + timeOffset);
+
+        match (code) {
             "CLSTIME" => {
-                return [
-                    tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) + ":00" +
-                    tmInd.Sgn.content + tmInd.TmOfst.content.substring(0, 2) + ":" +
-                    tmInd.TmOfst.content.substring(2),
-                    (),
-                    ()
-                ];
+                string formattedTime = time.substring(0, 2) + ":" + time.substring(2) + ":00" +
+                    sign + timeOffset.substring(0, 2) + ":" + timeOffset.substring(2);
+
+                log:printDebug("Returning CLSTIME: " + formattedTime);
+                return [formattedTime, (), ()];
             }
             "RNCTIME" => {
                 // Dummy date is added to translate the time to ISO standard date and time;
-                return [
-                    (),
-                    "0001-01-01T" + tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) +
-                    ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0, 2) + ":" +
-                    tmInd.TmOfst.content.substring(2),
-                    ()
-                ];
+                string formattedTime = "0001-01-01T" + time.substring(0, 2) + ":" + time.substring(2) +
+                    ":00" + sign + timeOffset.substring(0, 2) + ":" + timeOffset.substring(2);
+
+                log:printDebug("Returning RNCTIME: " + formattedTime);
+                return [(), formattedTime, ()];
             }
             "SNDTIME" => {
                 // Dummy date is added to translate the time to ISO standard date and time;
-                return [
-                    (),
-                    (),
-                    "0001-01-01T" + tmInd.Tm.content.substring(0, 2) + ":" + tmInd.Tm.content.substring(2) +
-                    ":00" + tmInd.Sgn.content + tmInd.TmOfst.content.substring(0, 2) + ":" +
-                    tmInd.TmOfst.content.substring(2)
-                ];
+                string formattedTime = "0001-01-01T" + time.substring(0, 2) + ":" + time.substring(2) +
+                    ":00" + sign + timeOffset.substring(0, 2) + ":" + timeOffset.substring(2);
+
+                log:printDebug("Returning SNDTIME: " + formattedTime);
+                return [(), (), formattedTime];
             }
         }
+
+        log:printDebug("Unrecognized time indication code: " + code);
     }
+
+    log:printDebug("No valid time indication found, returning empty tuple");
     return [];
 }
 
@@ -821,42 +1145,58 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?]|error {
+    log:printDebug("Starting getMT1XXSenderToReceiverInformation with sndRcvInfo: " + sndRcvInfo.toString());
+
     if sndRcvInfo is swiftmt:MT72 {
         string[] code = [];
         string?[] additionalInfo = [];
         [boolean, boolean] [isAddtnlInfoPresent, isPreviousValidCode] = [false, true];
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+
+        log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
+
         foreach int i in 0 ... infoArray.length() - 1 {
             foreach string item in MT_1XX_SNDR_CODE {
                 if i == 0 && item.equalsIgnoreCaseAscii(infoArray[i]) {
                     code.push(item);
                     isAddtnlInfoPresent = false;
+                    log:printDebug("Found valid first code: " + item);
                     break;
                 }
                 if item.equalsIgnoreCaseAscii(infoArray[i]) && i != 0 {
                     code.push(item);
                     if isPreviousValidCode {
                         additionalInfo.push(());
+                        log:printDebug("Added empty additional info for previous code");
                     }
                     isPreviousValidCode = true;
                     isAddtnlInfoPresent = false;
+                    log:printDebug("Found valid subsequent code: " + item);
                     break;
                 }
                 isAddtnlInfoPresent = true;
             }
             if isAddtnlInfoPresent {
                 if i == 0 {
+                    log:printDebug("First code is not supported: " + infoArray[i]);
                     return error("Sender to receiver information code is not supported.");
                 }
                 isPreviousValidCode = false;
                 additionalInfo.push(infoArray[i]);
+                log:printDebug("Added additional info: " + infoArray[i]);
             }
         }
+
         if code.length() != additionalInfo.length() {
             additionalInfo.push(());
+            log:printDebug("Added final empty additional info to match code array length");
         }
+
+        log:printDebug("Extracted codes: " + code.toString() + ", additional info: " + additionalInfo.toString());
         return getMT1XXSenderToReceiverInformationForAgts(code, additionalInfo);
     }
+
+    log:printDebug("No sender-to-receiver information provided, returning empty tuple");
     return [];
 }
 
@@ -872,48 +1212,87 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?] {
+    log:printDebug("Starting getMT1XXSenderToReceiverInformationForAgts with codes: " + code.toString() +
+                ", additionalInfo: " + additionalInfo.toString());
+
     pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
     pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? intrmyAgt2 = ();
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? prvsInstgAgt1 = ();
     [string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?]
             [serviceLevel, lclInstrm, purpose] = [(), (), ()];
+
     foreach int i in 0 ... code.length() - 1 {
+        log:printDebug("Processing code[" + i.toString() + "]: " + code[i]);
+
         match (code[i]) {
             "INT" => {
+                log:printDebug("Adding instruction for next agent with code INT");
                 instrFrNxtAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
             }
             "ACC" => {
+                log:printDebug("Adding instruction for creditor agent with code ACC");
                 instrFrCdtrAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
             }
             "INS"|"INTA" => {
-                if additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`)
-                        && additionalInfo[i].toString().substring(6, 7).matches(re `^[A-Z2-9]+$`) &&
+                if additionalInfo[i] is string {
+                    log:printDebug("Processing INS/INTA with additional info: " + additionalInfo[i].toString());
+
+                    if additionalInfo[i].toString().length() >= 8 &&
+                        additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`) &&
+                        additionalInfo[i].toString().substring(6, 7).matches(re `^[A-Z2-9]+$`) &&
                         additionalInfo[i].toString().substring(7, 8).matches(re `^[A-NP-Z0-9]+$`) {
-                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
-                        prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+
+                        log:printDebug("Additional info appears to be a valid BIC");
+
+                        if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                            log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
+                            prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                        } else {
+                            log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
+                            intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                        }
                     } else {
-                        intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                        log:printDebug("Additional info is not a valid BIC, using as Name");
+
+                        if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                            log:printDebug("Setting previous instructing agent with Name: " + additionalInfo[i].toString());
+                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
+                        } else {
+                            log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
+                            intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
+                        }
                     }
                 } else {
-                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
-                        prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
-                    } else {
-                        intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
-                    }
+                    log:printDebug("No additional info provided for INS/INTA code");
                 }
             }
             "SVCLVL" => {
+                log:printDebug("Setting service level: " + code[i]);
                 serviceLevel = code[i];
             }
             "LOCINS" => {
+                log:printDebug("Setting local instrument: " + code[i]);
                 lclInstrm = {Cd: code[i]};
             }
             "CATPURP" => {
+                log:printDebug("Setting category purpose: " + code[i]);
                 purpose = {Cd: code[i]};
+            }
+            _ => {
+                log:printDebug("Unrecognized code: " + code[i]);
             }
         }
     }
+
+    log:printDebug("Returning extracted information - instrFrCdtrAgt: " + instrFrCdtrAgt.toString() +
+                ", instrFrNxtAgt: " + instrFrNxtAgt.toString() +
+                ", prvsInstgAgt1: " + prvsInstgAgt1.toString() +
+                ", intrmyAgt2: " + intrmyAgt2.toString() +
+                ", serviceLevel: " + serviceLevel.toString() +
+                ", localInstrument: " + lclInstrm.toString() +
+                ", purpose: " + purpose.toString());
+
     return [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, purpose];
 }
 
@@ -926,41 +1305,71 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72? sndRcvInfo) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
     pacsIsoRecord:CategoryPurpose1Choice?]|error {
+    log:printDebug("Starting getInformationForAgents with instnCd: " + instnCd.toString() +
+                ", sndRcvInfo: " + sndRcvInfo.toString());
+
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
             pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose] = [];
-    [string?, string?] [serviceLevel1, serviceLevel2] = [
-        getMT103InstructionCode(instnCd)[2],
-        (check getMT1XXSenderToReceiverInformation(sndRcvInfo))[4]
-    ];
-    [pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:CategoryPurpose1Choice?] [purpose1, purpose2] =
-            [getMT103InstructionCode(instnCd)[3], (check getMT1XXSenderToReceiverInformation(sndRcvInfo))[6]];
 
-    foreach pacsIsoRecord:InstructionForCreditorAgent3 instruction in getMT103InstructionCode(instnCd)[0] {
+    log:printDebug("Getting instruction codes from MT103InstructionCode");
+    [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
+    pacsIsoRecord:CategoryPurpose1Choice?] mt103Instructions = getMT103InstructionCode(instnCd);
+
+    log:printDebug("Getting sender-to-receiver information");
+    var sndRcvInformation = check getMT1XXSenderToReceiverInformation(sndRcvInfo);
+
+    [string?, string?] [serviceLevel1, serviceLevel2] = [
+        mt103Instructions[2],
+        sndRcvInformation[4]
+    ];
+
+    log:printDebug("Service levels - from MT103: " + serviceLevel1.toString() + ", from MT1XX: " + serviceLevel2.toString());
+
+    [pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:CategoryPurpose1Choice?] [purpose1, purpose2] =
+            [mt103Instructions[3], sndRcvInformation[6]];
+
+    log:printDebug("Purpose codes - from MT103: " + purpose1.toString() + ", from MT1XX: " + purpose2.toString());
+
+    foreach pacsIsoRecord:InstructionForCreditorAgent3 instruction in mt103Instructions[0] {
         instrFrCdtrAgt.push(instruction);
+        log:printDebug("Added creditor agent instruction from MT103: " + instruction.toString());
     }
-    foreach pacsIsoRecord:InstructionForCreditorAgent3 instruction in (
-            check getMT1XXSenderToReceiverInformation(sndRcvInfo))[0] {
+
+    foreach pacsIsoRecord:InstructionForCreditorAgent3 instruction in sndRcvInformation[0] {
         instrFrCdtrAgt.push(instruction);
+        log:printDebug("Added creditor agent instruction from sender-to-receiver info: " + instruction.toString());
     }
-    foreach pacsIsoRecord:InstructionForNextAgent1 instruction in getMT103InstructionCode(instnCd)[1] {
+
+    foreach pacsIsoRecord:InstructionForNextAgent1 instruction in mt103Instructions[1] {
         instrFrNxtAgt.push(instruction);
+        log:printDebug("Added next agent instruction from MT103: " + instruction.toString());
     }
-    foreach pacsIsoRecord:InstructionForNextAgent1 instruction in (
-            check getMT1XXSenderToReceiverInformation(sndRcvInfo))[1] {
+
+    foreach pacsIsoRecord:InstructionForNextAgent1 instruction in sndRcvInformation[1] {
         instrFrNxtAgt.push(instruction);
+        log:printDebug("Added next agent instruction from sender-to-receiver info: " + instruction.toString());
     }
 
     if serviceLevel1 is string {
         finalServiceLevel = serviceLevel1;
+        log:printDebug("Using service level from MT103: " + finalServiceLevel.toString());
     } else {
         finalServiceLevel = serviceLevel2;
+        log:printDebug("Using service level from sender-to-receiver info: " + finalServiceLevel.toString());
     }
 
     if purpose1 is pacsIsoRecord:CategoryPurpose1Choice {
         finalPurpose = purpose1;
+        log:printDebug("Using purpose from MT103: " + finalPurpose.toString());
     } else {
         finalPurpose = purpose2;
+        log:printDebug("Using purpose from sender-to-receiver info: " + finalPurpose.toString());
     }
+
+    log:printDebug("Returning combined information - instrFrCdtrAgt: " + instrFrCdtrAgt.toString() +
+                    ", instrFrNxtAgt: " + instrFrNxtAgt.toString() +
+                    ", finalServiceLevel: " + finalServiceLevel.toString() +
+                    ", finalPurpose: " + finalPurpose.toString());
 
     return [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose];
 }
@@ -976,50 +1385,74 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int snd
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
+    log:printDebug("Starting getMT2XXSenderToReceiverInfo with sndRcvInfo: " + sndRcvInfo.toString() +
+                ", sndCdNum: " + sndCdNum.toString());
+
     if sndRcvInfo is swiftmt:MT72 {
         [string[], string?[], boolean, boolean, string[]] [code, additionalInfo, isAddtnlInfoPresent,
                 isPreviousValidCode, codeArray] = [[], [], false, true, []];
+
         if sndCdNum == 1 {
             codeArray = MT_2XX_SNDR_CODE1;
+            log:printDebug("Using code array MT_2XX_SNDR_CODE1");
         }
         if sndCdNum == 2 {
             codeArray = MT_2XX_SNDR_CODE2;
+            log:printDebug("Using code array MT_2XX_SNDR_CODE2");
         }
         if sndCdNum == 3 {
             codeArray = MT_2XX_SNDR_CODE3;
+            log:printDebug("Using code array MT_2XX_SNDR_CODE3");
         }
+
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+        log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
+
         foreach int i in 0 ... infoArray.length() - 1 {
+            log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
+
             foreach string item in codeArray {
                 if i == 0 && item.equalsIgnoreCaseAscii(infoArray[i]) {
                     code.push(item);
                     isAddtnlInfoPresent = false;
+                    log:printDebug("Found valid first code: " + item);
                     break;
                 }
                 if item.equalsIgnoreCaseAscii(infoArray[i]) && i != 0 {
                     code.push(item);
                     if isPreviousValidCode {
                         additionalInfo.push(());
+                        log:printDebug("Added empty additional info for previous code");
                     }
                     isPreviousValidCode = true;
                     isAddtnlInfoPresent = false;
+                    log:printDebug("Found valid subsequent code: " + item);
                     break;
                 }
                 isAddtnlInfoPresent = true;
             }
+
             if isAddtnlInfoPresent {
                 if i == 0 {
+                    log:printDebug("First code is not supported: " + infoArray[i]);
                     return error("Sender to receiver information code is not supported.");
                 }
                 additionalInfo.push(infoArray[i]);
                 isPreviousValidCode = false;
+                log:printDebug("Added additional info: " + infoArray[i]);
             }
         }
+
         if code.length() != additionalInfo.length() {
             additionalInfo.push(());
+            log:printDebug("Added final empty additional info to match code array length");
         }
+
+        log:printDebug("Extracted codes: " + code.toString() + ", additional info: " + additionalInfo.toString());
         return check getMT2XXSenderToReceiverInfoForAgts(code, additionalInfo);
     }
+
+    log:printDebug("No sender-to-receiver information provided, returning empty tuple");
     return [];
 }
 
@@ -1034,58 +1467,101 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
+    log:printDebug("Starting getMT2XXSenderToReceiverInfoForAgts with codes: " + code.toString() +
+                ", additionalInfo: " + additionalInfo.toString());
+
     pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
     pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
     [pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?]
             [intrmyAgt2, prvsInstgAgt1] = [(), ()];
     [string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?,
             pacsIsoRecord:Purpose2Choice?] [serviceLevel, lclInstrm, catPurpose, remmitanceInfo, purpose] = [(), (), (), (), ()];
+
     foreach int i in 0 ... code.length() - 1 {
+        log:printDebug("Processing code[" + i.toString() + "]: " + code[i]);
+
         match (code[i]) {
             "INT"|"PHON"|"TELE"|"TELEIBK"|"PHONIBK" => {
+                log:printDebug("Adding instruction for next agent with code: " + code[i]);
                 instrFrNxtAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
             }
             "ACC"|"UDLC"|"PHONBEN"|"TELEBEN" => {
+                log:printDebug("Adding instruction for creditor agent with code: " + code[i]);
                 instrFrCdtrAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
             }
             "INS"|"INTA" => {
-                if additionalInfo[i].toString().length() == 8 && additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`)
-                    && additionalInfo[i].toString().substring(6, 7).matches(re `^[A-Z2-9]+$`) &&
-                    additionalInfo[i].toString().substring(7).matches(re `^[A-NP-Z0-9]+$`) {
-                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
-                        prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                if additionalInfo[i] is string {
+                    log:printDebug("Processing INS/INTA with additional info: " + additionalInfo[i].toString());
+
+                    if additionalInfo[i].toString().length() == 8 &&
+                        additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`) &&
+                        additionalInfo[i].toString().substring(6, 7).matches(re `^[A-Z2-9]+$`) &&
+                        additionalInfo[i].toString().substring(7).matches(re `^[A-NP-Z0-9]+$`) {
+
+                        log:printDebug("Additional info appears to be a valid BIC");
+
+                        if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                            log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
+                            prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                        } else {
+                            log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
+                            intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                        }
                     } else {
-                        intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                        log:printDebug("Additional info is not a valid BIC, using as Name");
+
+                        if code[i].toString().equalsIgnoreCaseAscii("INS") {
+                            log:printDebug("Setting previous instructing agent with Name: " + additionalInfo[i].toString());
+                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
+                        } else {
+                            log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
+                            intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
+                        }
                     }
                 } else {
-                    if code[i].toString().equalsIgnoreCaseAscii("INS") {
-                        prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
-                    } else {
-                        intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
-                    }
+                    log:printDebug("No additional info provided for INS/INTA code");
                 }
             }
             "BNF"|"TSU" => {
+                log:printDebug("Setting remittance information with code: " + code[i]);
                 remmitanceInfo = {
                     Ustrd: [check additionalInfo[i].ensureType(pacsIsoRecord:Max140Text)]
                 };
             }
             "PURP" => {
+                log:printDebug("Setting purpose with code: " + code[i]);
                 purpose = {
                     Cd: code[i]
                 };
             }
             "SVCLVL" => {
+                log:printDebug("Setting service level: " + code[i]);
                 serviceLevel = code[i];
             }
             "LOCINS" => {
+                log:printDebug("Setting local instrument: " + code[i]);
                 lclInstrm = {Cd: code[i]};
             }
             "CATPURP" => {
+                log:printDebug("Setting category purpose: " + code[i]);
                 catPurpose = {Cd: code[i]};
+            }
+            _ => {
+                log:printDebug("Unrecognized code: " + code[i]);
             }
         }
     }
+
+    log:printDebug("Returning extracted information - instrFrCdtrAgt: " + instrFrCdtrAgt.toString() +
+                ", instrFrNxtAgt: " + instrFrNxtAgt.toString() +
+                ", prvsInstgAgt1: " + prvsInstgAgt1.toString() +
+                ", intrmyAgt2: " + intrmyAgt2.toString() +
+                ", serviceLevel: " + serviceLevel.toString() +
+                ", lclInstrm: " + lclInstrm.toString() +
+                ", catPurpose: " + catPurpose.toString() +
+                ", remmitanceInfo: " + remmitanceInfo.toString() +
+                ", purpose: " + purpose.toString());
+
     return [
         instrFrCdtrAgt,
         instrFrNxtAgt,
@@ -1109,19 +1585,34 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
 # by default.
 isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? mt53B = (), swiftmt:MT53D? mt53D = ())
     returns camtIsoRecord:SettlementMethod1Code {
+    log:printDebug("Starting getSettlementMethod with mt53A: " + mt53A.toString() +
+                ", mt53B: " + mt53B.toString() +
+                ", mt53D: " + mt53D.toString());
+
     if mt53B is swiftmt:MT53B {
+        log:printDebug("MT53B is provided, checking party identifier type");
+
         match (mt53B.PrtyIdnTyp?.content) {
             "C" => {
+                log:printDebug("Party identifier type is 'C', returning INGA");
                 return camtIsoRecord:INGA;
             }
             "D" => {
+                log:printDebug("Party identifier type is 'D', returning INDA");
                 return camtIsoRecord:INDA;
+            }
+            _ => {
+                log:printDebug("Party identifier type is neither 'C' nor 'D'");
             }
         }
     }
+
     if mt53A is swiftmt:MT53A || mt53D is swiftmt:MT53D {
+        log:printDebug("MT53A or MT53D is provided, returning COVE");
         return camtIsoRecord:COVE;
     }
+
+    log:printDebug("No matching conditions found, returning default INDA");
     return camtIsoRecord:INDA;
 }
 
@@ -1135,42 +1626,77 @@ isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? 
 isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
     pacsIsoRecord:CategoryPurpose1Choice?] {
+    log:printDebug("Starting getMT103InstructionCode with instnCd: " + instnCd.toString());
+
     if instnCd is swiftmt:MT23E[] {
+        log:printDebug("Processing " + instnCd.length().toString() + " instruction codes");
+
         pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
         pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
         string? serviceLevel = ();
         string purpose = "";
+
         foreach swiftmt:MT23E instruction in instnCd {
+            log:printDebug("Processing instruction code: " + instruction.InstrnCd.content);
+
             match (instruction.InstrnCd.content) {
                 "REPA"|"PHON"|"TELE"|"PHOI"|"TELI" => {
+                    log:printDebug("Found instruction for next agent: " + instruction.InstrnCd.content);
                     instrFrNxtAgt.push({
                         Cd: instruction.InstrnCd.content,
                         InstrInf: instruction.AddInfo?.content
                     });
                 }
                 "CHQB"|"HOLD"|"PHOB"|"TELB" => {
+                    log:printDebug("Found instruction for creditor agent: " + instruction.InstrnCd.content);
                     instrFrCdtrAgt.push({
                         Cd: instruction.InstrnCd.content,
                         InstrInf: instruction.AddInfo?.content
                     });
                 }
                 "SDVA" => {
+                    log:printDebug("Found service level instruction: " + instruction.InstrnCd.content);
                     serviceLevel = instruction.InstrnCd.content;
                 }
                 "INTC"|"CORT" => {
+                    log:printDebug("Found purpose instruction: " + instruction.InstrnCd.content);
                     purpose += instruction.InstrnCd.content;
+                }
+                _ => {
+                    log:printDebug("Unrecognized instruction code: " + instruction.InstrnCd.content);
                 }
             }
         }
+
+        log:printDebug("Completed processing instructions - purpose length: " + purpose.length().toString());
+
         if purpose.length() == 8 && !(purpose.substring(0, 4).equalsIgnoreCaseAscii(purpose.substring(4))) {
+            log:printDebug("Purpose contains two different 4-character codes, returning as Prtry");
             purpose = purpose.substring(0, 4) + " " + purpose.substring(4);
+            log:printDebug("Final result - instrFrCdtrAgt: " + instrFrCdtrAgt.length().toString() +
+                        ", instrFrNxtAgt: " + instrFrNxtAgt.length().toString() +
+                        ", serviceLevel: " + serviceLevel.toString() +
+                        ", purpose: " + purpose);
             return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, {Prtry: purpose}];
         }
+
         if purpose.length() == 0 {
+            log:printDebug("No purpose codes found");
+            log:printDebug("Final result - instrFrCdtrAgt: " + instrFrCdtrAgt.length().toString() +
+                        ", instrFrNxtAgt: " + instrFrNxtAgt.length().toString() +
+                        ", serviceLevel: " + serviceLevel.toString());
             return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel];
         }
+
+        log:printDebug("Returning with purpose code: " + purpose.substring(0, 4));
+        log:printDebug("Final result - instrFrCdtrAgt: " + instrFrCdtrAgt.length().toString() +
+                    ", instrFrNxtAgt: " + instrFrNxtAgt.length().toString() +
+                    ", serviceLevel: " + serviceLevel.toString() +
+                    ", purpose: " + purpose.substring(0, 4));
         return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, {Cd: purpose.substring(0, 4)}];
     }
+
+    log:printDebug("No instruction codes provided, returning empty tuple");
     return [];
 }
 
@@ -1184,44 +1710,79 @@ isolated function getMT103InstructionCode(swiftmt:MT23E[]? instnCd) returns
 isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd) returns
     [painIsoRecord:InstructionForDebtorAgent1?, camtIsoRecord:InstructionForCreditorAgent3[]?,
     painIsoRecord:ServiceLevel8Choice[]?, painIsoRecord:CategoryPurpose1Choice?] {
+    log:printDebug("Starting getMT101InstructionCode with instnCd: " + instnCd.toString());
+
     if instnCd is swiftmt:MT23E[] {
+        log:printDebug("Processing " + instnCd.length().toString() + " instruction codes");
+
         painIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
         painIsoRecord:InstructionForDebtorAgent1? instrFrDbtrAgt = ();
         painIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
         string purpose = "";
+
         foreach swiftmt:MT23E instruction in instnCd {
+            log:printDebug("Processing instruction code: " + instruction.InstrnCd.content);
+
             match (instruction.InstrnCd.content) {
                 "CMTO"|"CMSW"|"CMZB"|"REPA" => {
+                    log:printDebug("Found instruction for debtor agent: " + instruction.InstrnCd.content);
                     instrFrDbtrAgt = {
                         Cd: instruction.InstrnCd.content,
                         InstrInf: instruction.AddInfo?.content
                     };
                 }
                 "CHQB"|"PHON"|"EQUI" => {
+                    log:printDebug("Found instruction for creditor agent: " + instruction.InstrnCd.content);
                     instrFrCdtrAgt.push({
                         Cd: instruction.InstrnCd.content,
                         InstrInf: instruction.AddInfo?.content
                     });
                 }
                 "URGP" => {
+                    log:printDebug("Found service level instruction: " + instruction.InstrnCd.content);
                     serviceLevel.push({
                         Cd: instruction.InstrnCd.content
                     });
                 }
                 "CORT"|"INTC" => {
+                    log:printDebug("Found purpose instruction: " + instruction.InstrnCd.content);
                     purpose += instruction.InstrnCd.content;
+                }
+                _ => {
+                    log:printDebug("Unrecognized instruction code: " + instruction.InstrnCd.content);
                 }
             }
         }
+
+        log:printDebug("Completed processing instructions - purpose length: " + purpose.length().toString());
+
         if purpose.length() == 8 && !(purpose.substring(0, 4).equalsIgnoreCaseAscii(purpose.substring(4))) {
+            log:printDebug("Purpose contains two different 4-character codes, returning as Prtry");
             purpose = purpose.substring(0, 4) + " " + purpose.substring(4);
+            log:printDebug("Final result - instrFrDbtrAgt: " + instrFrDbtrAgt.toString() +
+                        ", instrFrCdtrAgt: " + instrFrCdtrAgt.length().toString() +
+                        ", serviceLevel: " + serviceLevel.length().toString() +
+                        ", purpose: " + purpose);
             return [instrFrDbtrAgt, instrFrCdtrAgt, serviceLevel, {Prtry: purpose}];
         }
+
         if purpose.length() == 0 {
+            log:printDebug("No purpose codes found");
+            log:printDebug("Final result - instrFrDbtrAgt: " + instrFrDbtrAgt.toString() +
+                        ", instrFrCdtrAgt: " + instrFrCdtrAgt.length().toString() +
+                        ", serviceLevel: " + serviceLevel.length().toString());
             return [instrFrDbtrAgt, instrFrCdtrAgt, serviceLevel];
         }
+
+        log:printDebug("Returning with purpose code: " + purpose.substring(0, 4));
+        log:printDebug("Final result - instrFrDbtrAgt: " + instrFrDbtrAgt.toString() +
+                    ", instrFrCdtrAgt: " + instrFrCdtrAgt.length().toString() +
+                    ", serviceLevel: " + serviceLevel.length().toString() +
+                    ", purpose: " + purpose.substring(0, 4));
         return [instrFrDbtrAgt, instrFrCdtrAgt, serviceLevel, {Cd: purpose.substring(0, 4)}];
     }
+
+    log:printDebug("No instruction codes provided, returning empty tuple");
     return [];
 }
 
@@ -1236,31 +1797,46 @@ isolated function getMT101InstructionCode(swiftmt:MT23E[]? instnCd) returns
 isolated function getMT101RepeatingFields(swiftmt:MT101Block4 block4, swiftmt:MT50C?|swiftmt:MT50F?|swiftmt:MT50G?|
         swiftmt:MT50H?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C? content, string typeName) returns
     swiftmt:MT50C?|swiftmt:MT50F?|swiftmt:MT50G?|swiftmt:MT50H?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C? {
+    log:printDebug("Starting getMT101RepeatingFields with typeName: " + typeName +
+                ", content type: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT101Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if itemString.length() >= 12 && itemString.substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, checking block4 for " + typeName);
     match (typeName) {
         "50F" => {
+            log:printDebug("Returning block4.MT50F");
             return block4.MT50F;
         }
         "50G" => {
+            log:printDebug("Returning block4.MT50G");
             return block4.MT50G;
         }
         "50H" => {
+            log:printDebug("Returning block4.MT50H");
             return block4.MT50H;
         }
         "52A" => {
+            log:printDebug("Returning block4.MT52A");
             return block4.MT52A;
         }
         "52C" => {
+            log:printDebug("Returning block4.MT52C");
             return block4.MT52C;
         }
     }
+    log:printDebug("No matching field found in block4, returning null");
     return ();
+
 }
 
 # Converts a given date in SWIFT MT format to an ISO 20022 standard date format (YYYY-MM-DD).
@@ -1268,11 +1844,18 @@ isolated function getMT101RepeatingFields(swiftmt:MT101Block4 block4, swiftmt:MT
 # + date - A `swiftmt:Dt` object containing the date in the format YYMMDD.
 # + return - Returns the date in ISO 20022 format (YYYY-MM-DD). 
 isolated function convertToISOStandardDate(swiftmt:Dt? date) returns string? {
+    log:printDebug("Starting convertToISOStandardDate with date: " + date.toString());
+
     if date !is swiftmt:Dt {
+        log:printDebug("Date is null, returning null");
         return ();
     }
-    return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
+
+    string result = YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
         date.content.substring(4, 6);
+
+    log:printDebug("Converted date to ISO format: " + result);
+    return result;
 }
 
 # Converts a given date in SWIFT MT format to an ISO 20022 standard date format (YYYY-MM-DD).
@@ -1280,8 +1863,13 @@ isolated function convertToISOStandardDate(swiftmt:Dt? date) returns string? {
 # + date - A `swiftmt:Dt` object containing the date in the format YYMMDD.
 # + return - Returns the date in ISO 20022 format (YYYY-MM-DD).
 isolated function convertToISOStandardDateMandatory(swiftmt:Dt date) returns string {
-    return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
+    log:printDebug("Starting convertToISOStandardDateMandatory with date: " + date.toString());
+
+    string result = YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
         date.content.substring(4, 6);
+
+    log:printDebug("Converted date to mandatory ISO format: " + result);
+    return result;
 }
 
 # Converts a SWIFT MT date and time to an ISO 20022 standard date-time format.
@@ -1292,19 +1880,34 @@ isolated function convertToISOStandardDateMandatory(swiftmt:Dt date) returns str
 # + return - A string containing the date-time in ISO 20022 format, or null if the input is not valid.
 isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? time, boolean isCreationDateTime = false)
     returns string? {
+    log:printDebug("Starting convertToISOStandardDateTime with date: " + date.toString() + ", time: " + time.toString() +
+                ", isCreationDateTime: " + isCreationDateTime.toString());
+
     if date is swiftmt:Dt && time is swiftmt:Tm {
+        log:printDebug("Both date and time are provided");
         if isCreationDateTime {
-            return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
-            date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" +
-            time.content.substring(2, 4) + ":00" + DEFAULT_TIME_OFFSET;
+            log:printDebug("Processing as creation date time");
+            string result = YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
+                date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" +
+                time.content.substring(2, 4) + ":00" + DEFAULT_TIME_OFFSET;
+            log:printDebug("Returning ISO formatted creation date-time: " + result);
+            return result;
         }
-        return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
+        string result = YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
             date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" +
             time.content.substring(2, 4) + ":00";
+        log:printDebug("Returning ISO formatted date-time: " + result);
+        return result;
     }
+
     if isCreationDateTime {
-        return time:utcToString(time:utcNow()).substring(0, 19);
+        log:printDebug("No date/time provided but isCreationDateTime is true, using current time");
+        string result = time:utcToString(time:utcNow()).substring(0, 19);
+        log:printDebug("Returning current UTC time: " + result);
+        return result;
     }
+
+    log:printDebug("No valid date/time provided, returning null");
     return ();
 }
 
@@ -1320,40 +1923,58 @@ isolated function getMT102STPRepeatingFields(swiftmt:MT102STPBlock4 block4, swif
         |swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? content,
         string typeName) returns swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|
     swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? {
+    log:printDebug("Starting getMT102STPRepeatingFields with typeName: " + typeName +
+                ", content type: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT102STPTransaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) ||
-                    item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if (itemString.length() >= 12 && itemString.substring(9, 12).equalsIgnoreCaseAscii(typeName)) ||
+                (itemString.length() >= 11 && itemString.substring(9, 11).equalsIgnoreCaseAscii(typeName)) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, checking block4 for " + typeName);
     match (typeName) {
         "26T" => {
+            log:printDebug("Returning block4.MT26T");
             return block4.MT26T;
         }
         "36" => {
+            log:printDebug("Returning block4.MT36");
             return block4.MT36;
         }
         "50F" => {
+            log:printDebug("Returning block4.MT50F");
             return block4.MT50F;
         }
         "50A" => {
+            log:printDebug("Returning block4.MT50A");
             return block4.MT50A;
         }
         "50K" => {
+            log:printDebug("Returning block4.MT50K");
             return block4.MT50K;
         }
         "52A" => {
+            log:printDebug("Returning block4.MT52A");
             return block4.MT52A;
         }
         "71A" => {
+            log:printDebug("Returning block4.MT71A");
             return block4.MT71A;
         }
         "77B" => {
+            log:printDebug("Returning block4.MT77B");
             return block4.MT77B;
         }
     }
+
+    log:printDebug("No matching field found in block4, returning null");
     return ();
 }
 
@@ -1363,18 +1984,27 @@ isolated function getMT102STPRepeatingFields(swiftmt:MT102STPBlock4 block4, swif
 # + return - Returns a tuple of strings
 # Handles errors during extraction by returning a tuple of empty or null values.
 isolated function getEnvelopeContent(string envelopeContent) returns [string, string?, string?] {
+    log:printDebug("Starting getEnvelopeContent with envelopeContent: " + envelopeContent);
+
     if envelopeContent.length() >= 7 {
         if envelopeContent.substring(1, 5).equalsIgnoreCaseAscii("SWIF") {
+            log:printDebug("Found SWIF envelope type, returning SWIFT content");
             return [envelopeContent.substring(6), (), ()];
         }
         if envelopeContent.substring(1, 5).equalsIgnoreCaseAscii("IXML") {
+            log:printDebug("Found IXML envelope type, returning XML content");
             return ["", envelopeContent.substring(6), ()];
         }
         if envelopeContent.substring(1, 5).equalsIgnoreCaseAscii("NARR") {
+            log:printDebug("Found NARR envelope type, returning narrative content");
             return ["", (), envelopeContent.substring(6)];
         }
+
+        log:printDebug("Unknown envelope type, returning empty content");
         return ["", (), ()];
     }
+
+    log:printDebug("Envelope content too short, returning empty content");
     return ["", (), ()];
 }
 
@@ -1391,48 +2021,69 @@ isolated function getMT102RepeatingFields(swiftmt:MT102Block4 block4, swiftmt:MT
         swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? content,
         string typeName) returns swiftmt:MT26T?|swiftmt:MT36?|swiftmt:MT50F?|swiftmt:MT50A?|swiftmt:MT50K?|swiftmt:MT52A?|
     swiftmt:MT52B?|swiftmt:MT52C?|swiftmt:MT71A?|swiftmt:MT77B? {
+    log:printDebug("Starting getMT102RepeatingFields with typeName: " + typeName +
+                    ", content: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT102Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if itemString.length() >= 12 && itemString.substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
-            if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+            if itemString.length() >= 11 && itemString.substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " (2-char code) in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, checking block4 for " + typeName);
     match (typeName) {
         "26T" => {
+            log:printDebug("Returning block4.MT26T");
             return block4.MT26T;
         }
         "36" => {
+            log:printDebug("Returning block4.MT36");
             return block4.MT36;
         }
         "50F" => {
+            log:printDebug("Returning block4.MT50F");
             return block4.MT50F;
         }
         "50A" => {
+            log:printDebug("Returning block4.MT50A");
             return block4.MT50A;
         }
         "50K" => {
+            log:printDebug("Returning block4.MT50K");
             return block4.MT50K;
         }
         "52A" => {
+            log:printDebug("Returning block4.MT52A");
             return block4.MT52A;
         }
         "52B" => {
+            log:printDebug("Returning block4.MT52B");
             return block4.MT52B;
         }
         "52C" => {
+            log:printDebug("Returning block4.MT52C");
             return block4.MT52C;
         }
         "71A" => {
+            log:printDebug("Returning block4.MT71A");
             return block4.MT71A;
         }
         "77B" => {
+            log:printDebug("Returning block4.MT77B");
             return block4.MT77B;
         }
     }
+
+    log:printDebug("No matching field found in block4 for typeName: " + typeName + ", returning null");
     return ();
 }
 
@@ -1449,48 +2100,69 @@ isolated function getMT104RepeatingFields(swiftmt:MT104Block4 block4, swiftmt:MT
         swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|
         swiftmt:MT77B? content, string typeName) returns swiftmt:MT23E?|swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|
     swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? {
+    log:printDebug("Starting getMT104RepeatingFields with typeName: " + typeName +
+                    ", content: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT104Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if itemString.length() >= 12 && itemString.substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, checking block4 for " + typeName);
     match (typeName) {
         "23E" => {
+            log:printDebug("Returning block4.MT23E");
             return block4.MT23E;
         }
         "26T" => {
+            log:printDebug("Returning block4.MT26T");
             return block4.MT26T;
         }
         "50A" => {
+            log:printDebug("Returning block4.MT50A");
             return block4.MT50A;
         }
         "50C" => {
+            log:printDebug("Returning block4.MT50C");
             return block4.MT50C;
         }
         "50K" => {
+            log:printDebug("Returning block4.MT50K");
             return block4.MT50K;
         }
         "50L" => {
+            log:printDebug("Returning block4.MT50L");
             return block4.MT50L;
         }
         "52A" => {
+            log:printDebug("Returning block4.MT52A");
             return block4.MT52A;
         }
         "52C" => {
+            log:printDebug("Returning block4.MT52C");
             return block4.MT52C;
         }
         "52D" => {
+            log:printDebug("Returning block4.MT52D");
             return block4.MT52D;
         }
         "71A" => {
+            log:printDebug("Returning block4.MT71A");
             return block4.MT71A;
         }
         "77B" => {
+            log:printDebug("Returning block4.MT77B");
             return block4.MT77B;
         }
     }
+
+    log:printDebug("No matching field found in block4 for typeName: " + typeName + ", returning null");
     return ();
 }
 
@@ -1507,48 +2179,69 @@ isolated function getMT107RepeatingFields(swiftmt:MT107Block4 block4, swiftmt:MT
         swiftmt:MT50C?|swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|
         swiftmt:MT77B? content, string typeName) returns swiftmt:MT23E?|swiftmt:MT26T?|swiftmt:MT50A?|swiftmt:MT50C?|
     swiftmt:MT50K?|swiftmt:MT50L?|swiftmt:MT52A?|swiftmt:MT52C?|swiftmt:MT52D?|swiftmt:MT71A?|swiftmt:MT77B? {
+    log:printDebug("Starting getMT107RepeatingFields with typeName: " + typeName +
+                    ", content: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT107Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if itemString.length() >= 12 && itemString.substring(9, 12).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, checking block4 for " + typeName);
     match (typeName) {
         "23E" => {
+            log:printDebug("Returning block4.MT23E");
             return block4.MT23E;
         }
         "26T" => {
+            log:printDebug("Returning block4.MT26T");
             return block4.MT26T;
         }
         "50A" => {
+            log:printDebug("Returning block4.MT50A");
             return block4.MT50A;
         }
         "50C" => {
+            log:printDebug("Returning block4.MT50C");
             return block4.MT50C;
         }
         "50K" => {
+            log:printDebug("Returning block4.MT50K");
             return block4.MT50K;
         }
         "50L" => {
+            log:printDebug("Returning block4.MT50L");
             return block4.MT50L;
         }
         "52A" => {
+            log:printDebug("Returning block4.MT52A");
             return block4.MT52A;
         }
         "52C" => {
+            log:printDebug("Returning block4.MT52C");
             return block4.MT52C;
         }
         "52D" => {
+            log:printDebug("Returning block4.MT52D");
             return block4.MT52D;
         }
         "71A" => {
+            log:printDebug("Returning block4.MT71A");
             return block4.MT71A;
         }
         "77B" => {
+            log:printDebug("Returning block4.MT77B");
             return block4.MT77B;
         }
     }
+
+    log:printDebug("No matching field found in block4 for typeName: " + typeName + ", returning null");
     return ();
 }
 
@@ -1560,13 +2253,21 @@ isolated function getMT107RepeatingFields(swiftmt:MT107Block4 block4, swiftmt:MT
 # + return - Returns the provided `content` if a matching field is found, or the MT72 block from the message if not.
 isolated function getMT201RepeatingFields(swiftmt:MT201Block4 block4, swiftmt:MT72? content, string typeName)
     returns swiftmt:MT72? {
+    log:printDebug("Starting getMT201RepeatingFields with typeName: " + typeName +
+                    ", content: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT201Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if itemString.length() >= 11 && itemString.substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, returning block4.MT72");
     return block4.MT72;
 }
 
@@ -1578,13 +2279,21 @@ isolated function getMT201RepeatingFields(swiftmt:MT201Block4 block4, swiftmt:MT
 # + return - Returns the provided `content` if a matching field is found, or the MT72 block from the message if not.
 isolated function getMT203RepeatingFields(swiftmt:MT203Block4 block4, swiftmt:MT72? content, string typeName)
     returns swiftmt:MT72? {
+    log:printDebug("Starting getMT203RepeatingFields with typeName: " + typeName +
+                    ", content: " + content.toString());
+
+    log:printDebug("Searching for " + typeName + " in transaction set");
     foreach swiftmt:MT203Transaction transaxion in block4.Transaction {
         foreach var item in transaxion {
-            if item.toString().substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+            string itemString = item.toString();
+            if itemString.length() >= 11 && itemString.substring(9, 11).equalsIgnoreCaseAscii(typeName) {
+                log:printDebug("Found matching field " + typeName + " in transaction, returning provided content");
                 return content;
             }
         }
     }
+
+    log:printDebug("No match found in transactions, returning block4.MT72");
     return block4.MT72;
 }
 
@@ -1593,32 +2302,63 @@ isolated function getMT203RepeatingFields(swiftmt:MT203Block4 block4, swiftmt:MT
 # + floorLimit - An optional array of MT34F objects, each representing a floor limit.
 # + return - Returns an array of Limit2 objects for ISO 20022, or an error if conversion fails.
 isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns camtIsoRecord:Limit2[]?|error {
+    log:printDebug("Starting getFloorLimit with floorLimit: " + floorLimit.toString());
+
     if floorLimit is () {
+        log:printDebug("Floor limit is null, returning null");
         return ();
     }
+
     if floorLimit.length() > 1 {
+        log:printDebug("Multiple floor limits found, processing " + floorLimit.length().toString() + " limits");
+
+        decimal firstAmount = check convertToDecimalMandatory(floorLimit[0].Amnt);
+        string firstCurrency = floorLimit[0].Ccy.content;
+        camtIsoRecord:FloorLimitType1Code firstIndicator = getCdtDbtFloorLimitIndicator(floorLimit[0].Cd);
+
+        decimal secondAmount = check convertToDecimalMandatory(floorLimit[1].Amnt);
+        string secondCurrency = floorLimit[1].Ccy.content;
+        camtIsoRecord:FloorLimitType1Code secondIndicator = getCdtDbtFloorLimitIndicator(floorLimit[1].Cd);
+
+        log:printDebug("Creating first limit with amount: " + firstAmount.toString() +
+                    ", currency: " + firstCurrency +
+                    ", indicator: " + firstIndicator.toString());
+
+        log:printDebug("Creating second limit with amount: " + secondAmount.toString() +
+                    ", currency: " + secondCurrency +
+                    ", indicator: " + secondIndicator.toString());
+
         return [
             {
                 Amt: {
-                    content: check convertToDecimalMandatory(floorLimit[0].Amnt),
-                    Ccy: floorLimit[0].Ccy.content
+                    content: firstAmount,
+                    Ccy: firstCurrency
                 },
-                CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[0].Cd)
+                CdtDbtInd: firstIndicator
             },
             {
                 Amt: {
-                    content: check convertToDecimalMandatory(floorLimit[1].Amnt),
-                    Ccy: floorLimit[1].Ccy.content
+                    content: secondAmount,
+                    Ccy: secondCurrency
                 },
-                CdtDbtInd: getCdtDbtFloorLimitIndicator(floorLimit[1].Cd)
+                CdtDbtInd: secondIndicator
             }
         ];
     }
+
+    log:printDebug("Single floor limit found");
+    decimal amount = check convertToDecimalMandatory(floorLimit[0].Amnt);
+    string currency = floorLimit[0].Ccy.content;
+
+    log:printDebug("Creating limit with amount: " + amount.toString() +
+                ", currency: " + currency +
+                ", indicator: BOTH");
+
     return [
         {
             Amt: {
-                content: check convertToDecimalMandatory(floorLimit[0].Amnt),
-                Ccy: floorLimit[0].Ccy.content
+                content: amount,
+                Ccy: currency
             },
             CdtDbtInd: camtIsoRecord:BOTH
         }
@@ -1630,12 +2370,19 @@ isolated function getFloorLimit(swiftmt:MT34F[]? floorLimit) returns camtIsoReco
 # + code - The optional SWIFT MT Cd element containing the credit or debit indicator.
 # + return - Returns the ISO 20022 `FloorLimitType1Code`, which can be either DEBT (debit) or CRED (credit).
 isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns camtIsoRecord:FloorLimitType1Code {
+    log:printDebug("Starting getCdtDbtFloorLimitIndicator with code: " + code.toString());
+
     if code is () {
+        log:printDebug("Code is null, returning default DEBT");
         return camtIsoRecord:DEBT;
     }
+
     if code.content.equalsIgnoreCaseAscii("D") {
+        log:printDebug("Code is 'D', returning DEBT");
         return camtIsoRecord:DEBT;
     }
+
+    log:printDebug("Code is not 'D', returning CRED");
     return camtIsoRecord:CRED;
 }
 
@@ -1648,19 +2395,37 @@ isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns camtIso
 # + statement - The optional array of SWIFT MT61 statement lines, containing details of account transactions.
 # + return - Returns an array of `ReportEntry14` objects with mapped values, or an error if conversion fails.
 isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:ReportEntry14[]|error {
+    log:printDebug("Starting getEntries with statement: " + statement.toString());
+
     camtIsoRecord:ReportEntry14[] entries = [];
     if statement is () {
+        log:printDebug("Statement is null, returning empty entries array");
         return entries;
     }
+
+    log:printDebug("Processing " + statement.length().toString() + " statement entries");
+
     foreach swiftmt:MT61 stmtLine in statement {
+        log:printDebug("Processing statement line with reference: " + stmtLine.RefAccOwn.content);
+
+        decimal amount = check convertToDecimalMandatory(stmtLine.Amnt);
+        string currency = getMandatoryFields(stmtLine.FndCd?.content);
+        string? valueDate = convertToISOStandardDate(stmtLine.ValDt);
+        camtIsoRecord:CreditDebitCode creditDebitIndicator = convertDbtOrCrdToISOStandard(stmtLine);
+
+        log:printDebug("Statement entry values - amount: " + amount.toString() +
+                    ", currency: " + currency +
+                    ", valueDate: " + valueDate.toString() +
+                    ", creditDebitIndicator: " + creditDebitIndicator.toString());
+
         entries.push({
             ValDt: {
-                Dt: convertToISOStandardDate(stmtLine.ValDt)
+                Dt: valueDate
             },
-            CdtDbtInd: convertDbtOrCrdToISOStandard(stmtLine),
+            CdtDbtInd: creditDebitIndicator,
             Amt: {
-                content: check convertToDecimalMandatory(stmtLine.Amnt),
-                Ccy: getMandatoryFields(stmtLine.FndCd?.content)
+                content: amount,
+                Ccy: currency
             },
             BkTxCd: {
                 Prtry: {
@@ -1679,17 +2444,21 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
                                 EndToEndId: stmtLine.RefAccOwn.content
                             },
                             Amt: {
-                                content: check convertToDecimalMandatory(stmtLine.Amnt),
-                                Ccy: getMandatoryFields(stmtLine.FndCd?.content)
+                                content: amount,
+                                Ccy: currency
                             },
-                            CdtDbtInd: convertDbtOrCrdToISOStandard(stmtLine),
+                            CdtDbtInd: creditDebitIndicator,
                             AddtlTxInf: stmtLine.SpmtDtls?.content
                         }
                     ]
                 }
             ]
         });
+
+        log:printDebug("Added entry to entries array with EndToEndId: " + stmtLine.RefAccOwn.content);
     }
+
+    log:printDebug("Returning " + entries.length().toString() + " entries");
     return entries;
 }
 
@@ -1700,9 +2469,14 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
 # + return - Returns the ISO 20022 `CreditDebitCode`, either `CRDT` or `DBIT`.
 isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swiftmt:MT65|swiftmt:MT64|swiftmt:MT60M|
         swiftmt:MT62M|swiftmt:MT61 content) returns camtIsoRecord:CreditDebitCode {
+    log:printDebug("Starting convertDbtOrCrdToISOStandard with content code: " + content.Cd.content);
+
     if content.Cd.content.equalsIgnoreCaseAscii("C") || content.Cd.content.equalsIgnoreCaseAscii("RD") {
+        log:printDebug("Code is 'C' or 'RD', returning CRDT");
         return camtIsoRecord:CRDT;
     }
+
+    log:printDebug("Code is not 'C' or 'RD', returning DBIT");
     return camtIsoRecord:DBIT;
 }
 
@@ -1726,39 +2500,60 @@ isolated function convertDbtOrCrdToISOStandard(swiftmt:MT60F|swiftmt:MT62F|swift
 isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? firstCloseBalance, swiftmt:MT64[]?
         closeAvailableBalance, swiftmt:MT60M[]? inmdOpenBalance = (), swiftmt:MT62M[]? inmdCloseBalance = (),
         swiftmt:MT65[]? forwardAvailableBalance = ()) returns camtIsoRecord:CashBalance8[]|error {
+    log:printDebug("Starting getBalance with firstOpenBalance: " + firstOpenBalance.toString() +
+                ", firstCloseBalance: " + firstCloseBalance.toString() +
+                ", closeAvailableBalance: " + closeAvailableBalance.toString() +
+                ", inmdOpenBalance: " + inmdOpenBalance.toString() +
+                ", inmdCloseBalance: " + inmdCloseBalance.toString() +
+                ", forwardAvailableBalance: " + forwardAvailableBalance.toString());
+
     camtIsoRecord:CashBalance8[] balanceArray = [];
 
     if firstOpenBalance is swiftmt:MT60F {
+        log:printDebug("Processing first opening balance");
         balanceArray.push(check createBalanceRecord(firstOpenBalance, "OPBD"));
+        log:printDebug("Added first opening balance with type code OPBD");
     }
 
     if inmdOpenBalance is swiftmt:MT60M[] {
+        log:printDebug("Processing " + inmdOpenBalance.length().toString() + " intraday opening balances");
         foreach swiftmt:MT60M inmdOpnBal in inmdOpenBalance {
             balanceArray.push(check createBalanceRecord(inmdOpnBal, "OPBD/INTM"));
+            log:printDebug("Added intraday opening balance with type code OPBD/INTM");
         }
     }
 
     if firstCloseBalance is swiftmt:MT62F {
+        log:printDebug("Processing first closing balance");
         balanceArray.push(check createBalanceRecord(firstCloseBalance, "CLBD"));
+        log:printDebug("Added first closing balance with type code CLBD");
     }
 
     if inmdCloseBalance is swiftmt:MT62M[] {
+        log:printDebug("Processing " + inmdCloseBalance.length().toString() + " intraday closing balances");
         foreach swiftmt:MT62M inmdClsBal in inmdCloseBalance {
             balanceArray.push(check createBalanceRecord(inmdClsBal, "CLBD/INTM"));
+            log:printDebug("Added intraday closing balance with type code CLBD/INTM");
         }
     }
 
     if closeAvailableBalance is swiftmt:MT64[] {
+        log:printDebug("Processing " + closeAvailableBalance.length().toString() + " closing available balances");
         foreach swiftmt:MT64 clsAvblBal in closeAvailableBalance {
             balanceArray.push(check createBalanceRecord(clsAvblBal, "CLAV"));
+            log:printDebug("Added closing available balance with type code CLAV");
         }
     }
 
     if forwardAvailableBalance is swiftmt:MT65[] {
+        log:printDebug("Processing " + forwardAvailableBalance.length().toString() + " forward available balances");
         foreach swiftmt:MT65 fwdAvblBal in forwardAvailableBalance {
             balanceArray.push(check createBalanceRecord(fwdAvblBal, "FWAV"));
+            log:printDebug("Added forward available balance with type code FWAV");
         }
     }
+
+    log:printDebug("Returning " + balanceArray.length().toString() + " balance records");
     return balanceArray;
 }
 
@@ -1769,19 +2564,34 @@ isolated function getBalance(swiftmt:MT60F? firstOpenBalance, swiftmt:MT62F? fir
 # + return - A CashBalance8 record
 isolated function createBalanceRecord(swiftmt:MT60F|swiftmt:MT60M|swiftmt:MT62F|swiftmt:MT62M|swiftmt:MT64|
         swiftmt:MT65 balance, string typeCode) returns camtIsoRecord:CashBalance8|error {
-    return {
+    log:printDebug("Starting createBalanceRecord for type code: " + typeCode);
+
+    decimal amount = check convertToDecimalMandatory(balance.Amnt);
+    string currency = balance.Ccy.content;
+    string? date = convertToISOStandardDate(balance.Dt);
+    camtIsoRecord:CreditDebitCode creditDebitIndicator = convertDbtOrCrdToISOStandard(balance);
+
+    log:printDebug("Balance record values - amount: " + amount.toString() +
+                ", currency: " + currency +
+                ", date: " + date.toString() +
+                ", creditDebitIndicator: " + creditDebitIndicator.toString());
+
+    camtIsoRecord:CashBalance8 result = {
         Amt: {
-            content: check convertToDecimalMandatory(balance.Amnt),
-            Ccy: balance.Ccy.content
+            content: amount,
+            Ccy: currency
         },
-        Dt: {Dt: convertToISOStandardDate(balance.Dt)},
-        CdtDbtInd: convertDbtOrCrdToISOStandard(balance),
+        Dt: {Dt: date},
+        CdtDbtInd: creditDebitIndicator,
         Tp: {
             CdOrPrtry: {
                 Cd: typeCode
             }
         }
     };
+
+    log:printDebug("Created balance record successfully");
+    return result;
 }
 
 # Retrieves and concatenates additional information (MT86) from the `infoToAccOwnr` array into a single string.
@@ -1792,20 +2602,31 @@ isolated function createBalanceRecord(swiftmt:MT60F|swiftmt:MT60M|swiftmt:MT62F|
 # + infoToAccOwnr - An optional array of MT86 additional information blocks.
 # + return - Returns the concatenated additional information as a string or null if the input is not provided or empty.
 isolated function getInfoToAccOwnr(swiftmt:MT86[]? infoToAccOwnr) returns string? {
+    log:printDebug("Starting getInfoToAccOwnr with infoToAccOwnr: " + infoToAccOwnr.toString());
 
     if infoToAccOwnr is () {
+        log:printDebug("No additional information provided, returning null");
         return ();
     }
+
     string finalInfo = "";
+    log:printDebug("Processing " + infoToAccOwnr.length().toString() + " MT86 blocks");
+
     foreach swiftmt:MT86 information in infoToAccOwnr {
+        log:printDebug("Processing MT86 with " + information.AddInfo.length().toString() + " additional info elements");
+
         foreach int index in 0 ... information.AddInfo.length() - 1 {
             if index == information.AddInfo.length() - 1 {
                 finalInfo += information.AddInfo[index].content;
+                log:printDebug("Added final info element: " + information.AddInfo[index].content);
             } else {
                 finalInfo = finalInfo + information.AddInfo[index].content + ", ";
+                log:printDebug("Added info element with comma: " + information.AddInfo[index].content);
             }
         }
     }
+
+    log:printDebug("Returning concatenated information: " + finalInfo);
     return finalInfo;
 }
 
@@ -1819,16 +2640,27 @@ isolated function getInfoToAccOwnr(swiftmt:MT86[]? infoToAccOwnr) returns string
 # + return - Returns the total number of entries as a string, or an error if the values are not valid integers.
 isolated function getTotalNumOfEntries(swiftmt:TtlNum? creditEntryNum, swiftmt:TtlNum? debitEntryNum)
     returns string|error? {
+    log:printDebug("Starting getTotalNumOfEntries with creditEntryNum: " + creditEntryNum.toString() +
+                ", debitEntryNum: " + debitEntryNum.toString());
+
     int total = 0;
     do {
         if creditEntryNum is swiftmt:TtlNum {
-            total += check int:fromString(creditEntryNum.content);
+            int creditNum = check int:fromString(creditEntryNum.content);
+            total += creditNum;
+            log:printDebug("Added credit entries: " + creditNum.toString());
         }
+
         if debitEntryNum is swiftmt:TtlNum {
-            total += check int:fromString(debitEntryNum.content);
+            int debitNum = check int:fromString(debitEntryNum.content);
+            total += debitNum;
+            log:printDebug("Added debit entries: " + debitNum.toString());
         }
+
+        log:printDebug("Total number of entries: " + total.toString());
         return ();
     } on fail {
+        log:printDebug("Error parsing integer values from entries");
         return error("Provide integer for total number of credit and debit entries.");
     }
 }
@@ -1843,16 +2675,27 @@ isolated function getTotalNumOfEntries(swiftmt:TtlNum? creditEntryNum, swiftmt:T
 # + return - Returns the total sum of entries as a decimal, or an error if the values are not valid decimals.
 isolated function getTotalSumOfEntries(swiftmt:Amnt? creditEntryAmnt, swiftmt:Amnt? debitEntryAmnt)
     returns decimal|error? {
+    log:printDebug("Starting getTotalSumOfEntries with creditEntryAmnt: " + creditEntryAmnt.toString() +
+                ", debitEntryAmnt: " + debitEntryAmnt.toString());
+
     decimal total = 0;
     do {
         if creditEntryAmnt is swiftmt:Amnt {
-            total += check convertToDecimalMandatory(creditEntryAmnt);
+            decimal creditAmount = check convertToDecimalMandatory(creditEntryAmnt);
+            total += creditAmount;
+            log:printDebug("Added credit amount: " + creditAmount.toString());
         }
+
         if debitEntryAmnt is swiftmt:Amnt {
-            total += check convertToDecimalMandatory(debitEntryAmnt);
+            decimal debitAmount = check convertToDecimalMandatory(debitEntryAmnt);
+            total += debitAmount;
+            log:printDebug("Added debit amount: " + debitAmount.toString());
         }
+
+        log:printDebug("Total sum of entries: " + total.toString());
         return ();
     } on fail {
+        log:printDebug("Error converting decimal values from amounts");
         return error("Provide decimal value for sum of credit and debit entries.");
     }
 }
@@ -1869,15 +2712,27 @@ isolated function getTotalSumOfEntries(swiftmt:Amnt? creditEntryAmnt, swiftmt:Am
 # + return - The first available identifier as a string, or an empty string if none are provided.
 isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo = (), string? transactionId = ())
     returns string {
+    log:printDebug("Starting getEndToEndId with cstmRefNum: " + cstmRefNum.toString() +
+                ", remmitanceInfo: " + remmitanceInfo.toString() +
+                ", transactionId: " + transactionId.toString());
+
     if cstmRefNum is string {
+        log:printDebug("Using customer reference number as end-to-end ID: " + cstmRefNum);
         return cstmRefNum;
     }
+
     if remmitanceInfo is string && remmitanceInfo.substring(1, 4).equalsIgnoreCaseAscii("ROC") {
-        return remmitanceInfo.substring(5);
+        string result = remmitanceInfo.substring(5);
+        log:printDebug("Using ROC remittance info as end-to-end ID: " + result);
+        return result;
     }
+
     if transactionId is string {
+        log:printDebug("Using transaction ID as end-to-end ID: " + transactionId);
         return transactionId;
     }
+
+    log:printDebug("No valid identifier found, returning empty string");
     return "";
 }
 
@@ -1889,14 +2744,23 @@ isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo 
 # + narrative - An optional `swiftmt:MT79` record containing the narrative with possible reason codes.
 # + return - Returns the matching reason code as a `string` if found; otherwise, returns null.
 isolated function getCancellationReasonCode(swiftmt:MT79? narrative) returns string? {
+    log:printDebug("Starting getCancellationReasonCode with narrative: " + narrative.toString());
+
     if narrative is () {
+        log:printDebug("No narrative provided, returning null");
         return ();
     }
+
+    log:printDebug("Checking first narrative element: " + narrative.Nrtv[0].content);
+
     foreach string code in REASON_CODE {
         if code.equalsIgnoreCaseAscii(narrative.Nrtv[0].content) {
+            log:printDebug("Found matching reason code: " + code);
             return code;
         }
     }
+
+    log:printDebug("No matching reason code found");
     return ();
 }
 
@@ -1908,15 +2772,28 @@ isolated function getCancellationReasonCode(swiftmt:MT79? narrative) returns str
 # + narrative - An optional `swiftmt:MT79` record containing additional narrative information.
 # + return - Returns an array of `string` values with additional cancellation information, or null if none is found.
 isolated function getAdditionalCancellationInfo(swiftmt:MT79? narrative) returns string[]? {
+    log:printDebug("Starting getAdditionalCancellationInfo with narrative: " + narrative.toString());
 
     if narrative is () {
+        log:printDebug("No narrative provided, returning null");
         return ();
     }
+
     string[] additionalInfo = [];
+    log:printDebug("Processing " + (narrative.Nrtv.length() - 1).toString() + " additional narrative elements");
+
     foreach int i in 1 ... narrative.Nrtv.length() - 1 {
         additionalInfo.push(narrative.Nrtv[i].content);
+        log:printDebug("Added additional info: " + narrative.Nrtv[i].content);
     }
-    return additionalInfo;
+
+    if additionalInfo.length() > 0 {
+        log:printDebug("Returning " + additionalInfo.length().toString() + " additional info elements");
+        return additionalInfo;
+    } else {
+        log:printDebug("No additional info found, returning null");
+        return ();
+    }
 }
 
 # Retrieves the sender's logical terminal identifier from the message.
@@ -1928,12 +2805,22 @@ isolated function getAdditionalCancellationInfo(swiftmt:MT79? narrative) returns
 # + mirLogicalTerminal - An optional string representing the MIR logical terminal ID of the sender.
 # + return - Returns the sender's logical terminal identifier as a `string` or null if none is found.
 isolated function getMessageSender(string? logicalTerminal, string? mirLogicalTerminal) returns string? {
+    log:printDebug("Starting getMessageSender with logicalTerminal: " + logicalTerminal.toString() +
+                ", mirLogicalTerminal: " + mirLogicalTerminal.toString());
+
     if mirLogicalTerminal is string {
+        log:printDebug("Using mirLogicalTerminal, returning first 11 characters: " +
+                    mirLogicalTerminal.substring(0, 11));
         return mirLogicalTerminal.substring(0, 11);
     }
+
     if logicalTerminal is string {
+        log:printDebug("Using logicalTerminal, returning first 11 characters: " +
+                    logicalTerminal.substring(0, 11));
         return logicalTerminal.substring(0, 11);
     }
+
+    log:printDebug("No valid terminal identifier found, returning null");
     return ();
 }
 
@@ -1946,12 +2833,22 @@ isolated function getMessageSender(string? logicalTerminal, string? mirLogicalTe
 # + receiverAddress - An optional string representing the address of the receiver.
 # + return - Returns the receiver's logical terminal identifier as a `string` or null if none is found.
 isolated function getMessageReceiver(string? logicalTerminal, string? receiverAddress) returns string? {
+    log:printDebug("Starting getMessageReceiver with logicalTerminal: " + logicalTerminal.toString() +
+                ", receiverAddress: " + receiverAddress.toString());
+
     if receiverAddress is string {
+        log:printDebug("Using receiverAddress, returning first 11 characters: " +
+                    receiverAddress.substring(0, 11));
         return receiverAddress.substring(0, 11);
     }
+
     if logicalTerminal is string {
+        log:printDebug("Using logicalTerminal, returning first 11 characters: " +
+                    logicalTerminal.substring(0, 11));
         return logicalTerminal.substring(0, 11);
     }
+
+    log:printDebug("No valid receiver identifier found, returning null");
     return ();
 }
 
@@ -1963,13 +2860,22 @@ isolated function getMessageReceiver(string? logicalTerminal, string? receiverAd
 # + narrative - An optional array of `swiftmt:Nrtv` records containing narrative content.
 # + return - Returns a single concatenated string of all narratives or null if no narrative is provided.
 isolated function getDescriptionOfMessage(swiftmt:Nrtv[]? narrative) returns string? {
+    log:printDebug("Starting getDescriptionOfMessage with narrative: " + narrative.toString());
+
     if narrative is () {
+        log:printDebug("No narrative provided, returning null");
         return ();
     }
+
     string description = "";
+    log:printDebug("Processing " + narrative.length().toString() + " narrative elements");
+
     foreach swiftmt:Nrtv narration in narrative {
         description += narration.content;
+        log:printDebug("Added narrative content: " + narration.content);
     }
+
+    log:printDebug("Returning concatenated description: " + description);
     return description;
 }
 
@@ -1982,23 +2888,37 @@ isolated function getDescriptionOfMessage(swiftmt:Nrtv[]? narrative) returns str
 # + narration - A `string` containing the narration to analyze.
 # + return - Returns an `camtIsoRecord:MissingOrIncorrectData1` record with arrays of missing and incorrect information reasons.
 isolated function getJustificationReason(string narration) returns camtIsoRecord:MissingOrIncorrectData1 {
+    log:printDebug("Starting getJustificationReason with narration: " + narration);
+
     camtIsoRecord:UnableToApplyMissing2[] missingInfoArray = [];
     camtIsoRecord:UnableToApplyIncorrect2[] incorrectInfoArray = [];
     string[] queriesArray = getCodeAndAddtnlInfo(narration);
 
+    log:printDebug("Parsed queries array from narration: " + queriesArray.toString());
+
     foreach int i in 0 ... queriesArray.length() - 1 {
+        log:printDebug("Processing query[" + i.toString() + "]: " + queriesArray[i]);
+
         boolean isMissingInfo = false;
         string? additionalInfo = ();
+
         if queriesArray[i].length() <= 2 {
+            log:printDebug("Query has length <= 2, checking for additional info");
+
             if i != queriesArray.length() - 1 {
                 if queriesArray[i + 1].length() > 2 {
                     additionalInfo = queriesArray[i + 1];
+                    log:printDebug("Found additional info: " + additionalInfo.toString());
                 } else {
                     additionalInfo = ();
+                    log:printDebug("No valid additional info found");
                 }
             } else {
                 additionalInfo = ();
+                log:printDebug("Last query item, no additional info available");
             }
+
+            log:printDebug("Checking for missing info codes");
             foreach string code in MISSING_INFO_CODE {
                 if queriesArray[i].equalsIgnoreCaseAscii(code) {
                     missingInfoArray.push({
@@ -2008,10 +2928,13 @@ isolated function getJustificationReason(string narration) returns camtIsoRecord
                         AddtlMssngInf: additionalInfo
                     });
                     isMissingInfo = true;
+                    log:printDebug("Found missing info code: " + code + ", additional info: " + additionalInfo.toString());
                     break;
                 }
             }
+
             if !isMissingInfo {
+                log:printDebug("Not a missing info code, checking incorrect info codes");
                 foreach string code in INCORRECT_INFO_CODE {
                     if queriesArray[i].equalsIgnoreCaseAscii(code) {
                         incorrectInfoArray.push({
@@ -2020,11 +2943,18 @@ isolated function getJustificationReason(string narration) returns camtIsoRecord
                             },
                             AddtlIncrrctInf: additionalInfo
                         });
+                        log:printDebug("Found incorrect info code: " + code + ", additional info: " + additionalInfo.toString());
                     }
                 }
             }
+        } else {
+            log:printDebug("Query length > 2, not processing as code");
         }
     }
+
+    log:printDebug("Found " + missingInfoArray.length().toString() + " missing info entries and " +
+                incorrectInfoArray.length().toString() + " incorrect info entries");
+
     return {
         MssngInf: missingInfoArray,
         IncrrctInf: incorrectInfoArray
@@ -2038,21 +2968,33 @@ isolated function getJustificationReason(string narration) returns camtIsoRecord
 # - `Rsn`: Contains the cancellation reason code (`Cd`).
 # - `AddtlInf` (optional): Contains additional information related to the reason, if present.
 isolated function getCancellationReason(string narration) returns camtIsoRecord:CancellationStatusReason5[] {
+    log:printDebug("Starting getCancellationReason with narration: " + narration);
+
     camtIsoRecord:CancellationStatusReason5[] cancellationReasonArray = [];
     string[] answersArray = getCodeAndAddtnlInfo(narration);
 
+    log:printDebug("Parsed answers array from narration: " + answersArray.toString());
+
     foreach int i in 0 ... answersArray.length() - 1 {
+        log:printDebug("Processing answer[" + i.toString() + "]: " + answersArray[i]);
+
         if answersArray[i].length() <= 2 || answersArray[i].length() == 4 {
+            log:printDebug("Valid code length found: " + answersArray[i]);
+
             if i != answersArray.length() - 1 {
                 if answersArray[i + 1].length() > 4 {
+                    log:printDebug("Found additional info: " + answersArray[i + 1]);
                     cancellationReasonArray.push({
                         Rsn: {
                             Cd: answersArray[i]
                         },
                         AddtlInf: [answersArray[i + 1]]
                     });
+                    log:printDebug("Added cancellation reason with additional info");
                     continue;
                 }
+
+                log:printDebug("No valid additional info, adding reason without additional info");
                 cancellationReasonArray.push({
                     Rsn: {
                         Cd: answersArray[i]
@@ -2060,13 +3002,19 @@ isolated function getCancellationReason(string narration) returns camtIsoRecord:
                 });
                 continue;
             }
+
+            log:printDebug("Last item, adding reason without additional info");
             cancellationReasonArray.push({
                 Rsn: {
                     Cd: answersArray[i]
                 }
             });
+        } else {
+            log:printDebug("Invalid code length, not adding to results: " + answersArray[i]);
         }
     }
+
+    log:printDebug("Returning " + cancellationReasonArray.length().toString() + " cancellation reasons");
     return cancellationReasonArray;
 }
 
@@ -2078,38 +3026,57 @@ isolated function getCancellationReason(string narration) returns camtIsoRecord:
 # + narration - A `string` containing the narration to split.
 # + return - Returns an array of `string` values containing individual queries extracted from the narration.
 isolated function getCodeAndAddtnlInfo(string narration) returns string[] {
+    log:printDebug("Starting getCodeAndAddtnlInfo with narration: " + narration);
+
     string supplementaryInfo = "";
     string[] queriesOrAnswersArray = [];
     int count = 0;
 
+    log:printDebug("Processing narration character by character");
     foreach int i in 1 ... narration.length() - 1 {
         if narration.substring(i, i + 1).equalsIgnoreCaseAscii("/") {
+            log:printDebug("Found '/' character at position " + i.toString());
+
             if i == narration.length() - 1 {
+                log:printDebug("End of string, adding final info: " + supplementaryInfo);
                 queriesOrAnswersArray.push(supplementaryInfo);
                 break;
             }
+
             count += 1;
             if count == 2 || narration.substring(i + 1, i + 2).equalsIgnoreCaseAscii("/") {
+                log:printDebug("Double slash or count=2, continuing");
                 continue;
             }
+
+            log:printDebug("Adding info to array: " + supplementaryInfo);
             queriesOrAnswersArray.push(supplementaryInfo);
             supplementaryInfo = "";
             continue;
         }
+
         if count < 2 && narration.substring(i, i + 1) != "\n" {
             supplementaryInfo += narration.substring(i, i + 1);
+            log:printDebug("Adding char to info: " + narration.substring(i, i + 1) + ", current info: " + supplementaryInfo);
+
             if i == narration.length() - 1 {
+                log:printDebug("End of string, adding final info: " + supplementaryInfo);
                 queriesOrAnswersArray.push(supplementaryInfo);
                 break;
             }
+
             count = 0;
             continue;
         }
+
         if count == 2 && narration.substring(i, i + 1) != "\n" {
             supplementaryInfo += " ".concat(narration.substring(i, i + 1));
+            log:printDebug("Adding space + char to info: " + narration.substring(i, i + 1) + ", current info: " + supplementaryInfo);
             count = 0;
         }
     }
+
+    log:printDebug("Returning " + queriesOrAnswersArray.length().toString() + " info items: " + queriesOrAnswersArray.toString());
     return queriesOrAnswersArray;
 }
 
@@ -2121,10 +3088,17 @@ isolated function getCodeAndAddtnlInfo(string narration) returns string[] {
 # + narration - A `string` containing the narration with the rejection reason code.
 # + return - Returns the `camtIsoRecord:InvestigationRejection1Code` if found, or an error if the code is invalid.
 isolated function getRejectedReason(string narration) returns camtIsoRecord:InvestigationRejection1Code|error {
+    log:printDebug("Starting getRejectedReason with narration: " + narration);
+
     string? code = narration.length() >= 5 ? INVTGTN_RJCT_RSN[narration.substring(1, 5)] : ();
+    log:printDebug("Extracted code from narration: " + code.toString());
+
     if code is string {
+        log:printDebug("Returning valid rejection reason code: " + code);
         return code.ensureType();
     }
+
+    log:printDebug("No valid rejection reason found, returning error");
     return error("Provide a valid rejection reason code.");
 }
 
@@ -2133,27 +3107,40 @@ isolated function getRejectedReason(string narration) returns camtIsoRecord:Inve
 # + messageName - A `string?` representing the SWIFT message type (e.g., `"101"`, `"103"`, etc.).
 # + return - Returns a `string` representing the corresponding ISO 20022 message name.
 isolated function getOrignalMessageName(string? messageName) returns string {
+    log:printDebug("Starting getOrignalMessageName with messageName: " + messageName.toString());
+
+    string result = "";
     match messageName {
         "101" => {
-            return "pain.001";
+            result = "pain.001";
+            log:printDebug("Mapped MT101 to " + result);
         }
         "102"|"103" => {
-            return "pacs.008";
+            result = "pacs.008";
+            log:printDebug("Mapped MT102/MT103 to " + result);
         }
         "104"|"107" => {
-            return "pacs.003";
+            result = "pacs.003";
+            log:printDebug("Mapped MT104/MT107 to " + result);
         }
         "200"|"201"|"202"|"202COV"|"203"|"205"|"205COV" => {
-            return "pacs.009";
+            result = "pacs.009";
+            log:printDebug("Mapped MT200/MT201/MT202/MT202COV/MT203/MT205/MT205COV to " + result);
         }
         "204" => {
-            return "pacs.010";
+            result = "pacs.010";
+            log:printDebug("Mapped MT204 to " + result);
         }
         "210" => {
-            return "camt.057";
+            result = "camt.057";
+            log:printDebug("Mapped MT210 to " + result);
+        }
+        _ => {
+            log:printDebug("No mapping found for message type: " + messageName.toString());
         }
     }
-    return "";
+
+    return result;
 }
 
 # Retrieves the underlying customer transaction fields from a given MT202COV or MT205COV message
@@ -2169,12 +3156,20 @@ isolated function getOrignalMessageName(string? messageName) returns string {
 # + return - Returns a tuple of MT52 field.
 isolated function getUnderlyingCustomerTransactionField52(swiftmt:MT52A? ordgInstn1, swiftmt:MT52D? ordgInstn2,
         swiftmt:MT202COVBlock4|swiftmt:MT205COVBlock4 block4) returns [swiftmt:MT52A?, swiftmt:MT52D?] {
+    log:printDebug("Starting getUnderlyingCustomerTransactionField52 with ordgInstn1: " + ordgInstn1.toString() +
+                ", ordgInstn2: " + ordgInstn2.toString());
+
     if ordgInstn1 is swiftmt:MT52A {
+        log:printDebug("Using ordgInstn1 (MT52A), returning [ordgInstn1, ()]");
         return [ordgInstn1, ()];
     }
+
     if ordgInstn2 is swiftmt:MT52D {
+        log:printDebug("Using ordgInstn2 (MT52D), returning [(), ordgInstn2]");
         return [(), ordgInstn2];
     }
+
+    log:printDebug("No transaction-specific fields found, using block4 fields: [block4.MT52A, block4.MT52D]");
     return [block4.MT52A, block4.MT52D];
 }
 
@@ -2194,18 +3189,32 @@ isolated function getUnderlyingCustomerTransactionField52(swiftmt:MT52A? ordgIns
 isolated function getUnderlyingCustomerTransactionField57(swiftmt:MT57A? cdtrAgt1, swiftmt:MT57B? cdtrAgt2,
         swiftmt:MT57C? cdtrAgt3, swiftmt:MT57D? cdtrAgt4, swiftmt:MT202COVBlock4|swiftmt:MT205COVBlock4 block4)
     returns [swiftmt:MT57A?, swiftmt:MT57B?, swiftmt:MT57C?, swiftmt:MT57D?] {
+    log:printDebug("Starting getUnderlyingCustomerTransactionField57 with cdtrAgt1: " + cdtrAgt1.toString() +
+                ", cdtrAgt2: " + cdtrAgt2.toString() +
+                ", cdtrAgt3: " + cdtrAgt3.toString() +
+                ", cdtrAgt4: " + cdtrAgt4.toString());
+
     if cdtrAgt1 is swiftmt:MT57A {
+        log:printDebug("Using cdtrAgt1 (MT57A), returning [cdtrAgt1, (), (), ()]");
         return [cdtrAgt1, (), (), ()];
     }
+
     if cdtrAgt2 is swiftmt:MT57B {
+        log:printDebug("Using cdtrAgt2 (MT57B), returning [(), cdtrAgt2, (), ()]");
         return [(), cdtrAgt2, (), ()];
     }
+
     if cdtrAgt3 is swiftmt:MT57C {
+        log:printDebug("Using cdtrAgt3 (MT57C), returning [(), (), cdtrAgt3, ()]");
         return [(), (), cdtrAgt3, ()];
     }
+
     if cdtrAgt4 is swiftmt:MT57D {
+        log:printDebug("Using cdtrAgt4 (MT57D), returning [(), (), (), cdtrAgt4]");
         return [(), (), (), cdtrAgt4];
     }
+
+    log:printDebug("No transaction-specific fields found, using block4 fields: [block4.MT58A, (), (), block4.MT58D]");
     return [block4.MT58A, (), (), block4.MT58D];
 }
 
@@ -2223,10 +3232,19 @@ isolated function getUnderlyingCustomerTransactionField57(swiftmt:MT57A? cdtrAgt
 isolated function getOtherId(swiftmt:Acc? account1, swiftmt:Acc? account2, swiftmt:Acc? account3 = (),
         swiftmt:PrtyIdn? prtyIdn = (), boolean isDebtor = false)
     returns camtIsoRecord:GenericOrganisationIdentification3[]? {
+    log:printDebug("Starting getOtherId with account1: " + account1.toString() +
+                ", account2: " + account2.toString() +
+                ", account3: " + account3.toString() +
+                ", prtyIdn: " + prtyIdn.toString() +
+                ", isDebtor: " + isDebtor.toString());
+
     if account1 is swiftmt:Acc || account2 is swiftmt:Acc || account3 is swiftmt:Acc || prtyIdn is swiftmt:PrtyIdn {
+        log:printDebug("At least one account or party ID is provided, returning null");
         return ();
     }
+
     if isDebtor {
+        log:printDebug("No accounts provided and isDebtor=true, returning NOTPROVIDED with TxId scheme");
         return [
             {
                 Id: "NOTPROVIDED",
@@ -2236,6 +3254,8 @@ isolated function getOtherId(swiftmt:Acc? account1, swiftmt:Acc? account2, swift
             }
         ];
     }
+
+    log:printDebug("No accounts provided and isDebtor=false, returning NOTPROVIDED without scheme");
     return [
         {
             Id: "NOTPROVIDED"
@@ -2251,52 +3271,99 @@ isolated function getOtherId(swiftmt:Acc? account1, swiftmt:Acc? account2, swift
 # the narration starts with any of the prefixes: `"/CNCL"`, `"/PDCR"`, or `"RJCR"`.
 # Returns () if the narration does not meet the above conditions.
 isolated function getStatusConfirmation(string narration) returns string? {
+    log:printDebug("Starting getStatusConfirmation with narration: " + narration);
+
     if narration.length() > 4 && (narration.startsWith("/CNCL") || narration.startsWith("/PDCR")
     || narration.startsWith("RJCR")) {
-        return narration.substring(1, 5);
+        string result = narration.substring(1, 5);
+        log:printDebug("Narration meets criteria, returning status code: " + result);
+        return result;
     }
+
+    log:printDebug("Narration does not meet criteria for status confirmation, returning null");
     return ();
 }
 
 isolated function getDebtorAgent(swiftmt:MT910Block4 block4) returns
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? {
+    log:printDebug("Starting getDebtorAgent with block4");
+
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
+        log:printDebug("MT50A, MT50F, or MT50K is present, returning null");
         return ();
     }
-    return getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
+
+    log:printDebug("Getting financial institution from MT52A/MT52D");
+    var result = getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
             block4.MT52D?.PrtyIdn, (), (), block4.MT52D?.AdrsLine);
+
+    log:printDebug("Returning debtor agent: " + result.toString());
+    return result;
 }
 
 isolated function getDebtorAgent2(swiftmt:MT910Block4 block4) returns
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? {
+    log:printDebug("Starting getDebtorAgent2 with block4");
+
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
-        return getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
+        log:printDebug("MT50A, MT50F, or MT50K is present, getting financial institution from MT52A/MT52D");
+        var result = getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
                 block4.MT52D?.PrtyIdn, (), (), block4.MT52D?.AdrsLine);
+
+        log:printDebug("Returning debtor agent: " + result.toString());
+        return result;
     }
+
+    log:printDebug("No MT50A, MT50F, or MT50K present, returning null");
     return ();
 }
 
 isolated function getDebtor(swiftmt:MT910Block4 block4) returns pacsIsoRecord:PartyIdentification272? {
+    log:printDebug("Starting getDebtor with block4");
+
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
-        return getDebtorOrCreditor(block4.MT50A?.IdnCd, block4.MT50A?.Acc,
+        log:printDebug("MT50A, MT50F, or MT50K is present, getting debtor information");
+        var result = getDebtorOrCreditor(block4.MT50A?.IdnCd, block4.MT50A?.Acc,
                 block4.MT50K?.Acc, (), block4.MT50F?.PrtyIdn,
                 block4.MT50F?.Nm, block4.MT50K?.Nm,
                 block4.MT50F?.AdrsLine, block4.MT50K?.AdrsLine,
                 block4.MT50F?.CntyNTw, true);
+
+        log:printDebug("Returning debtor: " + result.toString());
+        return result;
     }
+
+    log:printDebug("No MT50A, MT50F, or MT50K present, returning null");
     return ();
 }
 
 isolated function getDebtorAccount(swiftmt:MT910Block4 block4) returns pacsIsoRecord:CashAccount40? {
+    log:printDebug("Starting getDebtorAccount with block4");
+
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
-        return getCashAccount2(block4.MT50A?.Acc, block4.MT50K?.Acc, (), block4.MT50F?.PrtyIdn);
+        log:printDebug("MT50A, MT50F, or MT50K is present, getting cash account from MT50 fields");
+        var result = getCashAccount2(block4.MT50A?.Acc, block4.MT50K?.Acc, (), block4.MT50F?.PrtyIdn);
+
+        log:printDebug("Returning debtor account from MT50 fields: " + result.toString());
+        return result;
     }
-    return getCashAccount(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn);
+
+    log:printDebug("No MT50A, MT50F, or MT50K present, getting cash account from MT52 fields");
+    var result = getCashAccount(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn);
+
+    log:printDebug("Returning debtor account from MT52 fields: " + result.toString());
+    return result;
 }
 
 isolated function getDebtorForPacs004(swiftmt:MT50A? field50A, swiftmt:MT50F? field50F, swiftmt:MT50K? field50K, string? regulatoryReport) returns pacsIsoRecord:Party50Choice {
+    log:printDebug("Starting getDebtorForPacs004 with field50A: " + field50A.toString() +
+                ", field50F: " + field50F.toString() +
+                ", field50K: " + field50K.toString() +
+                ", regulatoryReport: " + regulatoryReport.toString());
+
     if field50K?.Acc?.content == "/NOTPROVIDED" {
-        return {
+        log:printDebug("Account is '/NOTPROVIDED', returning Agent information");
+        pacsIsoRecord:Party50Choice result = {
             Agt: {
                 FinInstnId: {
                     ClrSysMmbId: {
@@ -2311,9 +3378,19 @@ isolated function getDebtorForPacs004(swiftmt:MT50A? field50A, swiftmt:MT50F? fi
                 }
             }
         };
+
+        log:printDebug("Returning debtor as Agent: " + result.toString());
+        return result;
     }
 
-    return {
+    log:printDebug("Constructing Party information");
+    var partyId = getPartyIdentifierOrAccount(field50F?.PrtyIdn);
+    var countryTown = getCountryAndTown(field50F?.CntyNTw);
+    var addressLine = getAddressLine(field50F?.AdrsLine, field50K?.AdrsLine);
+    var name = getName(field50F?.Nm, field50K?.Nm);
+    var ctryOfRes = getCountryOfResidence(regulatoryReport, true);
+
+    pacsIsoRecord:Party50Choice result = {
         Pty: {
             Id: {
                 OrgId: {
@@ -2323,29 +3400,38 @@ isolated function getDebtorForPacs004(swiftmt:MT50A? field50A, swiftmt:MT50F? fi
                 PrvtId: {
                     Othr: [
                         {
-                            Id: getPartyIdentifierOrAccount(field50F?.PrtyIdn)[0],
+                            Id: partyId[0],
                             SchmeNm: {
-                                Cd: getPartyIdentifierOrAccount(field50F?.PrtyIdn)[3]
+                                Cd: partyId[3]
                             },
-                            Issr: getPartyIdentifierOrAccount(field50F?.PrtyIdn)[4]
+                            Issr: partyId[4]
                         }
                     ]
                 }
             },
-            Nm: getName(field50F?.Nm, field50K?.Nm),
-            CtryOfRes: getCountryOfResidence(regulatoryReport, true),
+            Nm: name,
+            CtryOfRes: ctryOfRes,
             PstlAdr: {
-                AdrLine: getAddressLine(field50F?.AdrsLine, field50K?.AdrsLine),
-                Ctry: getCountryAndTown(field50F?.CntyNTw)[0],
-                TwnNm: getCountryAndTown(field50F?.CntyNTw)[1]
+                AdrLine: addressLine,
+                Ctry: countryTown[0],
+                TwnNm: countryTown[1]
             }
         }
     };
+
+    log:printDebug("Returning debtor as Party: " + result.toString());
+    return result;
 }
 
 isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? field59A, swiftmt:MT59F? field59F, string? regulatoryReport) returns pacsIsoRecord:Party50Choice {
+    log:printDebug("Starting getCreditorForPacs004 with field59: " + field59.toString() +
+                ", field59A: " + field59A.toString() +
+                ", field59F: " + field59F.toString() +
+                ", regulatoryReport: " + regulatoryReport.toString());
+
     if field59?.Acc?.content == "/NOTPROVIDED" {
-        return {
+        log:printDebug("Account is '/NOTPROVIDED', returning Agent information");
+        pacsIsoRecord:Party50Choice result = {
             Agt: {
                 FinInstnId: {
                     ClrSysMmbId: {
@@ -2360,8 +3446,17 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
                 }
             }
         };
+        log:printDebug("Returning creditor as Agent: " + result.toString());
+        return result;
     }
-    return {
+
+    log:printDebug("Constructing Party information");
+    var name = getName(field59F?.Nm, field59?.Nm);
+    var addressLine = getAddressLine(field59F?.AdrsLine, field59?.AdrsLine);
+    var countryTown = getCountryAndTown(field59F?.CntyNTw);
+    var ctryOfRes = getCountryOfResidence(regulatoryReport, false);
+
+    pacsIsoRecord:Party50Choice result = {
         Pty: {
             Id: {
                 OrgId: {
@@ -2369,51 +3464,73 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
                     Othr: getOtherId((), ())
                 }
             },
-            Nm: getName(field59F?.Nm, field59?.Nm),
-            CtryOfRes: getCountryOfResidence(regulatoryReport, false),
+            Nm: name,
+            CtryOfRes: ctryOfRes,
             PstlAdr: {
-                AdrLine: getAddressLine(field59F?.AdrsLine, field59?.AdrsLine),
-                Ctry: getCountryAndTown(field59F?.CntyNTw)[0],
-                TwnNm: getCountryAndTown(field59F?.CntyNTw)[1]
+                AdrLine: addressLine,
+                Ctry: countryTown[0],
+                TwnNm: countryTown[1]
             }
         }
     };
+
+    log:printDebug("Returning creditor as Party: " + result.toString());
+    return result;
 }
 
 isolated function get103RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) returns
     [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]]|error {
+    log:printDebug("Starting get103RETNSndRcvrInfoForPacs004 with sndRcvInfo: " + sndRcvInfo.toString());
+
     if sndRcvInfo is swiftmt:MT72 {
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+        log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
+
         int index = 0;
         pacsIsoRecord:PaymentReturnReason7[] returnReasonArray = [];
         pacsIsoRecord:Charges16[] chargesInfoArray = [];
         [string?, string?] [instructionId, endToEndId] = [];
+
         foreach int i in 0 ... infoArray.length() - 1 {
+            log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
+
             if index == i {
+                log:printDebug("Skipping already processed index");
                 continue;
             }
+
             if i + 1 <= infoArray.length() - 1 && !(infoArray[i + 1].matches(re `^[A-Z]{2,8}$`)) {
                 index = i + 1;
+
                 if infoArray[i].equalsIgnoreCaseAscii("MREF") {
                     instructionId = infoArray[i + 1];
+                    log:printDebug("Found MREF, setting instructionId: " + instructionId.toString());
                 } else if infoArray[i].equalsIgnoreCaseAscii("TREF") {
                     endToEndId = infoArray[i + 1];
+                    log:printDebug("Found TREF, setting endToEndId: " + endToEndId.toString());
                 } else if infoArray[i].equalsIgnoreCaseAscii("CHGS") && infoArray[i + 1].matches(re `^[A-Z]{3}\d{1,15},\d{0,5}$`) {
+                    log:printDebug("Found CHGS pattern, processing charges info: " + infoArray[i + 1]);
                     swiftmt:Amnt amount = {content: infoArray[i + 1].substring(3)};
+                    decimal convertedAmount = check convertToDecimalMandatory(amount);
+
                     chargesInfoArray.push({
                         Amt: {
-                            content: check convertToDecimalMandatory(amount),
+                            content: convertedAmount,
                             Ccy: infoArray[i + 1].substring(0, 3)
                         },
                         Agt: {
                             FinInstnId: {Nm: "NOTPROVIDED", PstlAdr: {AdrLine: ["NOTPROVIDED"]}}
                         }
                     });
+                    log:printDebug("Added charges info with amount: " + convertedAmount.toString() +
+                                ", currency: " + infoArray[i + 1].substring(0, 3));
                 } else if infoArray[i].equalsIgnoreCaseAscii("TEXT") {
+                    log:printDebug("Found TEXT, adding additional info: " + infoArray[i + 1]);
                     returnReasonArray.push({
                         AddtlInf: [infoArray[i + 1]]
                     });
                 } else if infoArray[i].matches(re `[A-Z]{2}[0-9]{2}`) {
+                    log:printDebug("Found reason code pattern: " + infoArray[i] + ", with additional info: " + infoArray[i + 1]);
                     returnReasonArray.push({
                         Rsn: {Cd: infoArray[i]},
                         AddtlInf: [infoArray[i + 1]]
@@ -2421,67 +3538,117 @@ isolated function get103RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) retu
                 }
                 continue;
             }
+
             if infoArray[i].matches(re `[A-Z]{2}[0-9]{2}$`) {
+                log:printDebug("Found standalone reason code: " + infoArray[i]);
                 returnReasonArray.push({
                     Rsn: {Cd: infoArray[i]}
                 });
             }
         }
+
+        log:printDebug("Returning parsed information - instructionId: " + instructionId.toString() +
+                    ", endToEndId: " + endToEndId.toString() +
+                    ", returnReasons: " + returnReasonArray.length().toString() +
+                    ", chargesInfo: " + chargesInfoArray.length().toString());
+
         return [instructionId, endToEndId, returnReasonArray, chargesInfoArray];
     }
+
+    log:printDebug("No sender-to-receiver information provided, returning empty result");
     return [];
 }
 
 isolated function getChargesInfo(pacsIsoRecord:Charges16[]? charges, pacsIsoRecord:Charges16[] sndRcvrInfoChrgs) returns pacsIsoRecord:Charges16[]? {
+    log:printDebug("Starting getChargesInfo with charges: " + charges.toString() +
+                ", sndRcvrInfoChrgs: " + sndRcvrInfoChrgs.toString());
+
     if charges is pacsIsoRecord:Charges16[] && charges.length() > 0 {
+        log:printDebug("Using primary charges information with " + charges.length().toString() + " entries");
         return charges;
     }
+
     if sndRcvrInfoChrgs.length() > 0 {
+        log:printDebug("Using sender-receiver info charges with " + sndRcvrInfoChrgs.length().toString() + " entries");
         return sndRcvrInfoChrgs;
     }
+
+    log:printDebug("No charges information found, returning null");
     return ();
 }
 
 isolated function getNameForCdtrAgtInPacs004(swiftmt:MT57B? field57B, string? name, string field57Acct, string[]? field57AdrsLine) returns string? {
+    log:printDebug("Starting getNameForCdtrAgtInPacs004 with field57B: " + field57B.toString() +
+                ", name: " + name.toString() +
+                ", field57Acct: " + field57Acct +
+                ", field57AdrsLine: " + field57AdrsLine.toString());
+
     string? field57PrtyIdn = getPartyIdentifierOrAccount2(field57B?.PrtyIdn)[0];
+    log:printDebug("Retrieved field57PrtyIdn: " + field57PrtyIdn.toString());
+
     if field57B?.PrtyIdn?.content !is () {
+        log:printDebug("field57B.PrtyIdn.content is not null");
+
         if field57PrtyIdn is () && field57AdrsLine is string[] {
+            log:printDebug("field57PrtyIdn is null but address lines present, returning NOTPROVIDED");
             return "NOTPROVIDED";
         }
+
         if field57Acct != "" {
+            log:printDebug("field57Acct is not empty, returning /" + field57Acct);
             return "/" + field57Acct;
         }
     }
 
+    log:printDebug("Returning original name: " + name.toString());
     return name;
 }
 
 isolated function getAddressForCdtrAgtInPacs004(string field57Acct, string[]? field57AdrsLine) returns string[]? {
+    log:printDebug("Starting getAddressForCdtrAgtInPacs004 with field57Acct: " + field57Acct +
+                ", field57AdrsLine: " + field57AdrsLine.toString());
+
     if field57Acct != "" && field57AdrsLine is () {
+        log:printDebug("field57Acct is not empty but address lines are null, returning [NOTPROVIDED]");
         return ["NOTPROVIDED"];
     }
+
+    log:printDebug("Returning original address lines: " + field57AdrsLine.toString());
     return field57AdrsLine;
 }
 
 isolated function get202Or205RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) returns [string?, pacsIsoRecord:PaymentReturnReason7[]] {
+    log:printDebug("Starting get202Or205RETNSndRcvrInfoForPacs004 with sndRcvInfo: " + sndRcvInfo.toString());
+
     if sndRcvInfo is swiftmt:MT72 {
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+        log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
+
         int index = 0;
         pacsIsoRecord:PaymentReturnReason7[] returnReasonArray = [];
         string? instructionId = ();
+
         foreach int i in 0 ... infoArray.length() - 1 {
+            log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
+
             if index == i {
+                log:printDebug("Skipping already processed index");
                 continue;
             }
+
             if i + 1 <= infoArray.length() - 1 && !(infoArray[i + 1].matches(re `^[A-Z]{2,8}$`)) {
                 index = i + 1;
+
                 if infoArray[i].equalsIgnoreCaseAscii("MREF") {
                     instructionId = infoArray[i + 1];
+                    log:printDebug("Found MREF, setting instructionId: " + instructionId.toString());
                 } else if infoArray[i].equalsIgnoreCaseAscii("TEXT") {
+                    log:printDebug("Found TEXT, adding additional info: " + infoArray[i + 1]);
                     returnReasonArray.push({
                         AddtlInf: [infoArray[i + 1]]
                     });
                 } else if infoArray[i].matches(re `^[A-Z]{2}[0-9]{2}$`) {
+                    log:printDebug("Found reason code pattern: " + infoArray[i] + ", with additional info: " + infoArray[i + 1]);
                     returnReasonArray.push({
                         Rsn: {Cd: infoArray[i]},
                         AddtlInf: [infoArray[i + 1]]
@@ -2489,67 +3656,122 @@ isolated function get202Or205RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo)
                 }
                 continue;
             }
+
             if infoArray[i].matches(re `^[A-Z]{2}[0-9]{2}$`) {
+                log:printDebug("Found standalone reason code: " + infoArray[i]);
                 returnReasonArray.push({
                     Rsn: {Cd: infoArray[i]}
                 });
             }
         }
+
+        log:printDebug("Returning parsed information - instructionId: " + instructionId.toString() +
+                    ", returnReasons: " + returnReasonArray.length().toString());
+
         return [instructionId, returnReasonArray];
     }
+
+    log:printDebug("No sender-to-receiver information provided, returning empty result");
     return [];
 }
 
 isolated function getCountryOfResidence(string? regulatoryReport, boolean isDebtor) returns string? {
+    log:printDebug("Starting getCountryOfResidence with regulatoryReport: " + regulatoryReport.toString() +
+                ", isDebtor: " + isDebtor.toString());
+
     if regulatoryReport is string && regulatoryReport.length() > 11 {
         if regulatoryReport.substring(1, 9) == "ORDERRES" && isDebtor {
+            log:printDebug("Found ORDERRES pattern for debtor, returning country code: " +
+                        regulatoryReport.substring(10, 12));
             return regulatoryReport.substring(10, 12);
         }
+
         if regulatoryReport.substring(1, 9) == "BENEFRES" && !isDebtor {
+            log:printDebug("Found BENEFRES pattern for creditor, returning country code: " +
+                        regulatoryReport.substring(10, 12));
             return regulatoryReport.substring(10, 12);
         }
+
+        log:printDebug("Regulatory report pattern doesn't match current party type");
     }
+
+    log:printDebug("No valid country of residence found, returning null");
     return ();
 }
 
 isolated function getInfoFromField79ForPacs002(swiftmt:Nrtv[]? narrativeArray) returns
     [pacsIsoRecord:Max105Text[], string?, string?, string?, string?] {
+    log:printDebug("Starting getInfoFromField79ForPacs002 with narrativeArray: " + narrativeArray.toString());
+
     if narrativeArray is swiftmt:Nrtv[] {
         [pacsIsoRecord:Max105Text[], string?, string?, string?, string?] [addtnlInfo, messageId, endToEndId, uetr,
                 reason] = [];
+
+        log:printDebug("Processing " + narrativeArray.length().toString() + " narrative elements");
+
         foreach swiftmt:Nrtv narration in narrativeArray {
+            log:printDebug("Processing narration content: " + narration.content);
+
             if narration.content.startsWith("/MREF/") && narration.content.length() > 6 {
                 messageId = narration.content.substring(6);
+                log:printDebug("Found message ID: " + messageId.toString());
             }
+
             if narration.content.startsWith("/TREF/") && narration.content.length() > 6 {
                 endToEndId = narration.content.substring(6);
+                log:printDebug("Found end-to-end ID: " + endToEndId.toString());
             }
+
             if narration.content.startsWith("/TEXT//UETR/") && narration.content.length() > 12 {
                 uetr = narration.content.substring(12);
+                log:printDebug("Found UETR: " + uetr.toString());
             }
+
             if !narration.content.startsWith("/REJT/") && narration.content.length() > 4
                     && narration.content.substring(1, 5).matches(re `[A-Z]{2}[0-9]{2}`) {
                 reason = narration.content.substring(1, 5);
+                log:printDebug("Found reason code: " + reason.toString());
+
                 if narration.content.length() > 6 {
                     addtnlInfo.push(narration.content.substring(6));
+                    log:printDebug("Added additional info from reason: " + narration.content.substring(6));
                 }
             }
+
             if narration.content.startsWith("/TEXT/") && !narration.content.includes("/UETR/") &&
                     narration.content.length() > 6 {
                 addtnlInfo.push(narration.content.substring(6));
+                log:printDebug("Added additional info from /TEXT/: " + narration.content.substring(6));
             }
         }
+
+        log:printDebug("Returning info - additionalInfo: " + addtnlInfo.length().toString() +
+                    " items, messageId: " + messageId.toString() +
+                    ", endToEndId: " + endToEndId.toString() +
+                    ", uetr: " + uetr.toString() +
+                    ", reason: " + reason.toString());
         return [addtnlInfo, messageId, endToEndId, uetr, reason];
     }
+
+    log:printDebug("No narrative array provided, returning empty result");
     return [];
 }
 
 isolated function getCashAccount(swiftmt:PrtyIdn? acc1, swiftmt:PrtyIdn? acc2, swiftmt:PrtyIdn? acc3 = (), swiftmt:PrtyIdn? acc4 = ()) returns pacsIsoRecord:CashAccount40? {
+    log:printDebug("Starting getCashAccount with acc1: " + acc1.toString() +
+                ", acc2: " + acc2.toString() +
+                ", acc3: " + acc3.toString() +
+                ", acc4: " + acc4.toString());
+
     [string?, string?, string?] [_, iban, bban] = getPartyIdentifierOrAccount2(acc1, acc2, acc3, acc4);
+    log:printDebug("Retrieved identifier details - iban: " + iban.toString() + ", bban: " + bban.toString());
+
     if iban is () && bban is () {
+        log:printDebug("No valid IBAN or BBAN found, returning null");
         return ();
     }
-    return {
+
+    pacsIsoRecord:CashAccount40 result = {
         Id: {
             IBAN: iban,
             Othr: {
@@ -2560,16 +3782,34 @@ isolated function getCashAccount(swiftmt:PrtyIdn? acc1, swiftmt:PrtyIdn? acc2, s
             }
         }
     };
+
+    log:printDebug("Returning CashAccount40 with IBAN: " + iban.toString() + ", BBAN: " + bban.toString());
+    return result;
 }
 
 isolated function getFinancialInstitution(string? idnCd, swiftmt:Nm[]? name, swiftmt:PrtyIdn? prtyIdn1, swiftmt:PrtyIdn? prtyIdn2,
         swiftmt:PrtyIdn? prtyIdn3 = (), swiftmt:PrtyIdn? prtyIdn4 = (), swiftmt:AdrsLine[]? adrsLine1 = (),
         string? adrsLine2 = ()) returns pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? {
-    string? partyIdentifier = getPartyIdentifierOrAccount2(prtyIdn1, prtyIdn2, prtyIdn3, prtyIdn4)[0];
-    string[]? adrsLine = getAddressLine(adrsLine1, address3 = adrsLine2);
+    log:printDebug("Starting getFinancialInstitution with idnCd: " + idnCd.toString() +
+                ", name: " + name.toString() +
+                ", prtyIdn1: " + prtyIdn1.toString() +
+                ", prtyIdn2: " + prtyIdn2.toString() +
+                ", prtyIdn3: " + prtyIdn3.toString() +
+                ", prtyIdn4: " + prtyIdn4.toString() +
+                ", adrsLine1: " + adrsLine1.toString() +
+                ", adrsLine2: " + adrsLine2.toString());
 
-    if idnCd is string || name is swiftmt:Nm[] || partyIdentifier is string || adrsLine is string[] {
-        return {
+    string? partyIdentifier = getPartyIdentifierOrAccount2(prtyIdn1, prtyIdn2, prtyIdn3, prtyIdn4)[0];
+    log:printDebug("Retrieved party identifier: " + partyIdentifier.toString());
+
+    string[]? adrsLine = getAddressLine(adrsLine1, address3 = adrsLine2);
+    log:printDebug("Retrieved address lines: " + adrsLine.toString());
+
+    string? nameStr = getName(name);
+    log:printDebug("Retrieved name: " + nameStr.toString());
+
+    if idnCd is string || nameStr is string || partyIdentifier is string || adrsLine is string[] {
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8 result = {
             FinInstnId: {
                 BICFI: idnCd,
                 ClrSysMmbId: partyIdentifier is () ? () : {
@@ -2578,23 +3818,47 @@ isolated function getFinancialInstitution(string? idnCd, swiftmt:Nm[]? name, swi
                             Cd: partyIdentifier
                         }
                     },
-                Nm: getName(name),
+                Nm: nameStr,
                 PstlAdr: adrsLine is () ? () : {
                         AdrLine: adrsLine
                     }
             }
         };
+
+        log:printDebug("Returning financial institution with BICFI: " + idnCd.toString() +
+                    ", ClrSysMmbId: " + partyIdentifier.toString() +
+                    ", Name: " + nameStr.toString() +
+                    ", Address lines: " + (adrsLine is string[] ? adrsLine.length().toString() : "null"));
+        return result;
     }
+
+    log:printDebug("No valid institution identification data found, returning null");
     return ();
 }
 
 isolated function getCashAccount2(swiftmt:Acc? acc1, swiftmt:Acc? acc2, swiftmt:Acc? acc3 = (), swiftmt:PrtyIdn? acc4 = ()) returns pacsIsoRecord:CashAccount40? {
-    string? iban = getAccountId(validateAccountNumber(acc1, acc2, acc3)[0], getPartyIdentifierOrAccount(acc4)[1]);
-    string? bban = getAccountId(validateAccountNumber(acc1, acc2, acc3)[1], getPartyIdentifierOrAccount(acc4)[2]);
+    log:printDebug("Starting getCashAccount2 with acc1: " + acc1.toString() +
+                ", acc2: " + acc2.toString() +
+                ", acc3: " + acc3.toString() +
+                ", acc4: " + acc4.toString());
+
+    [string?, string?] validatedAccounts = validateAccountNumber(acc1, acc2, acc3);
+    log:printDebug("Validated account numbers: " + validatedAccounts.toString());
+
+    [string?, string?, string?, string?, string?] partyIdn = getPartyIdentifierOrAccount(acc4);
+    log:printDebug("Retrieved party identifiers: " + partyIdn.toString());
+
+    string? iban = getAccountId(validatedAccounts[0], partyIdn[1]);
+    string? bban = getAccountId(validatedAccounts[1], partyIdn[2]);
+
+    log:printDebug("Final account IDs - iban: " + iban.toString() + ", bban: " + bban.toString());
+
     if iban is () && bban is () {
+        log:printDebug("No valid IBAN or BBAN found, returning null");
         return ();
     }
-    return {
+
+    pacsIsoRecord:CashAccount40 result = {
         Id: {
             IBAN: iban,
             Othr: {
@@ -2605,17 +3869,45 @@ isolated function getCashAccount2(swiftmt:Acc? acc1, swiftmt:Acc? acc2, swiftmt:
             }
         }
     };
+
+    log:printDebug("Returning CashAccount40 with IBAN: " + iban.toString() +
+                ", BBAN: " + bban.toString() +
+                ", SchemeName: " + (bban == "NOTPROVIDED" ? "TXID" : "null"));
+    return result;
 }
 
 isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc? acc1, swiftmt:Acc? acc2,
         swiftmt:Acc? acc3, swiftmt:PrtyIdn? prtyIdn, swiftmt:Nm[]? name1, swiftmt:Nm[]? name2, swiftmt:AdrsLine[]? address1,
         swiftmt:AdrsLine[]? address2, swiftmt:CntyNTw[]? country = (), boolean isDebtor = false, swiftmt:Nrtv? narrative = ()) returns pacsIsoRecord:PartyIdentification272 {
+    log:printDebug("Starting getDebtorOrCreditor with identifierCode: " + identifierCode.toString() +
+                ", acc1: " + acc1.toString() +
+                ", acc2: " + acc2.toString() +
+                ", acc3: " + acc3.toString() +
+                ", prtyIdn: " + prtyIdn.toString() +
+                ", name1: " + name1.toString() +
+                ", name2: " + name2.toString() +
+                ", isDebtor: " + isDebtor.toString() +
+                ", narrative: " + narrative.toString());
+
     pacsIsoRecord:GenericOrganisationIdentification3[]? otherId = getOtherId(acc1, acc2, acc3, prtyIdn, isDebtor);
+    log:printDebug("Retrieved other IDs: " + otherId.toString());
+
     [string?, string?, string?, string?, string?] [partyIdentifier, _, _, code, issr] =
             getPartyIdentifierOrAccount(prtyIdn);
-    string[]? adrsLine = getAddressLineForDbtrOrCdtr(address1, address2, country);
+    log:printDebug("Retrieved party identifier: " + partyIdentifier.toString() +
+                ", code: " + code.toString() +
+                ", issuer: " + issr.toString());
 
-    return {
+    string[]? adrsLine = getAddressLineForDbtrOrCdtr(address1, address2, country);
+    log:printDebug("Retrieved address lines: " + adrsLine.toString());
+
+    string? nameStr = getName(name1, name2);
+    log:printDebug("Retrieved name: " + nameStr.toString());
+
+    string? ctryOfRes = getCountryOfResidence(narrative?.content, isDebtor);
+    log:printDebug("Retrieved country of residence: " + ctryOfRes.toString());
+
+    pacsIsoRecord:PartyIdentification272 result = {
         Id: identifierCode?.content is () && otherId is () && partyIdentifier is () ? () : {
                 OrgId: identifierCode?.content is () && otherId is () ? () : {
                         AnyBIC: identifierCode?.content,
@@ -2633,12 +3925,20 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
                         ]
                     }
             },
-        CtryOfRes: getCountryOfResidence(narrative?.content, isDebtor),
-        Nm: getName(name1, name2),
+        CtryOfRes: ctryOfRes,
+        Nm: nameStr,
         PstlAdr: adrsLine is () ? () : {
                 AdrLine: adrsLine
             }
     };
+
+    log:printDebug("Returning " + (isDebtor ? "debtor" : "creditor") + " with" +
+                " OrgId.AnyBIC: " + identifierCode?.content.toString() +
+                ", PrvtId.Othr.Id: " + partyIdentifier.toString() +
+                ", Name: " + nameStr.toString() +
+                ", CountryOfResidence: " + ctryOfRes.toString() +
+                ", Address lines: " + (adrsLine is string[] ? adrsLine.length().toString() : "null"));
+    return result;
 }
 
 # Extracts and returns address lines from the provided `AdrsLine` arrays.
@@ -2653,88 +3953,149 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
 # otherwise, returns `null`.
 isolated function getAddressLineForDbtrOrCdtr(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]? address2 = (),
         swiftmt:CntyNTw[]? country = ()) returns string[]? {
+    log:printDebug("Starting getAddressLineForDbtrOrCdtr with address1: " + address1.toString() +
+                ", address2: " + address2.toString() +
+                ", country: " + country.toString());
+
     swiftmt:AdrsLine[] finalAddress = [];
     string[] addressLine = [];
     boolean isOptionF = false;
+
     if address1 is swiftmt:AdrsLine[] {
         finalAddress = address1;
         isOptionF = true;
+        log:printDebug("Using address1 with " + address1.length().toString() + " lines, isOptionF=true");
     } else if address2 is swiftmt:AdrsLine[] {
         finalAddress = address2;
+        log:printDebug("Using address2 with " + address2.length().toString() + " lines, isOptionF=false");
     } else {
+        log:printDebug("No address lines found, returning null");
         return ();
     }
+
     if isOptionF {
+        log:printDebug("Processing address lines with Option F format");
+
         foreach swiftmt:AdrsLine address in finalAddress {
             addressLine.push("2/" + address.content);
+            log:printDebug("Added Option F address line: 2/" + address.content);
         }
+
         if country is swiftmt:CntyNTw[] {
             addressLine.push("3/" + country[0].content);
+            log:printDebug("Added Option F country line: 3/" + country[0].content);
         }
+
+        log:printDebug("Returning " + addressLine.length().toString() + " Option F address lines");
         return addressLine;
     }
-    return from swiftmt:AdrsLine adrsLine in finalAddress
+
+    log:printDebug("Processing address lines with standard format");
+    string[] result = from swiftmt:AdrsLine adrsLine in finalAddress
         select adrsLine.content;
+
+    log:printDebug("Returning " + result.length().toString() + " standard address lines");
+    return result;
 }
 
 isolated function getChargesAmount(string narration) returns camtIsoRecord:ChargesBreakdown1[]|error {
+    log:printDebug("Starting getChargesAmount with narration: " + narration);
+
     string amount = "";
     string currency = "";
     string code = "";
     boolean isAmount = false;
 
+    log:printDebug("Parsing narration character by character");
     foreach int i in 1 ... narration.length() - 1 {
         if isAmount && (narration.substring(i, i + 1).matches(re `^[0-9]$`) || narration.substring(i, i + 1) == ",") {
             amount += narration.substring(i, i + 1);
+            log:printDebug("Added digit to amount: " + narration.substring(i, i + 1) + ", current amount: " + amount);
             continue;
         }
         if narration.substring(i, i + 1) == "/" {
+            log:printDebug("Found '/' character at position " + i.toString());
+
             if isAmount {
+                log:printDebug("Already found amount, breaking loop");
                 break;
             }
+
             if narration.length() - 1 >= i + 3 {
                 currency = narration.substring(i + 1, i + 4);
+                log:printDebug("Extracted currency: " + currency);
             }
+
             code = narration.substring(1, i);
+            log:printDebug("Extracted code: " + code);
             isAmount = true;
         }
     }
+
+    log:printDebug("Parsing complete, raw amount: " + amount);
+
     if amount.endsWith(",") {
         amount = amount.substring(0, amount.length() - 1);
+        log:printDebug("Removed trailing comma, amount: " + amount);
     } else {
         amount = regex:replace(amount, "\\,", ".");
+        log:printDebug("Replaced commas with decimal points, amount: " + amount);
     }
-    return [
+
+    decimal decimalAmount = check decimal:fromString(amount);
+    log:printDebug("Converted to decimal: " + decimalAmount.toString());
+
+    camtIsoRecord:ChargesBreakdown1[] result = [
         {
-            Amt: {content: check decimal:fromString(amount), Ccy: currency},
+            Amt: {content: decimalAmount, Ccy: currency},
             Tp: {Cd: code},
             CdtDbtInd: "DBIT"
         }
     ];
-};
+
+    log:printDebug("Returning charges breakdown with amount: " + decimalAmount.toString() +
+                ", currency: " + currency +
+                ", code: " + code);
+
+    return result;
+}
 
 isolated function get103REJTSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) returns
     [string?, string?, pacsIsoRecord:StatusReasonInformation14[]]|error {
+    log:printDebug("Starting get103REJTSndRcvrInfoForPacs004 with sndRcvInfo: " + sndRcvInfo.toString());
+
     if sndRcvInfo is swiftmt:MT72 {
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
+        log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
+
         int index = 0;
         pacsIsoRecord:PaymentReturnReason7[] statusReasonArray = [];
         [string?, string?] [instructionId, endToEndId] = [];
+
         foreach int i in 0 ... infoArray.length() - 1 {
+            log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
+
             if index == i {
+                log:printDebug("Skipping already processed index");
                 continue;
             }
+
             if i + 1 <= infoArray.length() - 1 && !(infoArray[i + 1].matches(re `^[A-Z]{2,8}$`)) {
                 index = i + 1;
+
                 if infoArray[i].equalsIgnoreCaseAscii("MREF") {
                     instructionId = infoArray[i + 1];
+                    log:printDebug("Found MREF, setting instructionId: " + instructionId.toString());
                 } else if infoArray[i].equalsIgnoreCaseAscii("TREF") {
                     endToEndId = infoArray[i + 1];
+                    log:printDebug("Found TREF, setting endToEndId: " + endToEndId.toString());
                 } else if infoArray[i].equalsIgnoreCaseAscii("TEXT") {
+                    log:printDebug("Found TEXT, adding additional info: " + infoArray[i + 1]);
                     statusReasonArray.push({
                         AddtlInf: [infoArray[i + 1]]
                     });
                 } else if infoArray[i].matches(re `[A-Z]{2}[0-9]{2}`) {
+                    log:printDebug("Found reason code pattern: " + infoArray[i] + ", with additional info: " + infoArray[i + 1]);
                     statusReasonArray.push({
                         Rsn: {Cd: infoArray[i]},
                         AddtlInf: [infoArray[i + 1]]
@@ -2742,47 +4103,159 @@ isolated function get103REJTSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) retu
                 }
                 continue;
             }
+
             if infoArray[i].matches(re `[A-Z]{2}[0-9]{2}$`) {
+                log:printDebug("Found standalone reason code: " + infoArray[i]);
                 statusReasonArray.push({
                     Rsn: {Cd: infoArray[i]}
                 });
             }
         }
+
+        log:printDebug("Returning parsed information - instructionId: " + instructionId.toString() +
+                    ", endToEndId: " + endToEndId.toString() +
+                    ", statusReasons: " + statusReasonArray.length().toString());
+
         return [instructionId, endToEndId, statusReasonArray];
     }
+
+    log:printDebug("No sender-to-receiver information provided, returning empty result");
     return [];
 }
 
 isolated function getOrgnlUETR(string? narration) returns string? {
+    log:printDebug("Starting getOrgnlUETR with narration: " + narration.toString());
+
     if narration is string && narration.startsWith("/UETR/") && narration.length() > 6 {
+        log:printDebug("Found UETR pattern in narration");
+
         string narrative = "";
         foreach int i in 6 ... narration.length() - 1 {
             if narration.substring(i, i + 1) == "/" {
+                log:printDebug("Skipping '/' character at position " + i.toString());
                 continue;
             }
+
             narrative += narration.substring(i, i + 1);
+            log:printDebug("Building narrative, current: " + narrative);
+        }
+
+        if narrative != "" {
+            log:printDebug("Returning UETR: " + narrative);
+            return narrative;
         }
     }
+
+    log:printDebug("No valid UETR found, returning null");
     return ();
 }
 
 isolated function getChrgRqstrAndInstrFrAgt(string? narration) returns [string?, string?, string?] {
+    log:printDebug("Starting getChrgRqstrAndInstrFrAgt with narration: " + narration.toString());
+
     if narration is string {
         string[] infoArray = getCodeAndAddtnlInfo(narration);
+        log:printDebug("Parsed info array from narration: " + infoArray.toString());
+
         [string?, string?, string?] [chrgRqstr, instr, info] = [];
 
         foreach int i in 0 ... infoArray.length() - 1 {
+            log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
+
             if infoArray[i].equalsIgnoreCaseAscii("CHRQ") {
-                chrgRqstr = infoArray.length() > i ? infoArray[i + 1] : ();
+                chrgRqstr = infoArray.length() > i + 1 ? infoArray[i + 1] : ();
+                log:printDebug("Found CHRQ, setting charge requester: " + chrgRqstr.toString());
                 continue;
             }
+
             if infoArray[i].length() == 4 {
                 instr = infoArray[i];
-                info = infoArray.length() > i && !infoArray[i + 1].equalsIgnoreCaseAscii("CHRQ") ?
+                info = infoArray.length() > i + 1 && !infoArray[i + 1].equalsIgnoreCaseAscii("CHRQ") ?
                     infoArray[i + 1] : ();
+
+                log:printDebug("Found instruction code: " + instr.toString() + ", info: " + info.toString());
             }
         }
+
+        log:printDebug("Returning charge requester: " + chrgRqstr.toString() +
+                    ", instruction: " + instr.toString() +
+                    ", info: " + info.toString());
+
         return [chrgRqstr, instr, info];
     }
+
+    log:printDebug("No narration provided, returning empty result");
     return [];
+}
+
+isolated function getOriginalMsgNameAndId(swiftmt:Nrtv[]? narrativeArray) returns [string?, string?] {
+    log:printDebug("Starting getOriginalMsgNameAndId with narrativeArray: " + narrativeArray.toString());
+
+    if narrativeArray is () {
+        log:printDebug("No narrative array provided, returning null values");
+        return [];
+    }
+
+    [string?, string?] [originalMsgName, originalMsgId] = [];
+
+    foreach swiftmt:Nrtv narration in narrativeArray {
+        log:printDebug("Processing narration: " + narration.content);
+
+        if narration.content.startsWith("/MSGTYPE/") && narration.content.length() > 9 {
+            originalMsgName = narration.content.substring(9);
+            log:printDebug("Found original message type: " + originalMsgName.toString());
+        }
+
+        if narration.content.startsWith("/MSGID/") && narration.content.length() > 7 {
+            originalMsgId = narration.content.substring(7);
+            log:printDebug("Found original message ID: " + originalMsgId.toString());
+        }
+    }
+
+    log:printDebug("Returning originalMsgName: " + originalMsgName.toString() +
+                ", originalMsgId: " + originalMsgId.toString());
+    return [originalMsgName, originalMsgId];
+}
+
+isolated function extractStatusReason(swiftmt:Nrtv[]? narrativeArray) returns [string?, string[]?, string?] {
+    log:printDebug("Starting extractStatusReason with narrativeArray: " + narrativeArray.toString());
+
+    if narrativeArray is () {
+        log:printDebug("No narrative array provided, returning null values");
+        return [];
+    }
+
+    [string?, string[]?, string?] [reason, additionalInformation, statusId] = [];
+    string[] addInfo = [];
+
+    foreach swiftmt:Nrtv narration in narrativeArray {
+        log:printDebug("Processing narration: " + narration.content);
+
+        if narration.content.startsWith("/STAT/") && narration.content.length() > 6 {
+            statusId = narration.content.substring(6);
+            log:printDebug("Found status ID: " + statusId.toString());
+        }
+
+        if narration.content.startsWith("/RJCT/") && narration.content.length() > 6 {
+            reason = narration.content.substring(6, 10);
+            log:printDebug("Found rejection reason code: " + reason.toString());
+
+            if narration.content.length() > 10 {
+                addInfo.push(narration.content.substring(11));
+                log:printDebug("Added additional info: " + narration.content.substring(11));
+            }
+        }
+
+        if narration.content.startsWith("/ADDINFO/") && narration.content.length() > 9 {
+            addInfo.push(narration.content.substring(9));
+            log:printDebug("Added additional info from ADDINFO: " + narration.content.substring(9));
+        }
+    }
+
+    additionalInformation = addInfo.length() > 0 ? addInfo : ();
+
+    log:printDebug("Returning reason: " + reason.toString() +
+                ", additionalInformation: " + additionalInformation.toString() +
+                ", statusId: " + statusId.toString());
+    return [reason, additionalInformation, statusId];
 }

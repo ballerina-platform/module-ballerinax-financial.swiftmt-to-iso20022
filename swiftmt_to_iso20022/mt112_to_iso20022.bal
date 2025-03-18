@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/log;
 import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
 import ballerinax/financial.swift.mt as swiftmt;
 
@@ -44,13 +45,13 @@ isolated function transformMT112ToCamt109(swiftmt:MT112Message message) returns 
         MsgDefIdr: "camt.109.001.01",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         ChqCxlOrStopRpt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 NbOfChqs: "1",
                 MsgId: message.block4.MT20.msgId.content
             },
@@ -86,20 +87,42 @@ isolated function transformMT112ToCamt109(swiftmt:MT112Message message) returns 
 };
 
 isolated function getChequeStopStatus(string? narration) returns camtIsoRecord:ChequeCancellationStatus1 {
+    log:printDebug("Starting getChequeStopStatus with narration: " + narration.toString());
+
     if narration is string {
         string code = "";
+        log:printDebug("Parsing narration character by character to extract status code");
+
         foreach int i in 1 ... narration.length() - 1 {
             if narration.substring(i, i + 1) == "/" {
+                log:printDebug("Found '/' character at position " + i.toString() + ", extracted code: " + code);
+
                 if chequeCancelStatusCode[code] !is () {
+                    log:printDebug("Found matching status code in mapping: " + chequeCancelStatusCode[code].toString());
+
                     if narration.length() - 1 > i {
-                        return {Sts: {Cd: chequeCancelStatusCode[code]}, AddtlInf: narration.substring((i + 1))};
+                        string additionalInfo = narration.substring(i + 1);
+                        log:printDebug("Additional information available: " + additionalInfo);
+                        return {Sts: {Cd: chequeCancelStatusCode[code]}, AddtlInf: additionalInfo};
                     }
+
+                    log:printDebug("No additional information available");
                     return {Sts: {Cd: chequeCancelStatusCode[code]}};
                 }
+
+                log:printDebug("No matching status code found for: " + code);
                 break;
             }
+
             code += narration.substring(i, i + 1);
+            log:printDebug("Building code, current value: " + code);
         }
+
+        log:printDebug("Finished parsing narration, no valid status code found");
+    } else {
+        log:printDebug("No narration provided");
     }
+
+    log:printDebug("Returning default status code: NOTPROVIDED");
     return {Sts: {Cd: "NOTPROVIDED"}};
 }

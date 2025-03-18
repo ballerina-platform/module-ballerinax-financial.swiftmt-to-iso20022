@@ -47,17 +47,27 @@ isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pa
             MsgDefIdr: "pacs.002.001.14",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) 
+                    true).ensureType(string)
         },
         Document: {
             FIToFIPmtStsRpt: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) ,
+                            true).ensureType(string),
                     MsgId: message.block4.MT20.msgId.content
                 },
                 TxInfAndSts: [
                     {
+                        InstgAgt: {
+                            FinInstnId: {
+                                BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                            }
+                        },
+                        InstdAgt: {
+                            FinInstnId: {
+                                BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                            }
+                        },
                         OrgnlGrpInf: {
                             OrgnlMsgId: messageId is string ? messageId : "",
                             OrgnlMsgNmId: "MT" + message.block2.messageType

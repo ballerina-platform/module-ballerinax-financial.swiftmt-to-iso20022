@@ -48,13 +48,13 @@ isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns 
         MsgDefIdr: "pacs.003.001.11",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         FIToFICstmrDrctDbt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
                 },
@@ -204,13 +204,13 @@ isolated function transformMT104ToPain008(swiftmt:MT104Message message) returns 
         MsgDefIdr: "pain.008.001.11",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         CstmrDrctDbtInitn: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 InitgPty: message.block4.MT50C is () && message.block4.MT50L is () ? {} : {
                         Id: {
                             OrgId: message.block4.MT50C is () ? () : {

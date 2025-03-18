@@ -48,13 +48,13 @@ isolated function transformMT910Camt054(swiftmt:MT910Message message) returns ca
             MsgDefIdr: "camt054.001.12",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) 
+                    true).ensureType(string)
         },
         Document: {
             BkToCstmrDbtCdtNtfctn: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) ,
+                            true).ensureType(string),
                     MsgId: message.block4.MT20.msgId.content
                 },
                 Ntfctn: [

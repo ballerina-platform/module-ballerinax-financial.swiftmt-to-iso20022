@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/log;
 import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
 import ballerinax/financial.swift.mt as swiftmt;
 
@@ -44,13 +45,13 @@ isolated function transformMT111ToCamt108(swiftmt:MT111Message message) returns 
         MsgDefIdr: "camt.108.001.01",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         ChqCxlOrStopReq: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 NbOfChqs: "1",
                 MsgId: message.block4.MT20.msgId.content
             },
@@ -86,14 +87,17 @@ isolated function transformMT111ToCamt108(swiftmt:MT111Message message) returns 
 };
 
 isolated function getChequeStopReason(string? narration) returns camtIsoRecord:ChequeCancellationReason1? {
+    log:printDebug("Starting getChequeStopReason with narration: " + narration.toString());
     if narration is string {
         string code = "";
         foreach int i in 1 ... narration.length() - 1 {
             if narration.substring(i, i + 1) == "/" {
                 if chequeCancelReasonCode[code] !is () {
                     if narration.length() - 1 > i {
+                        log:printDebug("Found cheque cancellation reason code: " + code);
                         return {Rsn: {Cd: chequeCancelReasonCode[code]}, AddtlInf: narration.substring((i + 1))};
                     }
+                    log:printDebug("Found cheque cancellation reason code: " + code);
                     return {Rsn: {Cd: chequeCancelReasonCode[code]}};
                 }
                 break;
@@ -101,5 +105,6 @@ isolated function getChequeStopReason(string? narration) returns camtIsoRecord:C
             code += narration.substring(i, i + 1);
         }
     }
+    log:printDebug("No cheque cancellation reason found for narration: " + narration.toString());
     return ();
 }

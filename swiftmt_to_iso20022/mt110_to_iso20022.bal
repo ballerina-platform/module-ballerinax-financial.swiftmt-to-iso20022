@@ -46,13 +46,13 @@ isolated function transformMT110ToCamt107(swiftmt:MT110Message message)
             MsgDefIdr: "camt107.001.01",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) 
+                    true).ensureType(string)
         },
         Document: {
             ChqPresntmntNtfctn: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) ,
+                            true).ensureType(string),
                     NbOfChqs: chequesInfo.length().toString(),
                     MsgId: message.block4.MT20.msgId.content
                 },

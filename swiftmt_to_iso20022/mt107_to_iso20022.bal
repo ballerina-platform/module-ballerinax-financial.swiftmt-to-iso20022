@@ -47,13 +47,13 @@ isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns 
         MsgDefIdr: "pacs.003.001.11",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         FIToFICstmrDrctDbt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
                 },

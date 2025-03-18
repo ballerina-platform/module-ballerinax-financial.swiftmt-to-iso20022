@@ -44,13 +44,13 @@ isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns 
         MsgDefIdr: "pacs.010.001.06",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) 
+                true).ensureType(string)
     },
     Document: {
         FIDrctDbt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) ,
+                        true).ensureType(string),
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: message.block4.MT20.msgId.content,
                 CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
@@ -67,6 +67,16 @@ isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns 
             },
             CdtInstr: [
                 {
+                    InstgAgt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    },
+                    InstdAgt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    },
                     Cdtr: getFinancialInstitution(message.block4.MT58A?.IdnCd?.content, message.block4.MT58D?.Nm,
                             message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn, (), (),
                             message.block4.MT58D?.AdrsLine) ?: {FinInstnId: {}},

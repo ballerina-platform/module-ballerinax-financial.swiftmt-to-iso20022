@@ -47,13 +47,13 @@ isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns 
             MsgDefIdr: "camt106.001.02",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) 
+                    true).ensureType(string)
         },
         Document: {
             ChrgsPmtReq: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) ,
+                            true).ensureType(string),
                     MsgId: message.block4.MT20.msgId.content,
                     ChrgsAcctAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
                             message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
