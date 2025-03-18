@@ -44,13 +44,13 @@ isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns 
         MsgDefIdr: "pacs.010.001.06",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + DEFAULT_TIME_OFFSET
+                true).ensureType(string) 
     },
     Document: {
         FIDrctDbt: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                        true).ensureType(string) ,
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: message.block4.MT20.msgId.content,
                 CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),

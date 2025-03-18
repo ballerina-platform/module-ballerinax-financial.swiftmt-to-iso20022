@@ -46,13 +46,13 @@ isolated function transformMT200ToPacs009(swiftmt:MT200Message message) returns 
         MsgDefIdr: "pacs.009.001.11",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + DEFAULT_TIME_OFFSET
+                true).ensureType(string) 
     },
     Document: {
         FICdtTrf: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                        true).ensureType(string) ,
                 SttlmInf: {
                     SttlmMtd: getSettlementMethod(mt53B = message.block4.MT53B)
                 },
@@ -128,14 +128,14 @@ isolated function transformMT200ToCamt050(swiftmt:MT200Message message) returns 
         BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "camt.050.001.07",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + DEFAULT_TIME_OFFSET
+                true).ensureType(string) 
     },
     Document: {
         LqdtyCdtTrf: {
             MsgHdr: {
                 MsgId: uuid:createType4AsString().substring(0, 35),
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + DEFAULT_TIME_OFFSET
+                        true).ensureType(string) 
             },
             LqdtyCdtTrf: {
                 LqdtyTrfId: {

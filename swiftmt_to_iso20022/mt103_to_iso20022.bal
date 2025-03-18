@@ -55,13 +55,13 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
             MsgDefIdr: "pacs.008.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+                    true).ensureType(string) 
         },
         Document: {
             FIToFICstmrCdtTrf: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                            true).ensureType(string) ,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
                         InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
@@ -222,13 +222,13 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
             MsgDefIdr: "pacs.008.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+                    true).ensureType(string) 
         },
         Document: {
             FIToFICstmrCdtTrf: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                            true).ensureType(string) ,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B),
                         InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
@@ -370,13 +370,13 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
             MsgDefIdr: "pacs.008.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+                    true).ensureType(string) 
         },
         Document: {
             FIToFICstmrCdtTrf: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                            true).ensureType(string) ,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B,
                                 message.block4.MT53D),
@@ -530,13 +530,13 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
             MsgDefIdr: "pacs.004.001.09",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+                    true).ensureType(string) 
         },
         Document: {
             PmtRtr: {
                 GrpHdr: {
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                            true).ensureType(string) ,
                     SttlmInf: {
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
                         SttlmAcct: getCashAccount(message.block4.MT53B?.PrtyIdn, ())
@@ -625,14 +625,14 @@ isolated function transformMT103ToPacs002(swiftmt:MT103Message message)
             MsgDefIdr: "pacs.002.001.10",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                    true).ensureType(string) + DEFAULT_TIME_OFFSET
+                    true).ensureType(string) 
         },
         Document: {
             FIToFIPmtStsRpt: {
                 GrpHdr: {
                     MsgId: message.block4.MT20.msgId.content,
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                            true).ensureType(string) + DEFAULT_TIME_OFFSET
+                            true).ensureType(string) 
                 },
                 TxInfAndSts: [
                     {

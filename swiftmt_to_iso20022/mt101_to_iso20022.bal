@@ -47,13 +47,13 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
         MsgDefIdr: "pain.001.001.12",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + DEFAULT_TIME_OFFSET
+                true).ensureType(string) 
     },
     Document: {
         CstmrCdtTrfInitn: {
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                        true).ensureType(string) ,
                 InitgPty: {
                     Id: message.block4.MT50C?.IdnCd?.content is () && message.block4.MT50L?.PrtyIdn is () ? () : {
                             OrgId: message.block4.MT50C?.IdnCd?.content is () ? () : {

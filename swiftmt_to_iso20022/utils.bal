@@ -1293,6 +1293,11 @@ isolated function convertToISOStandardDateMandatory(swiftmt:Dt date) returns str
 isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? time, boolean isCreationDateTime = false)
     returns string? {
     if date is swiftmt:Dt && time is swiftmt:Tm {
+        if isCreationDateTime {
+            return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
+            date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" +
+            time.content.substring(2, 4) + ":00" + DEFAULT_TIME_OFFSET;
+        }
         return YEAR_PREFIX + date.content.substring(0, 2) + "-" + date.content.substring(2, 4) + "-" +
             date.content.substring(4, 6) + "T" + time.content.substring(0, 2) + ":" +
             time.content.substring(2, 4) + ":00";

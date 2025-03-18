@@ -47,13 +47,13 @@ isolated function transformMTn95ToCamt026(swiftmt:MTn95Message message) returns 
         MsgDefIdr: "camt026.001.10",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string) + DEFAULT_TIME_OFFSET
+                true).ensureType(string) 
     },
     Document: {
         UblToApply: {
             Assgnmt: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string) + DEFAULT_TIME_OFFSET,
+                        true).ensureType(string) ,
                 Assgne: {
                     Agt: {
                         FinInstnId: {
