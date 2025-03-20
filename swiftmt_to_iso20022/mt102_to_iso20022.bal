@@ -45,7 +45,7 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
             }
         },
         BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.008.001.12",
+        MsgDefIdr: "pacs.008.001.08",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)
@@ -209,7 +209,7 @@ isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns p
             }
         },
         BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.008.001.12",
+        MsgDefIdr: "pacs.008.001.08",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)

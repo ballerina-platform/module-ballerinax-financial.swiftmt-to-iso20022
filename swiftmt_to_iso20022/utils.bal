@@ -1493,7 +1493,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
                 if additionalInfo[i] is string {
                     log:printDebug("Processing INS/INTA with additional info: " + additionalInfo[i].toString());
 
-                    if additionalInfo[i].toString().length() == 8 &&
+                    if additionalInfo[i].toString().length() >= 8 &&
                         additionalInfo[i].toString().substring(0, 6).matches(re `^[A-Z]+$`) &&
                         additionalInfo[i].toString().substring(6, 7).matches(re `^[A-Z2-9]+$`) &&
                         additionalInfo[i].toString().substring(7).matches(re `^[A-NP-Z0-9]+$`) {
@@ -2754,7 +2754,7 @@ isolated function getCancellationReasonCode(swiftmt:MT79? narrative) returns str
     log:printDebug("Checking first narrative element: " + narrative.Nrtv[0].content);
 
     foreach string code in REASON_CODE {
-        if code.equalsIgnoreCaseAscii(narrative.Nrtv[0].content) {
+        if narrative.Nrtv[0].content.includes(code) {
             log:printDebug("Found matching reason code: " + code);
             return code;
         }
@@ -2783,6 +2783,9 @@ isolated function getAdditionalCancellationInfo(swiftmt:MT79? narrative) returns
     log:printDebug("Processing " + (narrative.Nrtv.length() - 1).toString() + " additional narrative elements");
 
     foreach int i in 1 ... narrative.Nrtv.length() - 1 {
+        if narrative.Nrtv[i].content.includes("/UETR/") {
+            continue;
+        }
         additionalInfo.push(narrative.Nrtv[i].content);
         log:printDebug("Added additional info: " + narrative.Nrtv[i].content);
     }
@@ -2791,8 +2794,8 @@ isolated function getAdditionalCancellationInfo(swiftmt:MT79? narrative) returns
         log:printDebug("Returning " + additionalInfo.length().toString() + " additional info elements");
         return additionalInfo;
     } else {
-        log:printDebug("No additional info found, returning null");
-        return ();
+        additionalInfo.push("NOTPROVIDED");
+        return additionalInfo;
     }
 }
 
@@ -2971,48 +2974,29 @@ isolated function getCancellationReason(string narration) returns camtIsoRecord:
     log:printDebug("Starting getCancellationReason with narration: " + narration);
 
     camtIsoRecord:CancellationStatusReason5[] cancellationReasonArray = [];
-    string[] answersArray = getCodeAndAddtnlInfo(narration);
-
-    log:printDebug("Parsed answers array from narration: " + answersArray.toString());
-
-    foreach int i in 0 ... answersArray.length() - 1 {
-        log:printDebug("Processing answer[" + i.toString() + "]: " + answersArray[i]);
-
-        if answersArray[i].length() <= 2 || answersArray[i].length() == 4 {
-            log:printDebug("Valid code length found: " + answersArray[i]);
-
-            if i != answersArray.length() - 1 {
-                if answersArray[i + 1].length() > 4 {
-                    log:printDebug("Found additional info: " + answersArray[i + 1]);
-                    cancellationReasonArray.push({
-                        Rsn: {
-                            Cd: answersArray[i]
-                        },
-                        AddtlInf: [answersArray[i + 1]]
-                    });
-                    log:printDebug("Added cancellation reason with additional info");
-                    continue;
-                }
-
-                log:printDebug("No valid additional info, adding reason without additional info");
-                cancellationReasonArray.push({
-                    Rsn: {
-                        Cd: answersArray[i]
-                    }
-                });
-                continue;
-            }
-
-            log:printDebug("Last item, adding reason without additional info");
-            cancellationReasonArray.push({
-                Rsn: {
-                    Cd: answersArray[i]
-                }
-            });
+    string code = "";
+    string additionalInfo = "";
+    string:RegExp reg = re `(CNCL|PDCR|RJCR).*`;
+    if reg.isFullMatch(narration) {
+        if regex:matches(narration.substring(6), "(AC04|AGNT|AM04|ARDT|CUST|INDM|LEGL|NOAS|NOOR|PTNA|RQDA).*") {
+            code = narration.substring(6, 10);
+            additionalInfo = narration.substring(10);
+        } else if (narration.substring(1, 5).equalsIgnoreCaseAscii("RJCR")) {
+            code = "NARR";
+            additionalInfo = narration.substring(6, narration.length());
         } else {
-            log:printDebug("Invalid code length, not adding to results: " + answersArray[i]);
+            log:printDebug("Invalid code, not adding to results: " + code);
+            return cancellationReasonArray;
         }
     }
+
+    log:printDebug("Last item, adding reason without additional info");
+    cancellationReasonArray.push({
+        Rsn: {
+            Cd: code
+        },
+        AddtlInf: additionalInfo != "" ? [additionalInfo] : []
+    });
 
     log:printDebug("Returning " + cancellationReasonArray.length().toString() + " cancellation reasons");
     return cancellationReasonArray;
@@ -3249,7 +3233,7 @@ isolated function getOtherId(swiftmt:Acc? account1, swiftmt:Acc? account2, swift
             {
                 Id: "NOTPROVIDED",
                 SchmeNm: {
-                    Cd: "TxId"
+                    Cd: "TXID"
                 }
             }
         ];
@@ -3294,7 +3278,8 @@ isolated function getDebtorAgent(swiftmt:MT910Block4 block4) returns
     }
 
     log:printDebug("Getting financial institution from MT52A/MT52D");
-    var result = getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? result =
+        getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
             block4.MT52D?.PrtyIdn, (), (), block4.MT52D?.AdrsLine);
 
     log:printDebug("Returning debtor agent: " + result.toString());
@@ -3307,7 +3292,8 @@ isolated function getDebtorAgent2(swiftmt:MT910Block4 block4) returns
 
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
         log:printDebug("MT50A, MT50F, or MT50K is present, getting financial institution from MT52A/MT52D");
-        var result = getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? result =
+            getFinancialInstitution(block4.MT52A?.IdnCd?.content, block4.MT52D?.Nm, block4.MT52A?.PrtyIdn,
                 block4.MT52D?.PrtyIdn, (), (), block4.MT52D?.AdrsLine);
 
         log:printDebug("Returning debtor agent: " + result.toString());
@@ -3323,7 +3309,7 @@ isolated function getDebtor(swiftmt:MT910Block4 block4) returns pacsIsoRecord:Pa
 
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
         log:printDebug("MT50A, MT50F, or MT50K is present, getting debtor information");
-        var result = getDebtorOrCreditor(block4.MT50A?.IdnCd, block4.MT50A?.Acc,
+        pacsIsoRecord:PartyIdentification272? result = getDebtorOrCreditor(block4.MT50A?.IdnCd, block4.MT50A?.Acc,
                 block4.MT50K?.Acc, (), block4.MT50F?.PrtyIdn,
                 block4.MT50F?.Nm, block4.MT50K?.Nm,
                 block4.MT50F?.AdrsLine, block4.MT50K?.AdrsLine,
@@ -3342,14 +3328,14 @@ isolated function getDebtorAccount(swiftmt:MT910Block4 block4) returns pacsIsoRe
 
     if block4.MT50A is swiftmt:MT50A || block4.MT50F is swiftmt:MT50F || block4.MT50K is swiftmt:MT50K {
         log:printDebug("MT50A, MT50F, or MT50K is present, getting cash account from MT50 fields");
-        var result = getCashAccount2(block4.MT50A?.Acc, block4.MT50K?.Acc, (), block4.MT50F?.PrtyIdn);
+        pacsIsoRecord:CashAccount40? result = getCashAccount2(block4.MT50A?.Acc, block4.MT50K?.Acc, (), block4.MT50F?.PrtyIdn);
 
         log:printDebug("Returning debtor account from MT50 fields: " + result.toString());
         return result;
     }
 
     log:printDebug("No MT50A, MT50F, or MT50K present, getting cash account from MT52 fields");
-    var result = getCashAccount(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn);
+    pacsIsoRecord:CashAccount40? result = getCashAccount(block4.MT52A?.PrtyIdn, block4.MT52D?.PrtyIdn);
 
     log:printDebug("Returning debtor account from MT52 fields: " + result.toString());
     return result;
@@ -3385,17 +3371,16 @@ isolated function getDebtorForPacs004(swiftmt:MT50A? field50A, swiftmt:MT50F? fi
 
     log:printDebug("Constructing Party information");
     var partyId = getPartyIdentifierOrAccount(field50F?.PrtyIdn);
-    var countryTown = getCountryAndTown(field50F?.CntyNTw);
-    var addressLine = getAddressLine(field50F?.AdrsLine, field50K?.AdrsLine);
-    var name = getName(field50F?.Nm, field50K?.Nm);
-    var ctryOfRes = getCountryOfResidence(regulatoryReport, true);
+    string[]? addressLine = getAddressLineForDbtrOrCdtr(field50F?.AdrsLine, field50K?.AdrsLine, field50F?.CntyNTw);
+    string? name = getName(field50F?.Nm, field50K?.Nm);
+    string? ctryOfRes = getCountryOfResidence(regulatoryReport, true);
 
     pacsIsoRecord:Party50Choice result = {
         Pty: {
             Id: {
                 OrgId: {
                     AnyBIC: field50A?.IdnCd?.content,
-                    Othr: getOtherId((), ())
+                    Othr: getOtherId((), (), isDebtor = true)
                 },
                 PrvtId: {
                     Othr: [
@@ -3412,9 +3397,7 @@ isolated function getDebtorForPacs004(swiftmt:MT50A? field50A, swiftmt:MT50F? fi
             Nm: name,
             CtryOfRes: ctryOfRes,
             PstlAdr: {
-                AdrLine: addressLine,
-                Ctry: countryTown[0],
-                TwnNm: countryTown[1]
+                AdrLine: addressLine
             }
         }
     };
@@ -3451,10 +3434,9 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
     }
 
     log:printDebug("Constructing Party information");
-    var name = getName(field59F?.Nm, field59?.Nm);
-    var addressLine = getAddressLine(field59F?.AdrsLine, field59?.AdrsLine);
-    var countryTown = getCountryAndTown(field59F?.CntyNTw);
-    var ctryOfRes = getCountryOfResidence(regulatoryReport, false);
+    string? name = getName(field59F?.Nm, field59?.Nm);
+    string[]? addressLine = getAddressLineForDbtrOrCdtr(field59F?.AdrsLine, field59?.AdrsLine, field59F?.CntyNTw);
+    string? ctryOfRes = getCountryOfResidence(regulatoryReport, false);
 
     pacsIsoRecord:Party50Choice result = {
         Pty: {
@@ -3467,9 +3449,7 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
             Nm: name,
             CtryOfRes: ctryOfRes,
             PstlAdr: {
-                AdrLine: addressLine,
-                Ctry: countryTown[0],
-                TwnNm: countryTown[1]
+                AdrLine: addressLine
             }
         }
     };
@@ -3478,7 +3458,7 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
     return result;
 }
 
-isolated function get103RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) returns
+isolated function get103Or202RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) returns
     [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]]|error {
     log:printDebug("Starting get103RETNSndRcvrInfoForPacs004 with sndRcvInfo: " + sndRcvInfo.toString());
 
@@ -3486,26 +3466,18 @@ isolated function get103RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) retu
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
         log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
 
-        int index = 0;
         pacsIsoRecord:PaymentReturnReason7[] returnReasonArray = [];
         pacsIsoRecord:Charges16[] chargesInfoArray = [];
         [string?, string?] [instructionId, endToEndId] = [];
 
-        foreach int i in 0 ... infoArray.length() - 1 {
+        foreach int i in 1 ... infoArray.length() - 1 {
             log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
 
-            if index == i {
-                log:printDebug("Skipping already processed index");
-                continue;
-            }
-
-            if i + 1 <= infoArray.length() - 1 && !(infoArray[i + 1].matches(re `^[A-Z]{2,8}$`)) {
-                index = i + 1;
-
-                if infoArray[i].equalsIgnoreCaseAscii("MREF") {
+            if i + 1 <= infoArray.length() - 1 && (infoArray[i].trim().matches(re `^[A-Z]{4}$`)) {
+                if infoArray[i].includes("MREF") {
                     instructionId = infoArray[i + 1];
                     log:printDebug("Found MREF, setting instructionId: " + instructionId.toString());
-                } else if infoArray[i].equalsIgnoreCaseAscii("TREF") {
+                } else if infoArray[i].includes("TREF") {
                     endToEndId = infoArray[i + 1];
                     log:printDebug("Found TREF, setting endToEndId: " + endToEndId.toString());
                 } else if infoArray[i].equalsIgnoreCaseAscii("CHGS") && infoArray[i + 1].matches(re `^[A-Z]{3}\d{1,15},\d{0,5}$`) {
@@ -3539,7 +3511,7 @@ isolated function get103RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo) retu
                 continue;
             }
 
-            if infoArray[i].matches(re `[A-Z]{2}[0-9]{2}$`) {
+            if infoArray[i].matches(re `[A-Z]{2}[0-9]{2}$`) && infoArray[i].length() == 4 {
                 log:printDebug("Found standalone reason code: " + infoArray[i]);
                 returnReasonArray.push({
                     Rsn: {Cd: infoArray[i]}
@@ -3624,25 +3596,17 @@ isolated function get202Or205RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo)
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
         log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
 
-        int index = 0;
         pacsIsoRecord:PaymentReturnReason7[] returnReasonArray = [];
         string? instructionId = ();
 
-        foreach int i in 0 ... infoArray.length() - 1 {
+        foreach int i in 1 ... infoArray.length() - 1 {
             log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
 
-            if index == i {
-                log:printDebug("Skipping already processed index");
-                continue;
-            }
-
-            if i + 1 <= infoArray.length() - 1 && !(infoArray[i + 1].matches(re `^[A-Z]{2,8}$`)) {
-                index = i + 1;
-
-                if infoArray[i].equalsIgnoreCaseAscii("MREF") {
+            if i + 1 <= infoArray.length() - 1 && (infoArray[i].trim().matches(re `^[A-Z]{4}$`)) {
+                if infoArray[i].includes("MREF") {
                     instructionId = infoArray[i + 1];
                     log:printDebug("Found MREF, setting instructionId: " + instructionId.toString());
-                } else if infoArray[i].equalsIgnoreCaseAscii("TEXT") {
+                } else if infoArray[i].includes("TEXT") {
                     log:printDebug("Found TEXT, adding additional info: " + infoArray[i + 1]);
                     returnReasonArray.push({
                         AddtlInf: [infoArray[i + 1]]
@@ -3657,7 +3621,7 @@ isolated function get202Or205RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo)
                 continue;
             }
 
-            if infoArray[i].matches(re `^[A-Z]{2}[0-9]{2}$`) {
+            if infoArray[i].matches(re `^[A-Z]{2}[0-9]{2}$`) && infoArray[i].length() == 4 {
                 log:printDebug("Found standalone reason code: " + infoArray[i]);
                 returnReasonArray.push({
                     Rsn: {Cd: infoArray[i]}
@@ -3733,7 +3697,11 @@ isolated function getInfoFromField79ForPacs002(swiftmt:Nrtv[]? narrativeArray) r
                 log:printDebug("Found reason code: " + reason.toString());
 
                 if narration.content.length() > 6 {
-                    addtnlInfo.push(narration.content.substring(6));
+                    if narration.content.endsWith("/") {
+                        addtnlInfo.push(narration.content.substring(6, narration.content.length() - 1));
+                    } else {
+                        addtnlInfo.push(narration.content.substring(6));
+                    }
                     log:printDebug("Added additional info from reason: " + narration.content.substring(6));
                 }
             }

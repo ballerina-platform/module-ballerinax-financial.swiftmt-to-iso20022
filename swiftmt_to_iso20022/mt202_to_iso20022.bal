@@ -52,7 +52,7 @@ isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pa
                 }
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
-            MsgDefIdr: "pacs.009.001.09",
+            MsgDefIdr: "pacs.009.001.08",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
@@ -172,7 +172,7 @@ isolated function transformMT202COVToPacs009(swiftmt:MT202COVMessage message)
             }
         },
         BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.009.001.09",
+        MsgDefIdr: "pacs.009.001.08",
         BizSvc: "swift.cbprplus.cov.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)
@@ -408,6 +408,7 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
                             }
                         },
                         RtrId: message.block4.MT20.msgId.content,
+                        OrgnlEndToEndId: message.block4.MT21.Ref.content,
                         OrgnlUETR: message.block3?.NdToNdTxRef?.value,
                         OrgnlInstrId: instructionId,
                         RtrdIntrBkSttlmAmt: {
@@ -419,6 +420,7 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
                                 CdtDtTm: crdtTime,
                                 DbtDtTm: dbitTime
                             },
+                        ChrgBr: "SHAR",
                         RtrChain: {
                             Cdtr: {
                                 Agt: getFinancialInstitution(message.block4.MT58A?.IdnCd?.content, message.block4.MT58D?.Nm,

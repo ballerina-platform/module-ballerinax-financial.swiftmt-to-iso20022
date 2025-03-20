@@ -507,7 +507,7 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
     [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
     pacsIsoRecord:Charges16[]? charges = check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
     [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]] [instructionId, endToEndId,
-        returnReasonArray, sndRcvrInfoChrgs] = check get103RETNSndRcvrInfoForPacs004(message.block4.MT72)
+        returnReasonArray, sndRcvrInfoChrgs] = check get103Or202RETNSndRcvrInfoForPacs004(message.block4.MT72)
     in {
         AppHdr: {
             Fr: {

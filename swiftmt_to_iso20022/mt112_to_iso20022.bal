@@ -59,6 +59,7 @@ isolated function transformMT112ToCamt109(swiftmt:MT112Message message) returns 
                 {
                     IsseDt: convertToISOStandardDateMandatory(message.block4.MT30.Dt),
                     ChqNb: message.block4.MT21.Ref.content,
+                    OrgnlInstrId: "NOTPROVIDED",
                     InstrId: message.block4.MT20.msgId.content,
                     Amt: message.block4.MT32A is () ? {
                             content: check convertToDecimalMandatory(message.block4.MT32B?.Amnt),

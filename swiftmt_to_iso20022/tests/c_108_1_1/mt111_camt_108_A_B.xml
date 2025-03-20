@@ -45,6 +45,7 @@
       </camt:GrpHdr>
       <camt:Chq>
         <camt:InstrId>camt108bzmsgidr1</camt:InstrId>
+        <camt:OrgnlInstrId>NOTPROVIDED</camt:OrgnlInstrId>
         <camt:ChqNb>102145</camt:ChqNb>
         <camt:IsseDt>2022-10-20</camt:IsseDt>
         <camt:Amt Ccy="GBP">25250</camt:Amt>

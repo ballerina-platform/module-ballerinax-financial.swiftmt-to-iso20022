@@ -44,7 +44,7 @@ isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pa
                 }
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
-            MsgDefIdr: "pacs.002.001.14",
+            MsgDefIdr: "pacs.002.001.10",
             BizSvc: "swift.cbprplus.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
@@ -72,6 +72,8 @@ isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pa
                             OrgnlMsgId: messageId is string ? messageId : "",
                             OrgnlMsgNmId: "MT" + message.block2.messageType
                         },
+                        TxSts: message.block4.MT79.Nrtv[0].content.startsWith("/REJT/") ? "RJCT" :
+                                message.block4.MT79.Nrtv[0].content.startsWith("/REJT/") ? "RETN" : "ACSC",
                         OrgnlInstrId: message.block4.MT21?.Ref?.content,
                         OrgnlEndToEndId: endToEndId,
                         OrgnlUETR: uetr is string ? uetr : message.block3?.NdToNdTxRef?.value,

@@ -41,7 +41,7 @@ isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns 
             }
         },
         BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "camt052.001.12",
+        MsgDefIdr: "camt.052.001.08",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)

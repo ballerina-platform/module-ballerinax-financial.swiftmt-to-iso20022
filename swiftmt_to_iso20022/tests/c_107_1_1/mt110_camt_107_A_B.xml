@@ -32,11 +32,11 @@
       </head:FIId>
     </head:To>
     <head:BizMsgIdr>camt107bzmsgidr1</head:BizMsgIdr>
-    <head:MsgDefIdr>camt107.001.01</head:MsgDefIdr>
+    <head:MsgDefIdr>camt.107.001.01</head:MsgDefIdr>
     <head:BizSvc>swift.cbprplus.02</head:BizSvc>
     <head:CreDt>2022-10-20T09:05:00+00:00</head:CreDt>
   </head:AppHdr>
-  <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt107.001.01">
+  <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.107.001.01">
     <camt:ChqPresntmntNtfctn>
       <camt:GrpHdr>
         <camt:MsgId>camt107bzmsgidr1</camt:MsgId>

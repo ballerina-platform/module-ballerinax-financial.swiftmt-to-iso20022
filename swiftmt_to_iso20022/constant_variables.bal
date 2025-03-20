@@ -150,7 +150,7 @@ final readonly & map<isolated function> transformFunctionMap =
     "112": transformMT112ToCamt109,
     "190": transformMTn90ToCamt105,
     "191": transformMTn91ToCamt106,
-    "192": transformMTn92ToCamt055,
+    "192": transformMTn92ToCamt056,
     "195": transformMTn95ToCamt026,
     "196": transformMTn96ToCamt029,
     "199": transformMTn99Pacs002,
