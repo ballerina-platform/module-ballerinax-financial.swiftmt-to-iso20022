@@ -79,12 +79,12 @@ isolated function handleMT104MessageInstruction(swiftmt:MT104Message message) re
 
     if isValidInstructionCode(instructionCode) {
         log:printDebug("Valid instruction code found for pacs.003: " + instructionCode);
-        return xmldata:toXml(check transformMT104ToPacs003(message));
+        return xmldata:toXml(check transformMT104ToPacs003(message), {textFieldName: "content"});
     }
 
     if isValidInstructionCode(instructionCode, true) {
         log:printDebug("Valid instruction code found for pain.008: " + instructionCode);
-        return xmldata:toXml(check transformMT104ToPain008(message));
+        return xmldata:toXml(check transformMT104ToPain008(message), {textFieldName: "content"});
     }
 
     log:printDebug("Message rejected due to unsupported instruction code");
@@ -1017,13 +1017,14 @@ isolated function getAccountId(string? account, string? prtyIdn) returns string?
 #
 # + sndsChrgs - An optional `swiftmt:MT71F` object that contains information about sender's charges.
 # + rcvsChrgs - An optional `swiftmt:MT71G` object that contains information about receiver's charges.
+# + receiver - The BIC code of the receiver.
 # + return - An array of `camtIsoRecord:Charges16` containing two entries:
 # - The first entry includes the sender's charges amount and currency, with a charge type of "CRED".
 # - The second entry includes the receiver's charges amount and currency, with a charge type of "DEBT".
 #
 # The function uses helper methods `convertToDecimalMandatory` to convert the amount and 
 # `getMandatoryFields` to fetch the currency.
-isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71G? rcvsChrgs)
+isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71G? rcvsChrgs, string? receiver)
     returns camtIsoRecord:Charges16[]?|error {
     log:printDebug("Starting getChargesInformation with sndsChrgs: " + sndsChrgs.toString() +
                 ", rcvsChrgs: " + rcvsChrgs.toString());
@@ -1067,8 +1068,7 @@ isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71
             },
             Agt: {
                 FinInstnId: {
-                    Nm: "NOTPROVIDED",
-                    PstlAdr: {AdrLine: ["NOTPROVIDED"]}
+                    BICFI: receiver
                 }
             }
         });
@@ -2721,7 +2721,7 @@ isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo 
         return cstmRefNum;
     }
 
-    if remmitanceInfo is string && remmitanceInfo.substring(1, 4).equalsIgnoreCaseAscii("ROC") {
+    if remmitanceInfo is string && remmitanceInfo.length() > 3 && remmitanceInfo.substring(1, 4).equalsIgnoreCaseAscii("ROC") {
         string result = remmitanceInfo.substring(5);
         log:printDebug("Using ROC remittance info as end-to-end ID: " + result);
         return result;
@@ -2733,7 +2733,7 @@ isolated function getEndToEndId(string? cstmRefNum = (), string? remmitanceInfo 
     }
 
     log:printDebug("No valid identifier found, returning empty string");
-    return "";
+    return "NOTPROVIDED";
 }
 
 # Retrieves the cancellation reason code from an MT79 narrative.

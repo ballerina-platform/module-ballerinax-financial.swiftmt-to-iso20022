@@ -26,7 +26,8 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT104 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs003Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns pacsIsoRecord:Pacs003Envelope|error => {
+isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns pacsIsoRecord:Pacs003Envelope|error => let 
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress) in {
     AppHdr: {
         Fr: {
             FIId: {
@@ -39,8 +40,7 @@ isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns 
         To: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
+                    BICFI: receiver
                 }
             }
         },
@@ -59,23 +59,15 @@ isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns 
                     SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
                 },
                 NbOfTxs: message.block4.Transaction.length().toString(),
-                TtlIntrBkSttlmAmt: {
-                    content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                    Ccy: message.block4.MT32B.Ccy.content
-                },
-                InstgAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                    }
-                },
-                InstdAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                    }
-                },
+                // TtlIntrBkSttlmAmt: {
+                //     content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+                //     Ccy: message.block4.MT32B.Ccy.content
+                // },
+                // IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT30.Dt),
                 MsgId: message.block4.MT20.msgId.content
             },
-            DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3)
+            DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3, receiver, getMessageSender(message.block1?.logicalTerminal,
+                message.block2.MIRLogicalTerminal))
         }
     }
 };
@@ -87,9 +79,11 @@ isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns 
 #
 # + block4 - The parsed block4 of MT104 SWIFT message containing multiple transactions.
 # + block3 - The parsed block3 of MT104 SWIFT message containing end to end id.
+# + receiver - The receiver address extracted from the message.
+# + sender - The sender address extracted from the message.
 # + return - Returns an array of `DirectDebitTransactionInformation31` records, each corresponding to a transaction 
 # in the input message. If any error occurs during field extraction or conversion, an error will be returned.
-isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4, swiftmt:Block3? block3)
+isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4, swiftmt:Block3? block3, string? receiver, string? sender)
     returns pacsIsoRecord:DirectDebitTransactionInformation31[]|error {
     pacsIsoRecord:DirectDebitTransactionInformation31[] drctDbtTxInfArray = [];
     foreach swiftmt:MT104Transaction transaxion in block4.Transaction {
@@ -129,11 +123,22 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
                         MndtId: transaxion.MT21C?.Ref?.content
                     }
                 },
+            ReqdColltnDt: convertToISOStandardDateMandatory(block4.MT30.Dt),
             PmtId: {
                 EndToEndId: getEndToEndId(block4.MT21R?.Ref?.content, transaxion.MT70?.Nrtv?.content,
                         transaxion.MT21.Ref.content),
                 InstrId: block4.MT20.msgId.content,
                 UETR: block3?.NdToNdTxRef?.value
+            },
+            InstgAgt: {
+                FinInstnId: {
+                    BICFI: sender
+                }
+            },
+            InstdAgt: {
+                FinInstnId: {
+                    BICFI: receiver
+                }
             },
             PmtTpInf: instrCd is () ? () : {
                     CtgyPurp: {
@@ -163,7 +168,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
                     }
                 },
             ChrgBr: check getDetailsChargesCd(dtlsOfChrgs?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
             Dbtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc, transaxion.MT59A?.Acc, (), (),
                     (), transaxion.MT59?.Nm, (), transaxion.MT59?.AdrsLine, (), true, rgltryRptg?.Nrtv),
             RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),

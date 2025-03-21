@@ -25,7 +25,8 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT107 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs003Document` structure if the message instruction is not `RTND`.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns pacsIsoRecord:Pacs003Envelope|error => {
+isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns pacsIsoRecord:Pacs003Envelope|error => let 
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress) in {
     AppHdr: {
         Fr: {
             FIId: {
@@ -38,8 +39,7 @@ isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns 
         To: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
+                    BICFI: receiver
                 }
             }
         },
@@ -58,23 +58,14 @@ isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns 
                     SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
                 },
                 NbOfTxs: message.block4.Transaction.length().toString(),
-                TtlIntrBkSttlmAmt: {
-                    content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                    Ccy: message.block4.MT32B.Ccy.content
-                },
-                InstgAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                    }
-                },
-                InstdAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                    }
-                },
+                // TtlIntrBkSttlmAmt: {
+                //     content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+                //     Ccy: message.block4.MT32B.Ccy.content
+                // },
                 MsgId: message.block4.MT20.msgId.content
             },
-            DrctDbtTxInf: check getDirectDebitTransactionInfoMT107(message.block4, message.block3)
+            DrctDbtTxInf: check getDirectDebitTransactionInfoMT107(message.block4, message.block3, receiver, getMessageSender(message.block1?.logicalTerminal,
+                message.block2.MIRLogicalTerminal))
         }
     }
 };
@@ -87,9 +78,11 @@ isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns 
 #
 # + block4 - The parsed block4 of MT107 SWIFT message containing multiple transactions.
 # + block3 - The parsed block3 of MT107 SWIFT message containing end to end id.
+# + receiver - The receiver BIC code extracted from the message.
+# + sender - The sender BIC code extracted from the message.
 # + return - Returns an array of `DirectDebitTransactionInformation31` records, each corresponding to a transaction 
 # in the input message. If any error occurs during field extraction or conversion, an error will be returned.
-isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Block4 block4, swiftmt:Block3? block3)
+isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Block4 block4, swiftmt:Block3? block3, string? receiver, string? sender)
     returns pacsIsoRecord:DirectDebitTransactionInformation31[]|error {
     pacsIsoRecord:DirectDebitTransactionInformation31[] drctDbtTxInfArray = [];
     foreach swiftmt:MT104Transaction transaxion in block4.Transaction {
@@ -123,12 +116,23 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Block4 block4,
                 content: check getInstructedAmount(transaxion.MT32B, transaxion.MT33B),
                 Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
             },
+            ReqdColltnDt: convertToISOStandardDateMandatory(block4.MT30.Dt),
             XchgRate: check convertToDecimal(transaxion.MT36?.Rt),
             DrctDbtTx: transaxion.MT21C is () ? () : {
                     MndtRltdInf: {
                         MndtId: transaxion.MT21C?.Ref?.content
                     }
                 },
+            InstgAgt: {
+                FinInstnId: {
+                    BICFI: sender
+                }
+            },
+            InstdAgt: {
+                FinInstnId: {
+                    BICFI: receiver
+                }
+            },
             PmtId: {
                 EndToEndId: getEndToEndId((), transaxion.MT70?.Nrtv?.content,
                         transaxion.MT21.Ref.content),
@@ -163,7 +167,7 @@ isolated function getDirectDebitTransactionInfoMT107(swiftmt:MT107Block4 block4,
                     }
                 },
             ChrgBr: check getDetailsChargesCd(dtlsOfChrgs?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
             Dbtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc, transaxion.MT59A?.Acc, (), (),
                     (), transaxion.MT59?.Nm, (), transaxion.MT59?.AdrsLine, (), true, rgltryRptg?.Nrtv),
             RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),

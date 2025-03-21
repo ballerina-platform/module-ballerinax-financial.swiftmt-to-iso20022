@@ -32,22 +32,38 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
     pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
         check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
     [string, string?, string?] [remmitanceInfo, narration, xmlContent] = getEnvelopeContent(
-            message.block4.MT77T.EnvCntnt.content)
-    in {
+            message.block4.MT77T.EnvCntnt.content),
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
+    pacsIsoRecord:SettlementMethod1Code settlementMethod = getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instgRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT53A?.IdnCd?.content, message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+        message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
+        message.block4.MT53B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? instgRmbrmntAcct = getCashAccount(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+        message.block4.MT53D?.PrtyIdn),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instdRmbrmntAgt = getFinancialInstitution(
+            message.block4.MT54A?.IdnCd?.content, message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
+            message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine, message.block4.MT54B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? instdRmbrmntAcct = getCashAccount(message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
+        message.block4.MT54D?.PrtyIdn),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? thrdRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT55A?.IdnCd?.content, message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
+        message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine, message.block4.MT55B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
+        message.block4.MT55D?.PrtyIdn) in {
         AppHdr: {
             Fr: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                message.block2.MIRLogicalTerminal)
+                        BICFI: sender
                     }
                 }
             },
             To: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                message.block2.receiverAddress)
+                        BICFI: receiver
                     }
                 }
             },
@@ -63,25 +79,28 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                             true).ensureType(string),
                     SttlmInf: {
-                        SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
-                        InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                                message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                                message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
-                                message.block4.MT53B?.Lctn?.content),
-                        InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                                message.block4.MT53D?.PrtyIdn),
-                        InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                                message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
-                                message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine,
-                                message.block4.MT54B?.Lctn?.content),
-                        InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
-                                message.block4.MT54D?.PrtyIdn),
-                        ThrdRmbrsmntAgt: getFinancialInstitution(message.block4.MT55A?.IdnCd?.content,
-                                message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-                                message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine,
-                                message.block4.MT55B?.Lctn?.content),
-                        ThrdRmbrsmntAgtAcct: getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-                                message.block4.MT55D?.PrtyIdn)
+                        SttlmMtd: settlementMethod,
+                        InstgRmbrsmntAgt:settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            instgRmbrmntAgt !is () ? instgRmbrmntAgt : instgRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        InstgRmbrsmntAgtAcct: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : instgRmbrmntAcct,
+                        InstdRmbrsmntAgt: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            instdRmbrmntAgt !is () ? instdRmbrmntAgt : instdRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        InstdRmbrsmntAgtAcct: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : instdRmbrmntAcct,
+                        ThrdRmbrsmntAgt: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            thrdRmbrmntAgt !is () ? thrdRmbrmntAgt : thrdRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        ThrdRmbrsmntAgtAcct: thrdRmbrmntAcct
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
                     MsgId: message.block4.MT20.msgId.content
@@ -98,7 +117,7 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
                                 message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
                                 message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
-                                message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
+                                message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {BICFI: receiver}},
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
                                 message.block4.MT57C?.PrtyIdn, message.block4.MT57D?.PrtyIdn),
                         IntrBkSttlmAmt: {
@@ -112,14 +131,12 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         },
                         InstgAgt: {
                             FinInstnId: {
-                                BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                        message.block2.MIRLogicalTerminal)
+                                BICFI: sender
                             }
                         },
                         InstdAgt: {
                             FinInstnId: {
-                                BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                        message.block2.receiverAddress)
+                                BICFI: receiver
                             }
                         },
                         SttlmTmReq: clsTime is () ? () : {
@@ -146,7 +163,7 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
                                 message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
-                                message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {}},
+                                message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {BICFI: sender}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
                         ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
                             pacsIsoRecord:ChargeBearerType1Code),
@@ -164,7 +181,7 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
                                 message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
-                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
+                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
                         RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                         InstrForNxtAgt: instrFrNxtAgt,
@@ -200,27 +217,39 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
     pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
         check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
-    string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content) in {
+    string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
+    pacsIsoRecord:SettlementMethod1Code settlementMethod = getSettlementMethod(message.block4.MT53A, message.block4.MT53B),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instgRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT53A?.IdnCd?.content, (), message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+        (), (), (), message.block4.MT53B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? instgRmbrmntAcct = getCashAccount(message.block4.MT53A?.PrtyIdn,
+        message.block4.MT53B?.PrtyIdn),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instdRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT54A?.IdnCd?.content, (), message.block4.MT54A?.PrtyIdn, ()),
+    pacsIsoRecord:CashAccount40? instdRmbrmntAcct = getCashAccount(message.block4.MT54A?.PrtyIdn, ()),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? thrdRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT55A?.IdnCd?.content, (), message.block4.MT55A?.PrtyIdn, ()),
+    pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, ()) in {
         AppHdr: {
             Fr: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                message.block2.MIRLogicalTerminal)
+                        BICFI: sender
                     }
                 }
             },
             To: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                message.block2.receiverAddress)
+                        BICFI: receiver
                     }
                 }
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.008.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.stp.02",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -230,18 +259,28 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                             true).ensureType(string),
                     SttlmInf: {
-                        SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B),
-                        InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                                (), message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                                (), (), (), message.block4.MT53B?.Lctn?.content),
-                        InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn,
-                                message.block4.MT53B?.PrtyIdn),
-                        InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                                (), message.block4.MT54A?.PrtyIdn, ()),
-                        InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ()),
-                        ThrdRmbrsmntAgt: getFinancialInstitution(message.block4.MT55A?.IdnCd?.content,
-                                (), message.block4.MT55A?.PrtyIdn, ()),
-                        ThrdRmbrsmntAgtAcct: getCashAccount(message.block4.MT55A?.PrtyIdn, ())
+                        SttlmMtd: settlementMethod,
+                        InstgRmbrsmntAgt:settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            instgRmbrmntAgt !is () ? instgRmbrmntAgt : instgRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        InstgRmbrsmntAgtAcct: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : instgRmbrmntAcct,
+                        InstdRmbrsmntAgt: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            instdRmbrmntAgt !is () ? instdRmbrmntAgt : instdRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        InstdRmbrsmntAgtAcct: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : instdRmbrmntAcct,
+                        ThrdRmbrsmntAgt: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            thrdRmbrmntAgt !is () ? thrdRmbrmntAgt : thrdRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        ThrdRmbrsmntAgtAcct: thrdRmbrmntAcct
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
                     MsgId: message.block4.MT20.msgId.content
@@ -257,7 +296,7 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                                 message.block4.MT59F?.Acc),
                         CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, (),
                                 message.block4.MT57A?.PrtyIdn,
-                                ()) ?: {FinInstnId: {}},
+                                ()) ?: {FinInstnId: {BICFI: receiver}},
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, ()),
                         IntrBkSttlmAmt: {
                             content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
@@ -270,14 +309,12 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                         },
                         InstgAgt: {
                             FinInstnId: {
-                                BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                        message.block2.MIRLogicalTerminal)
+                                BICFI: sender
                             }
                         },
                         InstdAgt: {
                             FinInstnId: {
-                                BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                        message.block2.receiverAddress)
+                                BICFI: receiver
                             }
                         },
                         SttlmTmReq: clsTime is () ? () : {
@@ -304,7 +341,7 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, (),
                                 message.block4.MT52A?.PrtyIdn,
-                                ()) ?: {FinInstnId: {}},
+                                ()) ?: {FinInstnId: {BICFI: sender}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, ()),
                         ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
                             pacsIsoRecord:ChargeBearerType1Code),
@@ -320,7 +357,7 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                                 message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
-                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
+                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
                         RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                         InstrForNxtAgt: instrFrNxtAgt,
@@ -348,21 +385,38 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
     pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
         check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
-    string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content) in {
+    string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
+    pacsIsoRecord:SettlementMethod1Code settlementMethod = getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instgRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT53A?.IdnCd?.content, message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+        message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
+        message.block4.MT53B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? instgRmbrmntAcct = getCashAccount(message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
+        message.block4.MT53D?.PrtyIdn),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instdRmbrmntAgt = getFinancialInstitution(
+            message.block4.MT54A?.IdnCd?.content, message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
+            message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine, message.block4.MT54B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? instdRmbrmntAcct = getCashAccount(message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
+        message.block4.MT54D?.PrtyIdn),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? thrdRmbrmntAgt = getFinancialInstitution(
+        message.block4.MT55A?.IdnCd?.content, message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
+        message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine, message.block4.MT55B?.Lctn?.content),
+    pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
+        message.block4.MT55D?.PrtyIdn) in {
         AppHdr: {
             Fr: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                message.block2.MIRLogicalTerminal)
+                        BICFI: sender
                     }
                 }
             },
             To: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                message.block2.receiverAddress)
+                        BICFI: receiver
                     }
                 }
             },
@@ -378,26 +432,28 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                             true).ensureType(string),
                     SttlmInf: {
-                        SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B,
-                                message.block4.MT53D),
-                        InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                                message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
-                                message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
-                                message.block4.MT53B?.Lctn?.content),
-                        InstgRmbrsmntAgtAcct: getCashAccount(message.block4.MT53A?.PrtyIdn,
-                                message.block4.MT53B?.PrtyIdn, message.block4.MT53D?.PrtyIdn),
-                        InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                                message.block4.MT54D?.Nm, message.block4.MT54A?.PrtyIdn, message.block4.MT54B?.PrtyIdn,
-                                message.block4.MT54D?.PrtyIdn, (), message.block4.MT54D?.AdrsLine,
-                                message.block4.MT54B?.Lctn?.content),
-                        InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn,
-                                message.block4.MT54B?.PrtyIdn, message.block4.MT54D?.PrtyIdn),
-                        ThrdRmbrsmntAgt: getFinancialInstitution(message.block4.MT55A?.IdnCd?.content,
-                                message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-                                message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine,
-                                message.block4.MT55B?.Lctn?.content),
-                        ThrdRmbrsmntAgtAcct: getCashAccount(message.block4.MT55A?.PrtyIdn,
-                                message.block4.MT55B?.PrtyIdn, message.block4.MT55D?.PrtyIdn)
+                        SttlmMtd: settlementMethod,
+                        InstgRmbrsmntAgt:settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            instgRmbrmntAgt !is () ? instgRmbrmntAgt : instgRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        InstgRmbrsmntAgtAcct: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : instgRmbrmntAcct,
+                        InstdRmbrsmntAgt: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            instdRmbrmntAgt !is () ? instdRmbrmntAgt : instdRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        InstdRmbrsmntAgtAcct: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : instdRmbrmntAcct,
+                        ThrdRmbrsmntAgt: settlementMethod == "INGA" || settlementMethod == "INDA" ? () : 
+                            thrdRmbrmntAgt !is () ? thrdRmbrmntAgt : thrdRmbrmntAcct is () ? () : {
+                                FinInstnId: {
+                                    BICFI: "NOTPROVIDED"
+                                }
+                            },
+                        ThrdRmbrsmntAgtAcct: thrdRmbrmntAcct
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
                     MsgId: message.block4.MT20.msgId.content
@@ -414,7 +470,7 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
                                 message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
                                 message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
-                                message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
+                                message.block4.MT57B?.Lctn?.content) ?: {FinInstnId: {BICFI: receiver}},
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
                                 message.block4.MT57C?.PrtyIdn, message.block4.MT57D?.PrtyIdn),
                         IntrBkSttlmAmt: {
@@ -428,14 +484,12 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         },
                         InstgAgt: {
                             FinInstnId: {
-                                BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                        message.block2.MIRLogicalTerminal)
+                                BICFI: sender
                             }
                         },
                         InstdAgt: {
                             FinInstnId: {
-                                BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                        message.block2.receiverAddress)
+                                BICFI: receiver
                             }
                         },
                         SttlmTmReq: clsTime is () ? () : {
@@ -462,7 +516,7 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
                                 message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
-                                (), message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {}},
+                                (), message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {BICFI: sender}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
                         ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
                             pacsIsoRecord:ChargeBearerType1Code),
@@ -480,7 +534,7 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
                                 message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
-                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
+                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
                         RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                         InstrForNxtAgt: instrFrNxtAgt,
@@ -505,7 +559,8 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
 isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
     returns pacsIsoRecord:Pacs004Envelope|error => let
     [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    pacsIsoRecord:Charges16[]? charges = check getChargesInformation(message.block4.MT71F, message.block4.MT71G),
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    pacsIsoRecord:Charges16[]? charges = check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
     [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]] [instructionId, endToEndId,
         returnReasonArray, sndRcvrInfoChrgs] = check get103Or202RETNSndRcvrInfoForPacs004(message.block4.MT72)
     in {
@@ -521,8 +576,7 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
             To: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                                message.block2.receiverAddress)
+                        BICFI: receiver
                     }
                 }
             },
@@ -553,7 +607,7 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
                         },
                         InstdAgt: {
                             FinInstnId: {
-                                BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                                BICFI: receiver
                             }
                         },
                         RtrId: message.block4.MT20.msgId.content,

@@ -26,21 +26,21 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure transforming the SWIFT message to ISO 20022 format.
 isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
-    returns pacsIsoRecord:Pacs008Envelope|error => {
+    returns pacsIsoRecord:Pacs008Envelope|error => let 
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
     AppHdr: {
         Fr: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                            message.block2.MIRLogicalTerminal)
+                    BICFI: sender
                 }
             }
         },
         To: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
+                    BICFI: receiver
                 }
             }
         },
@@ -67,12 +67,12 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
                 },
                 InstgAgt: {
                     FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        BICFI: sender
                     }
                 },
                 InstdAgt: {
                     FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        BICFI: receiver
                     }
                 },
                 NbOfTxs: message.block4.Transaction.length().toString(),
@@ -83,7 +83,7 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
                 CtrlSum: check convertToDecimal(message.block4.MT19?.Amnt),
                 MsgId: message.block4.MT20.msgId.content
             },
-            CdtTrfTxInf: check getMT102STPCreditTransferTransactionInfo(message.block4, message.block3)
+            CdtTrfTxInf: check getMT102STPCreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
         }
     }
 };
@@ -95,9 +95,11 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
 #
 # + block4 - The parsed block4 of MT102 STP SWIFT message containing multiple transactions.
 # + block3 - The parsed block3 of MT102 STP SWIFT message containing end to end id.
+# + receiver - The receiver address extracted from the message.
+# + sender - The sender address extracted from the message.
 # + return - Returns an array of `CreditTransferTransaction64` records, each corresponding to a transaction 
 # in the input message. If any error occurs during field extraction or conversion, an error will be returned.
-isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock4 block4, swiftmt:Block3? block3)
+isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock4 block4, swiftmt:Block3? block3, string? receiver, string? sender)
     returns pacsIsoRecord:CreditTransferTransaction64[]|error {
     pacsIsoRecord:CreditTransferTransaction64[] cdtTrfTxInfArray = [];
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(block4.MT13C);
@@ -125,7 +127,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
                     transaxion.MT59F?.CntyNTw, false, rgltyRptg?.Nrtv),
             CdtrAcct: getCashAccount2(transaxion.MT59?.Acc, transaxion.MT59A?.Acc, transaxion.MT59F?.Acc),
             CdtrAgt: getFinancialInstitution(transaxion.MT57A?.IdnCd?.content, (), transaxion.MT57A?.PrtyIdn,
-                    ()) ?: {FinInstnId: {}},
+                    ()) ?: {FinInstnId: {BICFI: receiver}},
             CdtrAgtAcct: getCashAccount(transaxion.MT57A?.PrtyIdn, ()),
             IntrBkSttlmAmt: {
                 content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
@@ -160,7 +162,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
                 Ccy: getCurrency(transaxion.MT33B?.Ccy?.content, transaxion.MT32B.Ccy.content)
             },
             DbtrAgt: getFinancialInstitution(ordgInstn52A?.IdnCd?.content, (), ordgInstn52A?.PrtyIdn,
-                    ()) ?: {FinInstnId: {}},
+                    ()) ?: {FinInstnId: {BICFI: sender}},
             DbtrAgtAcct: getCashAccount(ordgInstn52A?.PrtyIdn, ()),
             ChrgBr: check getDetailsChargesCd(dtlsChrgsCd?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
             DbtrAcct: getCashAccount2(ordgCstm50A?.Acc, ordgCstm50K?.Acc, (), ordgCstm50F?.PrtyIdn),
@@ -169,7 +171,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
                     ordgCstm50K?.AdrsLine, ordgCstm50F?.CntyNTw, true, rgltyRptg?.Nrtv),
             PrvsInstgAgt1: prvsInstgAgt1,
             IntrmyAgt1: intrmyAgt1,
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
             RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
             InstrForNxtAgt: instrFrNxtAgt,
@@ -190,21 +192,21 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
 # + message - The parsed MT102 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns pacsIsoRecord:Pacs008Envelope|error => {
+isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns pacsIsoRecord:Pacs008Envelope|error => let 
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
     AppHdr: {
         Fr: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                            message.block2.MIRLogicalTerminal)
+                    BICFI: sender
                 }
             }
         },
         To: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
+                    BICFI: receiver
                 }
             }
         },
@@ -231,12 +233,12 @@ isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns p
                 },
                 InstgAgt: {
                     FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        BICFI: sender
                     }
                 },
                 InstdAgt: {
                     FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        BICFI: receiver
                     }
                 },
                 NbOfTxs: message.block4.Transaction.length().toString(),
@@ -246,7 +248,7 @@ isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns p
                 },
                 MsgId: message.block4.MT20.msgId.content
             },
-            CdtTrfTxInf: check getMT102CreditTransferTransactionInfo(message.block4, message.block3)
+            CdtTrfTxInf: check getMT102CreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
         }
     }
 };
@@ -258,9 +260,11 @@ isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns p
 #
 # + block4 - The parsed block4 of MT102 SWIFT message containing multiple transactions.
 # + block3 - The parsed block3 of MT102 SWIFT message containing end to end id.
+# + receiver - The receiver address extracted from the message.
+# + sender - The sender address extracted from the message.
 # + return - Returns an array of `CreditTransferTransaction64` records, each corresponding to a transaction 
 # in the input message. If any error occurs during field extraction or conversion, an error will be returned.
-isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 block4, swiftmt:Block3? block3)
+isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 block4, swiftmt:Block3? block3, string? receiver, string? sender)
     returns pacsIsoRecord:CreditTransferTransaction64[]|error {
     pacsIsoRecord:CreditTransferTransaction64[] cdtTrfTxInfArray = [];
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(block4.MT13C);
@@ -290,7 +294,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
                     transaxion.MT59F?.CntyNTw, false, rgltyRptg?.Nrtv),
             CdtrAcct: getCashAccount2(transaxion.MT59?.Acc, transaxion.MT59A?.Acc, transaxion.MT59F?.Acc),
             CdtrAgt: getFinancialInstitution(transaxion.MT57A?.IdnCd?.content, (), transaxion.MT57A?.PrtyIdn,
-                    transaxion.MT57C?.PrtyIdn) ?: {FinInstnId: {}},
+                    transaxion.MT57C?.PrtyIdn) ?: {FinInstnId: {BICFI: receiver}},
             CdtrAgtAcct: getCashAccount(transaxion.MT57A?.PrtyIdn, transaxion.MT57C?.PrtyIdn),
             IntrBkSttlmAmt: {
                 content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
@@ -326,7 +330,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
             },
             DbtrAgt: getFinancialInstitution(ordgInstn52A?.IdnCd?.content, (), ordgInstn52A?.PrtyIdn,
                     ordgInstn52B?.PrtyIdn, ordgInstn52C?.PrtyIdn, (), (), ordgInstn52B?.Lctn?.content)
-                        ?: {FinInstnId: {}},
+                        ?: {FinInstnId: {BICFI: sender}},
             DbtrAgtAcct: getCashAccount(ordgInstn52A?.PrtyIdn, ordgInstn52B?.PrtyIdn, ordgInstn52C?.PrtyIdn),
             ChrgBr: check getDetailsChargesCd(dtlsChrgsCd?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
             DbtrAcct: getCashAccount2(ordgCstm50A?.Acc, ordgCstm50K?.Acc, (), ordgCstm50F?.PrtyIdn),
@@ -335,7 +339,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
                     ordgCstm50K?.AdrsLine, ordgCstm50F?.CntyNTw, true, rgltyRptg?.Nrtv),
             PrvsInstgAgt1: prvsInstgAgt1,
             IntrmyAgt1: intrmyAgt1,
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
             RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
             InstrForNxtAgt: instrFrNxtAgt,
