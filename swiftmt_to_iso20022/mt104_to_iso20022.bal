@@ -216,7 +216,7 @@ isolated function transformMT104ToPain008(swiftmt:MT104Message message) returns 
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                         true).ensureType(string),
-                InitgPty: message.block4.MT50C is () && message.block4.MT50L is () ? {} : {
+                InitgPty: message.block4.MT50C is () && message.block4.MT50L is () ? {Id: {OrgId: {AnyBIC:"NOTPROVIDED"}}} : {
                         Id: {
                             OrgId: message.block4.MT50C is () ? () : {
                                     AnyBIC: message.block4.MT50C?.IdnCd?.content

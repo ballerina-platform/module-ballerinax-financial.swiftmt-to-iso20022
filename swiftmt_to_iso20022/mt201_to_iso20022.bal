@@ -23,21 +23,21 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT201 message as a record value.
 # + return - Returns a `Pacs009Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns pacsIsoRecord:Pacs009Envelope|error => {
+isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns pacsIsoRecord:Pacs009Envelope|error => let 
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
     AppHdr: {
         Fr: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                            message.block2.MIRLogicalTerminal)
+                    BICFI: sender
                 }
             }
         },
         To: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
+                    BICFI: receiver
                 }
             }
         },
@@ -69,7 +69,7 @@ isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns 
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: uuid:createType4AsString().substring(0, 35)
             },
-            CdtTrfTxInf: check getCreditTransferTransactionInfo(message.block4, message.block3)
+            CdtTrfTxInf: check getCreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
         }
     }
 };
@@ -79,19 +79,29 @@ isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns 
 #
 # + block4 - The parsed block4 of MT201 SWIFT message containing multiple transactions.
 # + block3 - The parsed block3 of MT201 SWIFT message containing end to end id.
+# + receiver - The BIC of the receiver.
+# + sender - The BIC of the sender.
 # + return - Returns an array of `CreditTransferTransaction62` objects if the extraction is successful,
 # otherwise returns an error.
-isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, swiftmt:Block3? block3)
+isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, swiftmt:Block3? block3, string? receiver, string? sender)
     returns pacsIsoRecord:CreditTransferTransaction62[]|error {
     pacsIsoRecord:CreditTransferTransaction62[] cdtTrfTxInfArray = [];
     foreach swiftmt:MT201Transaction transaxion in block4.Transaction {
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? intrmyAgt = getFinancialInstitution(
+            transaxion.MT56A?.IdnCd?.content, transaxion.MT56D?.Nm, transaxion.MT56A?.PrtyIdn, (),
+            transaxion.MT56D?.PrtyIdn, (), transaxion.MT56D?.AdrsLine);
         swiftmt:MT72? sndToRcvrInfo = getMT201RepeatingFields(block4, transaxion.MT72, "72");
         cdtTrfTxInfArray.push({
             Cdtr: getFinancialInstitution(transaxion.MT57A?.IdnCd?.content, transaxion.MT57D?.Nm,
                     transaxion.MT57A?.PrtyIdn, transaxion.MT57B?.PrtyIdn, (), transaxion.MT57D?.PrtyIdn,
-                    transaxion.MT57D?.AdrsLine, transaxion.MT57B?.Lctn?.content) ?: {FinInstnId: {}},
+                    transaxion.MT57D?.AdrsLine, transaxion.MT57B?.Lctn?.content) ?: {FinInstnId: {BICFI: receiver}},
             CdtrAcct: getCashAccount(transaxion.MT57A?.PrtyIdn, transaxion.MT57B?.PrtyIdn,
                     transaxion.MT57D?.PrtyIdn),
+            CdtrAgt: intrmyAgt is () ? () : {
+                FinInstnId: {
+                    BICFI: "NOTPROVIDED"
+                }
+            },
             IntrBkSttlmAmt: {
                 content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
                 Ccy: transaxion.MT32B.Ccy.content
@@ -103,10 +113,9 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, s
                 UETR: block3?.NdToNdTxRef?.value
             },
             Dbtr: getFinancialInstitution((), (), block4.MT53B?.PrtyIdn, (),
-                    adrsLine2 = block4.MT53B?.Lctn?.content) ?: {FinInstnId: {}},
+                    adrsLine2 = block4.MT53B?.Lctn?.content) ?: {FinInstnId: {BICFI: sender}},
             DbtrAcct: getCashAccount(block4.MT53B?.PrtyIdn, ()),
-            IntrmyAgt1: getFinancialInstitution(transaxion.MT56A?.IdnCd?.content, transaxion.MT56D?.Nm,
-                    transaxion.MT56A?.PrtyIdn, (), transaxion.MT56D?.PrtyIdn, (), transaxion.MT56D?.AdrsLine),
+            IntrmyAgt1: intrmyAgt,
             IntrmyAgt1Acct: getCashAccount(transaxion.MT56A?.PrtyIdn, transaxion.MT56D?.PrtyIdn),
             InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, 2))[1],
             InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, 2))[0]

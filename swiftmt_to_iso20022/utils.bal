@@ -1902,7 +1902,7 @@ isolated function convertToISOStandardDateTime(swiftmt:Dt? date, swiftmt:Tm? tim
 
     if isCreationDateTime {
         log:printDebug("No date/time provided but isCreationDateTime is true, using current time");
-        string result = time:utcToString(time:utcNow()).substring(0, 19);
+        string result = time:utcToString(time:utcNow()).substring(0, 19) + "+00:00";
         log:printDebug("Returning current UTC time: " + result);
         return result;
     }

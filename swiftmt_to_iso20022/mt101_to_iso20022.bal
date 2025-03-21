@@ -25,26 +25,26 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT101 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pain001Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns painIsoRecord:Pain001Envelope|error => {
+isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns painIsoRecord:Pain001Envelope|error => let 
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
     AppHdr: {
         Fr: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                            message.block2.MIRLogicalTerminal)
+                    BICFI: sender
                 }
             }
         },
         To: {
             FIId: {
                 FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
+                    BICFI: receiver
                 }
             }
         },
         BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pain.001.001.12",
+        MsgDefIdr: "pain.001.001.09",
         BizSvc: "swift.cbprplus.02",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)
@@ -55,7 +55,7 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                         true).ensureType(string),
                 InitgPty: {
-                    Id: message.block4.MT50C?.IdnCd?.content is () && message.block4.MT50L?.PrtyIdn is () ? () : {
+                    Id: message.block4.MT50C?.IdnCd?.content is () && message.block4.MT50L?.PrtyIdn is () ? {OrgId: {AnyBIC: sender}} : {
                             OrgId: message.block4.MT50C?.IdnCd?.content is () ? () : {
                                     AnyBIC: message.block4.MT50C?.IdnCd?.content
                                 },
@@ -73,7 +73,7 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
                 NbOfTxs: message.block4.Transaction.length().toString(),
                 MsgId: message.block4.MT20.msgId.content
             },
-            PmtInf: check getPaymentInformation(message.block4, message.block3)
+            PmtInf: check getPaymentInformation(message.block4, message.block3, receiver, sender)
         }
     }
 };
@@ -87,9 +87,11 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
 #
 # + block4 - The parsed block4 of MT101 SWIFT message containing multiple transactions.
 # + block3 - The parsed block3 of MT101 SWIFT message containing end to end id.
+# + receiver - The receiver BIC code extracted from the message.
+# + sender - The sender BIC code extracted from the message.
 # + return - Returns an array of PaymentInstruction44 records or an error if an issue occurs while
 # fetching information.
-isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Block3? block3)
+isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Block3? block3, string? receiver, string? sender)
     returns painIsoRecord:PaymentInstruction44[]|error {
     painIsoRecord:PaymentInstruction44[] pmtInfArray = [];
     foreach swiftmt:MT101Transaction transaxion in block4.Transaction {
@@ -116,7 +118,7 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                         EndToEndId: getEndToEndId(block4.MT21R?.Ref?.content, transaxion.MT70?.Nrtv?.content,
                                 transaxion.MT21.Ref.content),
                         InstrId: block4.MT20.msgId.content,
-                        UETR: block3?.NdToNdTxRef?.value
+                        UETR: block3?.NdToNdTxRef?.value ?: "NOTPROVIDED"
                     },
                     PmtTpInf: serviceLevel is () && catPurpose is () ? () : {
                             SvcLvl: serviceLevel,
@@ -133,7 +135,7 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                     CdtrAcct: getCashAccount2(transaxion.MT59?.Acc, transaxion.MT59A?.Acc, transaxion.MT59F?.Acc),
                     CdtrAgt: getFinancialInstitution(transaxion.MT57A?.IdnCd?.content, transaxion.MT57D?.Nm,
                             transaxion.MT57A?.PrtyIdn, (), transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn,
-                            transaxion.MT57D?.AdrsLine) ?: {FinInstnId: {}},
+                            transaxion.MT57D?.AdrsLine) ?: {FinInstnId: {BICFI: receiver}},
                     CdtrAgtAcct: getCashAccount(transaxion.MT57A?.PrtyIdn, (), transaxion.MT57C?.PrtyIdn,
                             transaxion.MT57D?.PrtyIdn),
                     IntrmyAgt1: getFinancialInstitution(transaxion.MT56A?.IdnCd?.content, transaxion.MT56D?.Nm,
@@ -155,7 +157,7 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                 DtTm: ""
             },
             DbtrAgt: getFinancialInstitution(ordgInstn52A?.IdnCd?.content, (), ordgInstn52A?.PrtyIdn,
-                    ordgInstn52C?.PrtyIdn, ()) ?: {FinInstnId: {}},
+                    ordgInstn52C?.PrtyIdn, ()) ?: {FinInstnId: {BICFI: sender}},
             DbtrAgtAcct: getCashAccount(ordgInstn52A?.PrtyIdn, ordgInstn52C?.PrtyIdn),
             Dbtr: getDebtorOrCreditor(ordgCstm50G?.IdnCd, ordgCstm50G?.Acc,
                     ordgCstm50H?.Acc, (), ordgCstm50F?.PrtyIdn,

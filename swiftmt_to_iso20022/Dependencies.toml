@@ -260,4 +260,3 @@ dependencies = [
 modules = [
 	{org = "ballerinax", packageName = "financial.swiftmtToIso20022", moduleName = "financial.swiftmtToIso20022"}
 ]
-
