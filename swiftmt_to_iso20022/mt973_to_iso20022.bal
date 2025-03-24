@@ -57,7 +57,15 @@ isolated function transformMT973ToCamt060(swiftmt:MT973Message message) returns 
                 {
                     Id: message.block4.MT20.msgId.content,
                     ReqdMsgNmId: message.block4.MT12.Msg.content,
-                    AcctOwnr: {},
+                    AcctOwnr: {
+                        Pty: {
+                            Id: {
+                                OrgId: {
+                                    AnyBIC: "NOTPROVIDED"
+                                }
+                            }
+                        }
+                    },
                     Acct: getCashAccount(message.block4.MT25?.Acc, ())
                 }
             ]

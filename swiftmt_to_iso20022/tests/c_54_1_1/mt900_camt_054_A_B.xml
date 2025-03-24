@@ -20,76 +20,50 @@
 		<head:Fr>
 			<head:FIId>
 				<head:FinInstnId>
-					<head:BICFI>BSCHESMMXXX</head:BICFI>
+					<head:BICFI>INGBROBUXXX</head:BICFI>
 				</head:FinInstnId>
 			</head:FIId>
 		</head:Fr>
 		<head:To>
 			<head:FIId>
 				<head:FinInstnId>
-					<head:BICFI>CAIXESBBXXX</head:BICFI>
+					<head:BICFI>YOURBANKXXX</head:BICFI>
 				</head:FinInstnId>
 			</head:FIId>
 		</head:To>
-		<head:BizMsgIdr>100-01</head:BizMsgIdr>
-		<head:MsgDefIdr>camt.053.001.08</head:MsgDefIdr>
+		<head:BizMsgIdr>C11126A1378</head:BizMsgIdr>
+		<head:MsgDefIdr>camt.054.001.08</head:MsgDefIdr>
 		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
-		<head:CreDt>2022-10-20T11:00:00+00:00</head:CreDt>
+		<head:CreDt>2022-10-20T07:25:00+00:00</head:CreDt>
 	</head:AppHdr>
-	<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
-		<camt:BkToCstmrStmt>
+	<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.054.001.08">
+		<camt:BkToCstmrDbtCdtNtfctn>
 			<camt:GrpHdr>
-				<camt:MsgId>100-01</camt:MsgId>
-				<camt:CreDtTm>2022-10-20T11:00:00+00:00</camt:CreDtTm>
+				<camt:MsgId>C11126A1378</camt:MsgId>
+				<camt:CreDtTm>2022-10-20T07:25:00+00:00</camt:CreDtTm>
 			</camt:GrpHdr>
-			<camt:Stmt>
-				<camt:Id>100-01</camt:Id>
-				<camt:StmtPgntn>
-					<camt:PgNb>1</camt:PgNb>
-					<camt:LastPgInd>true</camt:LastPgInd>
-				</camt:StmtPgntn>
-				<camt:ElctrncSeqNb>1</camt:ElctrncSeqNb>
-				<camt:LglSeqNb>1001</camt:LglSeqNb>
+			<camt:Ntfctn>
+				<camt:Id>C11126A1378</camt:Id>
 				<camt:Acct>
 					<camt:Id>
 						<camt:Othr>
-							<camt:Id>48751258</camt:Id>
+							<camt:Id>9-9876543</camt:Id>
+							<camt:SchmeNm>
+								<camt:Cd>BBAN</camt:Cd>
+							</camt:SchmeNm>
 						</camt:Othr>
 					</camt:Id>
-					<camt:Ccy>EUR</camt:Ccy>
+					<camt:Ccy>USD</camt:Ccy>
 				</camt:Acct>
-				<camt:Bal>
-					<camt:Tp>
-						<camt:CdOrPrtry>
-							<camt:Cd>OPBD</camt:Cd>
-						</camt:CdOrPrtry>
-					</camt:Tp>
-					<camt:Amt Ccy="EUR">8547.25</camt:Amt>
-					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
-					<camt:Dt>
-						<camt:Dt>2022-10-20</camt:Dt>
-					</camt:Dt>
-				</camt:Bal>
-				<camt:Bal>
-					<camt:Tp>
-						<camt:CdOrPrtry>
-							<camt:Cd>CLBD</camt:Cd>
-						</camt:CdOrPrtry>
-					</camt:Tp>
-					<camt:Amt Ccy="EUR">57237.07</camt:Amt>
-					<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
-					<camt:Dt>
-						<camt:Dt>2022-10-20</camt:Dt>
-					</camt:Dt>
-				</camt:Bal>
 				<camt:Ntry>
-					<camt:Amt Ccy="EUR">65784.32</camt:Amt>
-					<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+					<camt:NtryRef>NOTPROVIDED</camt:NtryRef>
+					<camt:Amt Ccy="USD">233530</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
 					<camt:Sts>
 						<camt:Cd>BOOK</camt:Cd>
 					</camt:Sts>
 					<camt:ValDt>
-						<camt:Dt>2022-10-20</camt:Dt>
+						<camt:Dt>2009-01-23</camt:Dt>
 					</camt:ValDt>
 					<camt:BkTxCd>
 						<camt:Prtry>
@@ -100,14 +74,18 @@
 					<camt:NtryDtls>
 						<camt:TxDtls>
 							<camt:Refs>
-								<camt:EndToEndId>pacs008EndToEnd</camt:EndToEndId>
+								<camt:InstrId>5482ABC</camt:InstrId>
+								<camt:EndToEndId>5482ABC</camt:EndToEndId>
 							</camt:Refs>
-							<camt:Amt Ccy="EUR">65784.32</camt:Amt>
-							<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+							<camt:Amt Ccy="USD">233530</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+							<camt:RltdDts>
+								<camt:IntrBkSttlmDt>2009-01-23</camt:IntrBkSttlmDt>
+							</camt:RltdDts>
 						</camt:TxDtls>
 					</camt:NtryDtls>
 				</camt:Ntry>
-			</camt:Stmt>
-		</camt:BkToCstmrStmt>
+			</camt:Ntfctn>
+		</camt:BkToCstmrDbtCdtNtfctn>
 	</camt:Document>
 </Envelope>

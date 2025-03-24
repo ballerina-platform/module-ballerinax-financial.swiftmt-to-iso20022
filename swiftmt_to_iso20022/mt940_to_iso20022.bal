@@ -25,7 +25,7 @@ import ballerinax/financial.swift.mt as swiftmt;
 isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns camtIsoRecord:Camt053Envelope|error =>
     let [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc,
             acc2 = message.block4.MT25P?.Acc),
-    camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61) in {
+    camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61, message.block4.MT60F.Ccy.content) in {
         AppHdr: {
             Fr: {
                 FIId: {
@@ -60,22 +60,27 @@ isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns 
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
-                                Id: {
-                                    IBAN: iban,
-                                    Othr: bban is () ? () : {
-                                            Id: bban
-                                        }
-                                },
-                                Ownr: message.block4.MT25P is () ? () : {
-                                        Id: {
-                                            OrgId: {
-                                                AnyBIC: message.block4.MT25P?.IdnCd?.content
-                                            }
+                            Ccy: message.block4.MT60F.Ccy.content,
+                            Id: {
+                                IBAN: iban,
+                                Othr: bban is () ? () : {
+                                        Id: bban
+                                    }
+                            },
+                            Ownr: message.block4.MT25P is () ? () : {
+                                    Id: {
+                                        OrgId: {
+                                            AnyBIC: message.block4.MT25P?.IdnCd?.content
                                         }
                                     }
+                                }
                             },
                         ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                         LglSeqNb: message.block4.MT28C.StmtNo.content,
+                        StmtPgntn: {
+                            PgNb: "1",
+                            LastPgInd: true
+                        },
                         Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
                                 message.block4.MT60M, message.block4.MT62M, message.block4.MT65),
                         Ntry: entries.length() == 0 ? () : entries

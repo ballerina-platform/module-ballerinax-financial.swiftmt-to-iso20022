@@ -16,67 +16,73 @@
 
 <!--?xml version="1.0" encoding="UTF-8"?-->
 <Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
-    <head:Fr>
-      <head:FIId>
-        <head:FinInstnId>
-          <head:BICFI>DEUTDEFFXXX</head:BICFI>
-        </head:FinInstnId>
-      </head:FIId>
-    </head:Fr>
-    <head:To>
-      <head:FIId>
-        <head:FinInstnId>
-          <head:BICFI>AZSEDEMMXXX</head:BICFI>
-        </head:FinInstnId>
-      </head:FIId>
-    </head:To>
-    <head:BizMsgIdr>100-01</head:BizMsgIdr>
-    <head:MsgDefIdr>camt.052.001.08</head:MsgDefIdr>
-    <head:BizSvc>swift.cbprplus.02</head:BizSvc>
-    <head:CreDt>2020-11-24T11:00:00+00:00</head:CreDt>
-  </head:AppHdr>
-  <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
-    <camt:BkToCstmrAcctRpt>
-      <camt:GrpHdr>
-        <camt:MsgId>100-01</camt:MsgId>
-        <camt:CreDtTm>2020-11-24T11:00:00+00:00</camt:CreDtTm>
-      </camt:GrpHdr>
-      <camt:Rpt>
-        <camt:Id>100-01</camt:Id>
-        <camt:ElctrncSeqNb>3</camt:ElctrncSeqNb>
-        <camt:LglSeqNb>10001</camt:LglSeqNb>
-        <camt:CreDtTm>2020-11-24T11:00:00</camt:CreDtTm>
-        <camt:Acct>
-          <camt:Id>
-            <camt:IBAN>DE8547812</camt:IBAN>
-          </camt:Id>
-        </camt:Acct>
-        <camt:Ntry>
-          <camt:Amt Ccy="">750000</camt:Amt>
-          <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
-          <camt:Sts>
-            <camt:Cd>BOOK</camt:Cd>
-          </camt:Sts>
-          <camt:ValDt>
-            <camt:Dt>2020-11-24</camt:Dt>
-          </camt:ValDt>
-          <camt:BkTxCd>
-            <camt:Prtry>
-              <camt:Cd>N</camt:Cd>
-            </camt:Prtry>
-          </camt:BkTxCd>
-          <camt:NtryDtls>
-            <camt:TxDtls>
-              <camt:Refs>
-                <camt:EndToEndId>pacs008EndToEnd</camt:EndToEndId>
-              </camt:Refs>
-              <camt:Amt Ccy="">750000</camt:Amt>
-              <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
-            </camt:TxDtls>
-          </camt:NtryDtls>
-        </camt:Ntry>
-      </camt:Rpt>
-    </camt:BkToCstmrAcctRpt>
-  </camt:Document>
+	<head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>DEUTDEFFXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>AZSEDEMMXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>100-01</head:BizMsgIdr>
+		<head:MsgDefIdr>camt.052.001.08</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>2020-11-24T11:00:00+00:00</head:CreDt>
+	</head:AppHdr>
+	<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08">
+		<camt:BkToCstmrAcctRpt>
+			<camt:GrpHdr>
+				<camt:MsgId>100-01</camt:MsgId>
+				<camt:CreDtTm>2020-11-24T11:00:00+00:00</camt:CreDtTm>
+			</camt:GrpHdr>
+			<camt:Rpt>
+				<camt:Id>100-01</camt:Id>
+				<camt:RptPgntn>
+					<camt:PgNb>1</camt:PgNb>
+					<camt:LastPgInd>true</camt:LastPgInd>
+				</camt:RptPgntn>
+				<camt:ElctrncSeqNb>3</camt:ElctrncSeqNb>
+				<camt:LglSeqNb>10001</camt:LglSeqNb>
+				<camt:CreDtTm>2020-11-24T11:00:00+01:00</camt:CreDtTm>
+				<camt:Acct>
+					<camt:Id>
+						<camt:IBAN>DE8547812</camt:IBAN>
+					</camt:Id>
+					<camt:Ccy>EUR</camt:Ccy>
+				</camt:Acct>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">750000</camt:Amt>
+					<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2020-11-24</camt:Dt>
+					</camt:ValDt>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>pacs008EndToEnd</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">750000</camt:Amt>
+							<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+			</camt:Rpt>
+		</camt:BkToCstmrAcctRpt>
+	</camt:Document>
 </Envelope>

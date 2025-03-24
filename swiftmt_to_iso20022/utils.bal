@@ -766,13 +766,13 @@ isolated function validateIBAN(string account) returns [string?, string?] {
         string|error result = processIBANValidation(account);
         if result is string {
             log:printDebug("IBAN validation successful");
-            return [account, ""];
+            return [account, ()];
         }
         log:printDebug("IBAN validation failed: " + (result is error ? result.message() : "Unknown error"));
     }
 
     log:printDebug("No country code match or IBAN validation failed, returning as non-IBAN account");
-    return ["", account];
+    return [(), account];
 }
 
 # Processes IBAN validation calculation
@@ -2393,8 +2393,9 @@ isolated function getCdtDbtFloorLimitIndicator(swiftmt:Cd? code) returns camtIso
 # ISO 20022 `ReportEntry14` structure.
 #
 # + statement - The optional array of SWIFT MT61 statement lines, containing details of account transactions.
+# + currency - The currency code for the statement entries.
 # + return - Returns an array of `ReportEntry14` objects with mapped values, or an error if conversion fails.
-isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:ReportEntry14[]|error {
+isolated function getEntries(swiftmt:MT61[]? statement, string currency) returns camtIsoRecord:ReportEntry14[]|error {
     log:printDebug("Starting getEntries with statement: " + statement.toString());
 
     camtIsoRecord:ReportEntry14[] entries = [];
@@ -2409,7 +2410,6 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
         log:printDebug("Processing statement line with reference: " + stmtLine.RefAccOwn.content);
 
         decimal amount = check convertToDecimalMandatory(stmtLine.Amnt);
-        string currency = getMandatoryFields(stmtLine.FndCd?.content);
         string? valueDate = convertToISOStandardDate(stmtLine.ValDt);
         camtIsoRecord:CreditDebitCode creditDebitIndicator = convertDbtOrCrdToISOStandard(stmtLine);
 
@@ -2429,7 +2429,8 @@ isolated function getEntries(swiftmt:MT61[]? statement) returns camtIsoRecord:Re
             },
             BkTxCd: {
                 Prtry: {
-                    Cd: stmtLine.TranTyp.content
+                    Cd: "NOTPROVIDED",
+                    Issr: "NOTPROVIDED"
                 }
             },
             Sts: {

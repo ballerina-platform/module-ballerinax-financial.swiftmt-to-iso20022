@@ -22,7 +22,9 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT941 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns camtIsoRecord:Camt052Envelope|error => {
+isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns camtIsoRecord:Camt052Envelope|error => let 
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc,
+            acc2 = message.block4.MT25P?.Acc) in {
     AppHdr: {
         Fr: {
             FIId: {
@@ -61,9 +63,31 @@ isolated function transformMT941ToCamt052(swiftmt:MT941Message message) returns 
                         message.block4.MT13D?.Sgn?.content.toString() +
                         message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2)
                         + ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2, 4) : (),
-                    Acct: getCashAccount(message.block4.MT25?.Acc, message.block4.MT25P?.Acc) ?: {},
+                    Acct: bban is () && iban is () ? {} : {
+                        Ccy: message.block4.MT62F.Ccy.content,
+                        Id: {
+                            IBAN: iban,
+                            Othr: bban is () ? () : {
+                                Id: bban,
+                                SchmeNm: {
+                                    Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                }
+                            }
+                        },
+                        Ownr: message.block4.MT25P is () ? () : {
+                            Id: {
+                                OrgId: {
+                                    AnyBIC: message.block4.MT25P?.IdnCd?.content
+                                }
+                            }
+                        }
+                    },
                     ElctrncSeqNb: message.block4.MT28.SeqNo?.content,
                     LglSeqNb: message.block4.MT28.StmtNo.content,
+                    RptPgntn: {
+                        PgNb: "1",
+                        LastPgInd: true
+                    },
                     Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,
                             forwardAvailableBalance = message.block4.MT65),
                     TxsSummry: message.block4.MT90C is () && message.block4.MT90D is () ? () : {

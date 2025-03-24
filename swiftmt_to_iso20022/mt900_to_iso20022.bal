@@ -62,6 +62,7 @@ isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns 
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
+                                Ccy: message.block4.MT32A.Ccy.content,
                                 Id: {
                                     IBAN: iban,
                                     Othr: bban is () ? () : {
@@ -86,6 +87,7 @@ isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns 
                                         message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2) +
                                         ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2)
                                     },
+                                NtryRef: "NOTPROVIDED",
                                 Amt: {
                                     content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
                                     Ccy: message.block4.MT32A.Ccy.content
@@ -94,8 +96,15 @@ isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns 
                                 ValDt: {
                                     Dt: convertToISOStandardDate(message.block4.MT32A.Dt)
                                 },
-                                Sts: {},
-                                BkTxCd: {},
+                                Sts: {
+                                    Cd: "BOOK"
+                                },
+                                BkTxCd: {
+                                    Prtry: {
+                                        Cd: "NOTPROVIDED",
+                                        Issr: "NOTPROVIDED"
+                                    }   
+                                },
                                 NtryDtls: [
                                     {
                                         TxDtls: [

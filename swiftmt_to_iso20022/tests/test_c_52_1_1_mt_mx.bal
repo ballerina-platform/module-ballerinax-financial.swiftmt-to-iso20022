@@ -32,11 +32,26 @@ isolated function testMt942ToMx(string finMessage, xml mxXml) returns error? {
 function dataProvider_mt942() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
+        "c_52_1_1_camt052_A_B_941": [finMessage_5211_mt941_A_B, check io:fileReadXml("./tests/c_52_1_1/mt941_camt_052_A_B.xml")],
         "c_52_1_1_camt052_A_B_942": [finMessage_5211_mt942_A_B, check io:fileReadXml("./tests/c_52_1_1/mt942_camt_052_A_B.xml")],
         "c_52_1_1_camt052_C_D_942": [finMessage_5211_mt942_C_D, check io:fileReadXml("./tests/c_52_1_1/mt942_camt_052_C_D.xml")]
     };
     return dataSet;
 }
+
+string finMessage_5211_mt941_A_B = "{1:F01ABNANL2AXXXX0000000000}{2:O9410725221020INGBROBUXXXX00000000002210200725N}{4:\r\n" +
+":20:234567\r\n" +
+":21:765432\r\n" +
+":25:6894-77381\r\n" +
+":28:212\r\n" +
+":13D:0906041515+0200\r\n" +
+":60F:C090604EUR595771,95\r\n" +
+":90D:72EUR385920,\r\n" +
+":90C:44EUR450000,\r\n" +
+":62F:C090604EUR659851,95\r\n" +
+":64:C090604EUR480525,87\r\n" +
+":65:C090605EUR530691,95\r\n" +
+"-}";
 
 string finMessage_5211_mt942_A_B = "{1:F01AZSEDEMMXXXX0000000000}{2:O9421100201124DEUTDEFFXXXX00000000002011241100N}{4:\r\n" +
     ":20:100-01\r\n" +

@@ -23,7 +23,8 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT970 message as a record value.
 # + return - Returns a `Camt053Document` object if the transformation is successful, otherwise returns an error.
 isolated function transformMT970ToCamt053(swiftmt:MT970Message message) returns camtIsoRecord:Camt053Envelope|error =>
-    let camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61) in {
+    let camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61, message.block4.MT60F.Ccy.content),
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc) in {
         AppHdr: {
             Fr: {
                 FIId: {
@@ -57,7 +58,19 @@ isolated function transformMT970ToCamt053(swiftmt:MT970Message message) returns 
                 Stmt: [
                     {
                         Id: message.block4.MT20.msgId.content,
-                        Acct: getCashAccount(message.block4.MT25?.Acc, ()) ?: {},
+                        Acct: bban is () && iban is () ? {} : {
+                            Ccy: message.block4.MT60F.Ccy.content,
+                            Id: {
+                                IBAN: iban,
+                                Othr: bban is () ? () : {
+                                        Id: bban
+                                    }
+                            }
+                        },
+                        StmtPgntn: {
+                            PgNb: "1",
+                            LastPgInd: true
+                        },
                         ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                         LglSeqNb: message.block4.MT28C.StmtNo.content,
                         Bal: check getBalance(message.block4.MT60F, message.block4.MT62F, message.block4.MT64,

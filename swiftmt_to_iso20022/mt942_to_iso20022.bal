@@ -23,7 +23,10 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT942 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
 isolated function transformMT942ToCamt052(swiftmt:MT942Message message) returns camtIsoRecord:Camt052Envelope|error =>
-    let camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61) in {
+    let camtIsoRecord:ReportEntry14[] entries = check getEntries(message.block4.MT61, message.block4.MT34F[0].Ccy.content),
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc,
+            acc2 = message.block4.MT25P?.Acc),
+    string? dateTime = convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm) in {
         AppHdr: {
             Fr: {
                 FIId: {
@@ -57,10 +60,28 @@ isolated function transformMT942ToCamt052(swiftmt:MT942Message message) returns 
                 Rpt: [
                     {
                         Id: message.block4.MT20.msgId.content,
-                        CreDtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm),
-                        Acct: getCashAccount(message.block4.MT25?.Acc, message.block4.MT25P?.Acc) ?: {},
+                        CreDtTm: dateTime is () ? () : 
+                            dateTime + message.block4.MT13D?.Sgn?.content.toString() +
+                            message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2) +
+                            ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2) ,
+                        Acct: bban is () && iban is () ? {} : {
+                            Ccy: message.block4.MT34F[0].Ccy.content,
+                            Id: {
+                                IBAN: iban,
+                                Othr: bban is () ? () : {
+                                        Id: bban,
+                                        SchmeNm: {
+                                            Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                        }
+                                    }
+                            }
+                        },
                         ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                         LglSeqNb: message.block4.MT28C.StmtNo.content,
+                        RptPgntn: {
+                            PgNb: "1",
+                            LastPgInd: true
+                        },
                         Ntry: entries.length() == 0 ? () : entries,
                         TxsSummry: message.block4.MT90C is () && message.block4.MT90D is () ? () : {
                                 TtlNtries: {

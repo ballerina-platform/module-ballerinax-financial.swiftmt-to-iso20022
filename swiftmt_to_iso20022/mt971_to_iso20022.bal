@@ -22,7 +22,8 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT971 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT971ToCamt052(swiftmt:MT971Message message) returns camtIsoRecord:Camt052Envelope|error => {
+isolated function transformMT971ToCamt052(swiftmt:MT971Message message) returns camtIsoRecord:Camt052Envelope|error => let 
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc) in {
     AppHdr: {
         Fr: {
             FIId: {
@@ -56,7 +57,18 @@ isolated function transformMT971ToCamt052(swiftmt:MT971Message message) returns 
             Rpt: [
                 {
                     Id: message.block4.MT20.msgId.content,
-                    Acct: getCashAccount(message.block4.MT25?.Acc, ()) ?: {},
+                    Acct: bban is () && iban is () ? {} : {
+                        Ccy: message.block4.MT62F.Ccy.content,
+                        Id: {
+                            IBAN: iban,
+                            Othr: bban is () ? () : {
+                                Id: bban,
+                                SchmeNm: {
+                                    Cd: getSchemaCode(message.block4.MT25?.Acc)
+                                }
+                            }
+                        }
+                    },
                     Bal: [
                         {
                             Amt: {

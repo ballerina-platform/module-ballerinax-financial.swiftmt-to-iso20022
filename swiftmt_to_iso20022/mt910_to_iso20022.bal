@@ -61,25 +61,27 @@ isolated function transformMT910Camt054(swiftmt:MT910Message message) returns ca
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
-                                Id: {
-                                    IBAN: iban,
-                                    Othr: bban is () ? () : {
-                                            Id: bban,
-                                            SchmeNm: {
-                                                Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
-                                            }
-                                        }
-                                },
-                                Ownr: message.block4.MT25P is () ? () : {
-                                        Id: {
-                                            OrgId: {
-                                                AnyBIC: message.block4.MT25P?.IdnCd?.content
-                                            }
+                            Ccy: message.block4.MT32A.Ccy.content,
+                            Id: {
+                                IBAN: iban,
+                                Othr: bban is () ? () : {
+                                        Id: bban,
+                                        SchmeNm: {
+                                            Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
                                         }
                                     }
                             },
+                            Ownr: message.block4.MT25P is () ? () : {
+                                    Id: {
+                                        OrgId: {
+                                            AnyBIC: message.block4.MT25P?.IdnCd?.content
+                                        }
+                                    }
+                                }
+                            },
                         Ntry: [
                             {
+                                NtryRef: "NOTPROVIDED",
                                 Amt: {
                                     content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
                                     Ccy: message.block4.MT32A.Ccy.content
@@ -93,8 +95,15 @@ isolated function transformMT910Camt054(swiftmt:MT910Message message) returns ca
                                         message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2) +
                                         ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2)
                                     },
-                                Sts: {},
-                                BkTxCd: {},
+                                Sts: {
+                                    Cd: "BOOK"
+                                },
+                                BkTxCd: {
+                                    Prtry: {
+                                        Cd: "NOTPROVIDED",
+                                        Issr: "NOTPROVIDED"
+                                    }
+                                },
                                 NtryDtls: [
                                     {
                                         TxDtls: [
