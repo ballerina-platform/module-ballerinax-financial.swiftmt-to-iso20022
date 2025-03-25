@@ -1,0 +1,140 @@
+<!--? // Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations
+// under the License.?-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>NDEADKK2XXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>BOFSGB2LXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>11FF99RR</head:BizMsgIdr>
+		<head:MsgDefIdr>pain.001.001.09</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>2022-10-20T08:25:00+00:00</head:CreDt>
+	</head:AppHdr>
+	<pain:Document xmlns:pain="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09">
+		<pain:CstmrCdtTrfInitn>
+			<pain:GrpHdr>
+				<pain:MsgId>11FF99RR</pain:MsgId>
+				<pain:CreDtTm>2022-10-20T08:25:00+00:00</pain:CreDtTm>
+				<pain:NbOfTxs>1</pain:NbOfTxs>
+				<pain:InitgPty>
+					<pain:Id>
+						<pain:OrgId>
+							<pain:AnyBIC>NDEADKK2XXX</pain:AnyBIC>
+						</pain:OrgId>
+					</pain:Id>
+				</pain:InitgPty>
+			</pain:GrpHdr>
+			<pain:PmtInf>
+				<pain:PmtInfId>11FF99RR</pain:PmtInfId>
+				<pain:PmtMtd>TRF</pain:PmtMtd>
+				<pain:ReqdExctnDt>
+					<pain:Dt>2009-03-27</pain:Dt>
+				</pain:ReqdExctnDt>
+				<pain:Dbtr>
+					<pain:Nm>FINPETROL INC.</pain:Nm>
+					<pain:PstlAdr>
+						<pain:StrtNm>ANDRELAE SPINKATU 7</pain:StrtNm>
+						<pain:TwnNm>HELSINKI</pain:TwnNm>
+						<pain:Ctry>FI</pain:Ctry>
+					</pain:PstlAdr>
+				</pain:Dbtr>
+				<pain:DbtrAcct>
+					<pain:Id>
+						<pain:Othr>
+							<pain:Id>9020123100</pain:Id>
+						</pain:Othr>
+					</pain:Id>
+				</pain:DbtrAcct>
+				<pain:DbtrAgt>
+					<pain:FinInstnId>
+						<pain:BICFI>NDEADKK2XXX</pain:BICFI>
+					</pain:FinInstnId>
+				</pain:DbtrAgt>
+				<pain:ChrgsAcct>
+					<pain:Id>
+						<pain:Othr>
+							<pain:Id>9101000123</pain:Id>
+						</pain:Othr>
+					</pain:Id>
+				</pain:ChrgsAcct>
+				<pain:CdtTrfTxInf>
+					<pain:PmtId>
+						<pain:InstrId>11FF99RR</pain:InstrId>
+						<pain:EndToEndId>REF501</pain:EndToEndId>
+						<pain:UETR>7a562c67-ca16-48ba-b074-65581be6f001</pain:UETR>
+					</pain:PmtId>
+					<pain:Amt>
+						<pain:InstdAmt Ccy="EUR">100000</pain:InstdAmt>
+					</pain:Amt>
+					<pain:XchgRateInf>
+						<pain:XchgRate>0.90</pain:XchgRate>
+					</pain:XchgRateInf>
+					<pain:ChrgBr>SHAR</pain:ChrgBr>
+					<pain:CdtrAgt>
+						<pain:FinInstnId>
+							<pain:ClrSysMmbId>
+								<pain:ClrSysId>
+									<pain:Cd>CP999</pain:Cd>
+								</pain:ClrSysId>
+								<pain:MmbId>NOTPROVIDED</pain:MmbId>
+							</pain:ClrSysMmbId>
+						</pain:FinInstnId>
+					</pain:CdtrAgt>
+					<pain:Cdtr>
+						<pain:Nm>SOFTEASE PC GRAPHICS</pain:Nm>
+						<pain:PstlAdr>
+							<pain:StrtNm>34 BRENTWOOD ROAD</pain:StrtNm>
+							<pain:TwnNm>SEAFORD, NEW YORK, 11246</pain:TwnNm>
+							<pain:Ctry>US</pain:Ctry>
+						</pain:PstlAdr>
+						<pain:CtryOfRes>US</pain:CtryOfRes>
+					</pain:Cdtr>
+					<pain:CdtrAcct>
+						<pain:Id>
+							<pain:Othr>
+								<pain:Id>756-857489-21</pain:Id>
+							</pain:Othr>
+						</pain:Id>
+					</pain:CdtrAcct>
+					<pain:RgltryRptg>
+						<pain:Dtls>
+							<pain:Ctry>US</pain:Ctry>
+							<pain:Cd>BENEFRES</pain:Cd>
+							<pain:Inf>34 BRENTWOOD ROAD</pain:Inf>
+							<pain:Inf>SEAFORD, NEW YORK 11246</pain:Inf>
+						</pain:Dtls>
+					</pain:RgltryRptg>
+					<pain:RmtInf>
+						<pain:Ustrd>/INV/19S95</pain:Ustrd>
+					</pain:RmtInf>
+				</pain:CdtTrfTxInf>
+			</pain:PmtInf>
+		</pain:CstmrCdtTrfInitn>
+	</pain:Document>
+</Envelope>

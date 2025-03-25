@@ -371,6 +371,45 @@ isolated function getAddressLine(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[
     return result;
 }
 
+# Extracts and returns street name from the provided `AdrsLine` arrays.
+# It first checks if the first address array (`address1`) is available and uses it;
+# if not, it checks the second address array (`address2`). If neither is available,
+# it returns `null`. The function aggregates all address lines into a string array.
+#
+# + address1 - An optional array of `AdrsLine` that may contain address lines.
+# + address2 - An optional array of `AdrsLine` that may also contain address lines (default is `null`).
+# + address3 - An optional string of address.
+# + return - Returns a strin representing the address lines if any address lines are found;
+# otherwise, returns `null`.
+isolated function getStreetName(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]? address2 = (),
+        string? address3 = ()) returns string? {
+    log:printDebug("Starting getAddressLine with address1: " + address1.toString() + ", address2: " + address2.toString() + ", address3: " + address3.toString());
+
+    swiftmt:AdrsLine[] finalAddress = [];
+    if address1 is swiftmt:AdrsLine[] {
+        log:printDebug("Using address1");
+        finalAddress = address1;
+    } else if address2 is swiftmt:AdrsLine[] {
+        log:printDebug("Using address2");
+        finalAddress = address2;
+    } else if address3 is string {
+        log:printDebug("Using address3 string: " + address3);
+        return address3;
+    } else {
+        log:printDebug("No valid address found, returning null");
+        return ();
+    }
+
+    string streetName = "";
+
+    foreach swiftmt:AdrsLine adrsLine in finalAddress {
+        streetName += adrsLine.content + " ";    
+    }
+
+    log:printDebug("Returning address line: " + streetName.trim().toString());
+    return streetName.trim();
+}
+
 # Retrieves the details charges code based on the provided `Cd` code.
 # It looks up the code in an array and returns the corresponding details charge description.
 # If the code is not found, it returns an error.
@@ -417,6 +456,7 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecor
         rgltyRptg.substring(1, 9).equalsIgnoreCaseAscii("ORDERRES") {
         log:printDebug("Found BENEFRES or ORDERRES pattern");
 
+        pacsIsoRecord:Max35Text[] additionalInfoArray = [];
         string additionalInfo = "";
         if rgltyRptg.length() > 14 {
             log:printDebug("Extracting additional info from position 14 onwards");
@@ -425,11 +465,13 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecor
                     continue;
                 }
                 if rgltyRptg.substring(i, i + 1).equalsIgnoreCaseAscii("\n") {
-                    additionalInfo += " ";
+                    additionalInfoArray.push(additionalInfo);
+                    additionalInfo = "";
                     continue;
                 }
                 additionalInfo += rgltyRptg.substring(i, i + 1);
             }
+            additionalInfoArray.push(additionalInfo);
         }
 
         log:printDebug("Regulatory reporting country code: " + rgltyRptg.substring(10, 12) + ", additional info: " + additionalInfo);
@@ -439,7 +481,7 @@ isolated function getRegulatoryReporting(string? rgltyRptg) returns camtIsoRecor
                     {
                         Cd: rgltyRptg.substring(1, 9),
                         Ctry: rgltyRptg.substring(10, 12),
-                        Inf: [additionalInfo]
+                        Inf: additionalInfoArray
                     }
                 ]
             }
@@ -3354,7 +3396,7 @@ isolated function getDebtorForPacs004(swiftmt:MT50A? field50A, swiftmt:MT50F? fi
             Agt: {
                 FinInstnId: {
                     ClrSysMmbId: {
-                        MmbId: "",
+                        MmbId: "NOTPROVIDED",
                         ClrSysId: {
                             Cd: getName(field50K?.Nm)
                         }
@@ -3419,7 +3461,7 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
             Agt: {
                 FinInstnId: {
                     ClrSysMmbId: {
-                        MmbId: "",
+                        MmbId: "NOTPROVIDED",
                         ClrSysId: {
                             Cd: getName(field59?.Nm)
                         }
@@ -3782,7 +3824,7 @@ isolated function getFinancialInstitution(string? idnCd, swiftmt:Nm[]? name, swi
             FinInstnId: {
                 BICFI: idnCd,
                 ClrSysMmbId: partyIdentifier is () ? () : {
-                        MmbId: "",
+                        MmbId: "NOTPROVIDED",
                         ClrSysId: {
                             Cd: partyIdentifier
                         }
@@ -3847,7 +3889,7 @@ isolated function getCashAccount2(swiftmt:Acc? acc1, swiftmt:Acc? acc2, swiftmt:
 
 isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc? acc1, swiftmt:Acc? acc2,
         swiftmt:Acc? acc3, swiftmt:PrtyIdn? prtyIdn, swiftmt:Nm[]? name1, swiftmt:Nm[]? name2, swiftmt:AdrsLine[]? address1,
-        swiftmt:AdrsLine[]? address2, swiftmt:CntyNTw[]? country = (), boolean isDebtor = false, swiftmt:Nrtv? narrative = ()) returns pacsIsoRecord:PartyIdentification272 {
+        swiftmt:AdrsLine[]? address2, swiftmt:CntyNTw[]? country = (), boolean isDebtor = false, swiftmt:Nrtv? narrative = (), boolean isMt101 = false) returns pacsIsoRecord:PartyIdentification272 {
     log:printDebug("Starting getDebtorOrCreditor with identifierCode: " + identifierCode.toString() +
                 ", acc1: " + acc1.toString() +
                 ", acc2: " + acc2.toString() +
@@ -3869,6 +3911,8 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
 
     string[]? adrsLine = getAddressLineForDbtrOrCdtr(address1, address2, country);
     log:printDebug("Retrieved address lines: " + adrsLine.toString());
+    string? streetName = getStreetName(address1, address2);
+    [string?, string?] [cntry, townName] = getCountryAndTown(country);
 
     string? nameStr = getName(name1, name2);
     log:printDebug("Retrieved name: " + nameStr.toString());
@@ -3896,7 +3940,11 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
             },
         CtryOfRes: ctryOfRes,
         Nm: nameStr,
-        PstlAdr: adrsLine is () ? () : {
+        PstlAdr: adrsLine is () ? () : isMt101 ? {
+                StrtNm: streetName,
+                TwnNm: townName,
+                Ctry: cntry
+            } : {
                 AdrLine: adrsLine
             }
     };

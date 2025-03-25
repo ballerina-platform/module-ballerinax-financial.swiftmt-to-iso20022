@@ -131,7 +131,7 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                             transaxion.MT59A?.Acc, transaxion.MT59F?.Acc, (),
                             transaxion.MT59F?.Nm, transaxion.MT59?.Nm,
                             transaxion.MT59F?.AdrsLine, transaxion.MT59?.AdrsLine,
-                            transaxion.MT59F?.CntyNTw, false, transaxion.MT77B?.Nrtv),
+                            transaxion.MT59F?.CntyNTw, false, transaxion.MT77B?.Nrtv, true),
                     CdtrAcct: getCashAccount2(transaxion.MT59?.Acc, transaxion.MT59A?.Acc, transaxion.MT59F?.Acc),
                     CdtrAgt: getFinancialInstitution(transaxion.MT57A?.IdnCd?.content, transaxion.MT57D?.Nm,
                             transaxion.MT57A?.PrtyIdn, (), transaxion.MT57C?.PrtyIdn, transaxion.MT57D?.PrtyIdn,
@@ -163,7 +163,7 @@ isolated function getPaymentInformation(swiftmt:MT101Block4 block4, swiftmt:Bloc
                     ordgCstm50H?.Acc, (), ordgCstm50F?.PrtyIdn,
                     ordgCstm50F?.Nm, ordgCstm50H?.Nm,
                     ordgCstm50F?.AdrsLine, ordgCstm50H?.AdrsLine,
-                    ordgCstm50F?.CntyNTw, true, transaxion.MT77B?.Nrtv),
+                    ordgCstm50F?.CntyNTw, true, transaxion.MT77B?.Nrtv, true),
             PmtMtd: "TRF",
             ChrgsAcct: getCashAccount2(transaxion.MT25A?.Acc, ())
         }
