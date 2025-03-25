@@ -25,58 +25,58 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT101 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pain001Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns painIsoRecord:Pain001Envelope|error => let 
+isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns painIsoRecord:Pain001Envelope|error => let
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
-    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: sender
+    string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: sender
+                    }
                 }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: receiver
-                }
-            }
-        },
-        BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pain.001.001.09",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        CstmrCdtTrfInitn: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                InitgPty: {
-                    Id: message.block4.MT50C?.IdnCd?.content is () && message.block4.MT50L?.PrtyIdn is () ? {OrgId: {AnyBIC: sender}} : {
-                            OrgId: message.block4.MT50C?.IdnCd?.content is () ? () : {
-                                    AnyBIC: message.block4.MT50C?.IdnCd?.content
-                                },
-                            PrvtId: getPartyIdentifier(message.block4.MT50L?.PrtyIdn) is () ? () : {
-                                    Othr: [
-                                        {
-                                            Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
-                                        }
-                                    ]
-                                }
-                        }
-                },
-                FwdgAgt: getFinancialInstitution(message.block4.MT51A?.IdnCd?.content,
-                        (), message.block4.MT51A?.PrtyIdn, ()),
-                NbOfTxs: message.block4.Transaction.length().toString(),
-                MsgId: message.block4.MT20.msgId.content
             },
-            PmtInf: check getPaymentInformation(message.block4, message.block3, receiver, sender)
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: receiver
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pain.001.001.09",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            CstmrCdtTrfInitn: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    InitgPty: {
+                        Id: message.block4.MT50C?.IdnCd?.content is () && message.block4.MT50L?.PrtyIdn is () ? {OrgId: {AnyBIC: sender}} : {
+                                OrgId: message.block4.MT50C?.IdnCd?.content is () ? () : {
+                                        AnyBIC: message.block4.MT50C?.IdnCd?.content
+                                    },
+                                PrvtId: getPartyIdentifier(message.block4.MT50L?.PrtyIdn) is () ? () : {
+                                        Othr: [
+                                            {
+                                                Id: getPartyIdentifier(message.block4.MT50L?.PrtyIdn)
+                                            }
+                                        ]
+                                    }
+                            }
+                    },
+                    FwdgAgt: getFinancialInstitution(message.block4.MT51A?.IdnCd?.content,
+                            (), message.block4.MT51A?.PrtyIdn, ()),
+                    NbOfTxs: message.block4.Transaction.length().toString(),
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                PmtInf: check getPaymentInformation(message.block4, message.block3, receiver, sender)
+            }
         }
-    }
-};
+    };
 
 # Extracts payment information from the provided MT101 message and maps it to an array of ISO 20022
 # PaymentInstruction44 records.

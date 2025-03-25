@@ -103,7 +103,7 @@ isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns 
                                     Prtry: {
                                         Cd: "NOTPROVIDED",
                                         Issr: "NOTPROVIDED"
-                                    }   
+                                    }
                                 },
                                 NtryDtls: [
                                     {

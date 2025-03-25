@@ -59,14 +59,14 @@ isolated function transformMT970ToCamt053(swiftmt:MT970Message message) returns 
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
-                            Ccy: message.block4.MT60F.Ccy.content,
-                            Id: {
-                                IBAN: iban,
-                                Othr: bban is () ? () : {
-                                        Id: bban
-                                    }
-                            }
-                        },
+                                Ccy: message.block4.MT60F.Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban
+                                        }
+                                }
+                            },
                         StmtPgntn: {
                             PgNb: "1",
                             LastPgInd: true

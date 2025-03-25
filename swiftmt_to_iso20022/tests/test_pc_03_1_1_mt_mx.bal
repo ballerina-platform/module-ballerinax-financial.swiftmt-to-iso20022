@@ -20,37 +20,41 @@ import ballerina/xmldata;
 
 @test:Config {
     groups: ["mt_mx"],
-    dataProvider: dataProvider_mt900
+    dataProvider: dataProvider_mt107
 }
-isolated function testMt900ToMx(string finMessage, xml mxXml) returns error? {
+isolated function testMt107ToMx(string finMessage, xml mxXml) returns error? {
     xml result = check toIso20022Xml(finMessage);
     json expectedResult = check xmldata:toJson(mxXml);
     json actualResult = check xmldata:toJson(result);
     test:assertEquals(actualResult, expectedResult, "Invalid transformation of MT to MX");
 }
 
-function dataProvider_mt900() returns map<[string, xml]>|error {
+function dataProvider_mt107() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
-        "c_54_1_1_camt054_A_B_900": [finMessage_5411_mt900_A_B, check io:fileReadXml("./tests/c_54_1_1/mt900_camt_054_A_B.xml")],
-        "c_54_1_1_camt054_C_D_910": [finMessage_5411_mt910_C_D, check io:fileReadXml("./tests/c_54_1_1/mt910_camt_054_C_D.xml")]
+        "pc_03_1_1_pacs003_A_B_111": [finMessage_00311_mt107_A_B, check io:fileReadXml("./tests/pc_03_1_1/mt107_pacs_003_A_B.xml")]
     };
     return dataSet;
 }
 
-string finMessage_5411_mt900_A_B = "{1:F01YOURBANKXXXX0000000000}{2:O9000725221020INGBROBUXXXX00000000002210200725N}{4:\r\n" +
-":20:C11126A1378\r\n" +
-":21:5482ABC\r\n" +
-":25:9-9876543\r\n" +
-":32A:090123USD233530,\r\n" +
-"-}";
-
-string finMessage_5411_mt910_C_D = "{1:F01YOURBANKXXXX0000000000}{2:O9100725221020INGBROBUXXXX00000000002210200725N}{4:\r\n" +
-":20:C11126C9224\r\n" +
-":21:494936/DEV\r\n" +
-":25:6-9412771\r\n" +
-":13D:1401231426+0100\r\n" +
-":32A:140123USD500000,\r\n" +
-":52A:BKAUATWW\r\n" +
-":56A:BKTRUS33\r\n" +
-"-}";
+string finMessage_00311_mt107_A_B = "{1:F01RBOSGB2LXXXX0000000000}{2:O1070815221020NDEAFIHHXXXX00000000002210200815N}{3:{121:7a562c67-ca16-48ba-b074-65581be6f001}}{4:\r\n" +
+    ":20:pc003bzmsgidr01\r\n" +
+    ":23E:AUTH\r\n" +
+    ":30:221025\r\n" +
+    ":50K:/65479512\r\n" +
+    "OP Corporate Bank\r\n" +
+    "Aleksanterinkatu 19\r\n" +
+    "FI/Helsinki\r\n" +
+    ":52A:NDEAFIHH\r\n" +
+    ":71A:OUR\r\n" +
+    ":21:pain008EndToEnd+\r\n" +
+    ":21C:MNDTE258963\r\n" +
+    ":32B:EUR45250,\r\n" +
+    ":57A:RBOSGB2L\r\n" +
+    ":59:/25698745\r\n" +
+    "NT Asset Management\r\n" +
+    "50 Bank Street\r\n" +
+    "GB/London\r\n" +
+    ":33B:EUR45250,\r\n" +
+    ":32B:EUR45250,\r\n" +
+    "-}";

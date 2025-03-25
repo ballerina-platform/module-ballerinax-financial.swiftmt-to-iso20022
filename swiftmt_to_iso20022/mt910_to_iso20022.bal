@@ -61,23 +61,23 @@ isolated function transformMT910Camt054(swiftmt:MT910Message message) returns ca
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
-                            Ccy: message.block4.MT32A.Ccy.content,
-                            Id: {
-                                IBAN: iban,
-                                Othr: bban is () ? () : {
-                                        Id: bban,
-                                        SchmeNm: {
-                                            Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                Ccy: message.block4.MT32A.Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban,
+                                            SchmeNm: {
+                                                Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                            }
+                                        }
+                                },
+                                Ownr: message.block4.MT25P is () ? () : {
+                                        Id: {
+                                            OrgId: {
+                                                AnyBIC: message.block4.MT25P?.IdnCd?.content
+                                            }
                                         }
                                     }
-                            },
-                            Ownr: message.block4.MT25P is () ? () : {
-                                    Id: {
-                                        OrgId: {
-                                            AnyBIC: message.block4.MT25P?.IdnCd?.content
-                                        }
-                                    }
-                                }
                             },
                         Ntry: [
                             {

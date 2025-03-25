@@ -26,67 +26,67 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure transforming the SWIFT message to ISO 20022 format.
 isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
-    returns pacsIsoRecord:Pacs008Envelope|error => let 
+    returns pacsIsoRecord:Pacs008Envelope|error => let
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
-    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: sender
-                }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: receiver
-                }
-            }
-        },
-        BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.008.001.08",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        FIToFICstmrCdtTrf: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                SttlmInf: {
-                    SttlmMtd: getSettlementMethod(message.block4.MT53A),
-                    InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                            (), message.block4.MT53A?.PrtyIdn, ()),
-                    InstgRmbrsmntAgtAcct: getCashAccount2(message.block4.MT53C?.Acc, (),
-                            acc4 = message.block4.MT53A?.PrtyIdn),
-                    InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                            (), message.block4.MT54A?.PrtyIdn, ()),
-                    InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ())
-                },
-                InstgAgt: {
+    string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
+        AppHdr: {
+            Fr: {
+                FIId: {
                     FinInstnId: {
                         BICFI: sender
                     }
-                },
-                InstdAgt: {
+                }
+            },
+            To: {
+                FIId: {
                     FinInstnId: {
                         BICFI: receiver
                     }
-                },
-                NbOfTxs: message.block4.Transaction.length().toString(),
-                TtlIntrBkSttlmAmt: {
-                    content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
-                    Ccy: message.block4.MT32A.Ccy.content
-                },
-                CtrlSum: check convertToDecimal(message.block4.MT19?.Amnt),
-                MsgId: message.block4.MT20.msgId.content
+                }
             },
-            CdtTrfTxInf: check getMT102STPCreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.008.001.08",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            FIToFICstmrCdtTrf: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    SttlmInf: {
+                        SttlmMtd: getSettlementMethod(message.block4.MT53A),
+                        InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
+                                (), message.block4.MT53A?.PrtyIdn, ()),
+                        InstgRmbrsmntAgtAcct: getCashAccount2(message.block4.MT53C?.Acc, (),
+                                acc4 = message.block4.MT53A?.PrtyIdn),
+                        InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
+                                (), message.block4.MT54A?.PrtyIdn, ()),
+                        InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ())
+                    },
+                    InstgAgt: {
+                        FinInstnId: {
+                            BICFI: sender
+                        }
+                    },
+                    InstdAgt: {
+                        FinInstnId: {
+                            BICFI: receiver
+                        }
+                    },
+                    NbOfTxs: message.block4.Transaction.length().toString(),
+                    TtlIntrBkSttlmAmt: {
+                        content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
+                        Ccy: message.block4.MT32A.Ccy.content
+                    },
+                    CtrlSum: check convertToDecimal(message.block4.MT19?.Amnt),
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                CdtTrfTxInf: check getMT102STPCreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
+            }
         }
-    }
-};
+    };
 
 # Processes an MT102 STP message and extracts credit transfer transaction information into ISO 20022 format.
 # The function iterates over each transaction within the message, extracts relevant fields, and maps them 
@@ -192,66 +192,66 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
 # + message - The parsed MT102 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs008Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns pacsIsoRecord:Pacs008Envelope|error => let 
+isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns pacsIsoRecord:Pacs008Envelope|error => let
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
-    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: sender
-                }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: receiver
-                }
-            }
-        },
-        BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.008.001.08",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        FIToFICstmrCdtTrf: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                SttlmInf: {
-                    SttlmMtd: getSettlementMethod(message.block4.MT53A),
-                    InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
-                            (), message.block4.MT53A?.PrtyIdn, ()),
-                    InstgRmbrsmntAgtAcct: getCashAccount2(message.block4.MT53C?.Acc, (),
-                            acc4 = message.block4.MT53A?.PrtyIdn),
-                    InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
-                            (), message.block4.MT54A?.PrtyIdn, ()),
-                    InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ())
-                },
-                InstgAgt: {
+    string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
+        AppHdr: {
+            Fr: {
+                FIId: {
                     FinInstnId: {
                         BICFI: sender
                     }
-                },
-                InstdAgt: {
+                }
+            },
+            To: {
+                FIId: {
                     FinInstnId: {
                         BICFI: receiver
                     }
-                },
-                NbOfTxs: message.block4.Transaction.length().toString(),
-                TtlIntrBkSttlmAmt: {
-                    content: check getTotalInterBankSettlementAmount(message.block4.MT19, message.block4.MT32A),
-                    Ccy: message.block4.MT32A.Ccy.content
-                },
-                MsgId: message.block4.MT20.msgId.content
+                }
             },
-            CdtTrfTxInf: check getMT102CreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.008.001.08",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            FIToFICstmrCdtTrf: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    SttlmInf: {
+                        SttlmMtd: getSettlementMethod(message.block4.MT53A),
+                        InstgRmbrsmntAgt: getFinancialInstitution(message.block4.MT53A?.IdnCd?.content,
+                                (), message.block4.MT53A?.PrtyIdn, ()),
+                        InstgRmbrsmntAgtAcct: getCashAccount2(message.block4.MT53C?.Acc, (),
+                                acc4 = message.block4.MT53A?.PrtyIdn),
+                        InstdRmbrsmntAgt: getFinancialInstitution(message.block4.MT54A?.IdnCd?.content,
+                                (), message.block4.MT54A?.PrtyIdn, ()),
+                        InstdRmbrsmntAgtAcct: getCashAccount(message.block4.MT54A?.PrtyIdn, ())
+                    },
+                    InstgAgt: {
+                        FinInstnId: {
+                            BICFI: sender
+                        }
+                    },
+                    InstdAgt: {
+                        FinInstnId: {
+                            BICFI: receiver
+                        }
+                    },
+                    NbOfTxs: message.block4.Transaction.length().toString(),
+                    TtlIntrBkSttlmAmt: {
+                        content: check getTotalInterBankSettlementAmount(message.block4.MT19, message.block4.MT32A),
+                        Ccy: message.block4.MT32A.Ccy.content
+                    },
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                CdtTrfTxInf: check getMT102CreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
+            }
         }
-    }
-};
+    };
 
 # Processes an MT102 message and extracts credit transfer transaction information into ISO 20022 format.
 # The function iterates over each transaction within the message, extracts relevant fields, and maps them 

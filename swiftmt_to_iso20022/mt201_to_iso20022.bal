@@ -23,56 +23,56 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT201 message as a record value.
 # + return - Returns a `Pacs009Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns pacsIsoRecord:Pacs009Envelope|error => let 
+isolated function transformMT201ToPacs009(swiftmt:MT201Message message) returns pacsIsoRecord:Pacs009Envelope|error => let
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
-    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: sender
-                }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: receiver
-                }
-            }
-        },
-        BizMsgIdr: uuid:createType4AsString().substring(0, 35),
-        MsgDefIdr: "pacs.009.001.08",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        FICdtTrf: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
-                SttlmInf: {
-                    SttlmMtd: getSettlementMethod(mt53B = message.block4.MT53B)
-                },
-                InstgAgt: {
+    string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
+        AppHdr: {
+            Fr: {
+                FIId: {
                     FinInstnId: {
-                        BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        BICFI: sender
                     }
-                },
-                InstdAgt: {
-                    FinInstnId: {
-                        BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                    }
-                },
-                NbOfTxs: message.block4.Transaction.length().toString(),
-                MsgId: uuid:createType4AsString().substring(0, 35)
+                }
             },
-            CdtTrfTxInf: check getCreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: receiver
+                    }
+                }
+            },
+            BizMsgIdr: uuid:createType4AsString().substring(0, 35),
+            MsgDefIdr: "pacs.009.001.08",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            FICdtTrf: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    CtrlSum: check convertToDecimal(message.block4.MT19.Amnt),
+                    SttlmInf: {
+                        SttlmMtd: getSettlementMethod(mt53B = message.block4.MT53B)
+                    },
+                    InstgAgt: {
+                        FinInstnId: {
+                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                        }
+                    },
+                    InstdAgt: {
+                        FinInstnId: {
+                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                        }
+                    },
+                    NbOfTxs: message.block4.Transaction.length().toString(),
+                    MsgId: uuid:createType4AsString().substring(0, 35)
+                },
+                CdtTrfTxInf: check getCreditTransferTransactionInfo(message.block4, message.block3, receiver, sender)
+            }
         }
-    }
-};
+    };
 
 # This function extracts credit transfer transaction information from an MT201 SWIFT message
 # and maps it to an array of ISO 20022 CreditTransferTransaction62 records.
@@ -88,8 +88,8 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, s
     pacsIsoRecord:CreditTransferTransaction62[] cdtTrfTxInfArray = [];
     foreach swiftmt:MT201Transaction transaxion in block4.Transaction {
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? intrmyAgt = getFinancialInstitution(
-            transaxion.MT56A?.IdnCd?.content, transaxion.MT56D?.Nm, transaxion.MT56A?.PrtyIdn, (),
-            transaxion.MT56D?.PrtyIdn, (), transaxion.MT56D?.AdrsLine);
+                transaxion.MT56A?.IdnCd?.content, transaxion.MT56D?.Nm, transaxion.MT56A?.PrtyIdn, (),
+                transaxion.MT56D?.PrtyIdn, (), transaxion.MT56D?.AdrsLine);
         swiftmt:MT72? sndToRcvrInfo = getMT201RepeatingFields(block4, transaxion.MT72, "72");
         cdtTrfTxInfArray.push({
             Cdtr: getFinancialInstitution(transaxion.MT57A?.IdnCd?.content, transaxion.MT57D?.Nm,
@@ -98,10 +98,10 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, s
             CdtrAcct: getCashAccount(transaxion.MT57A?.PrtyIdn, transaxion.MT57B?.PrtyIdn,
                     transaxion.MT57D?.PrtyIdn),
             CdtrAgt: intrmyAgt is () ? () : {
-                FinInstnId: {
-                    BICFI: "NOTPROVIDED"
-                }
-            },
+                    FinInstnId: {
+                        BICFI: "NOTPROVIDED"
+                    }
+                },
             IntrBkSttlmAmt: {
                 content: check convertToDecimalMandatory(transaxion.MT32B.Amnt),
                 Ccy: transaxion.MT32B.Ccy.content

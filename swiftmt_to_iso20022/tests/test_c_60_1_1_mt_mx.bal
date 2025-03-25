@@ -32,7 +32,8 @@ isolated function testMt920ToMx(string finMessage, xml mxXml) returns error? {
 function dataProvider_mt920() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
-        "c_60_1_1_camt060_A_B_920": [finMessage_6011_mt920_A_B, check io:fileReadXml("./tests/c_60_1_1/mt920_camt_060_A_B.xml")]};
+        "c_60_1_1_camt060_A_B_920": [finMessage_6011_mt920_A_B, check io:fileReadXml("./tests/c_60_1_1/mt920_camt_060_A_B.xml")]
+    };
     return dataSet;
 }
 

@@ -60,20 +60,20 @@ isolated function transformMT940ToCamt053(swiftmt:MT940Message message) returns 
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
-                            Ccy: message.block4.MT60F.Ccy.content,
-                            Id: {
-                                IBAN: iban,
-                                Othr: bban is () ? () : {
-                                        Id: bban
-                                    }
-                            },
-                            Ownr: message.block4.MT25P is () ? () : {
-                                    Id: {
-                                        OrgId: {
-                                            AnyBIC: message.block4.MT25P?.IdnCd?.content
+                                Ccy: message.block4.MT60F.Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban
+                                        }
+                                },
+                                Ownr: message.block4.MT25P is () ? () : {
+                                        Id: {
+                                            OrgId: {
+                                                AnyBIC: message.block4.MT25P?.IdnCd?.content
+                                            }
                                         }
                                     }
-                                }
                             },
                         ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                         LglSeqNb: message.block4.MT28C.StmtNo.content,

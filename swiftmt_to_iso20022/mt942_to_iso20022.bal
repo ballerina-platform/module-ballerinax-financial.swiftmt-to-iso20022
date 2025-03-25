@@ -60,22 +60,22 @@ isolated function transformMT942ToCamt052(swiftmt:MT942Message message) returns 
                 Rpt: [
                     {
                         Id: message.block4.MT20.msgId.content,
-                        CreDtTm: dateTime is () ? () : 
+                        CreDtTm: dateTime is () ? () :
                             dateTime + message.block4.MT13D?.Sgn?.content.toString() +
                             message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2) +
-                            ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2) ,
+                            ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2),
                         Acct: bban is () && iban is () ? {} : {
-                            Ccy: message.block4.MT34F[0].Ccy.content,
-                            Id: {
-                                IBAN: iban,
-                                Othr: bban is () ? () : {
-                                        Id: bban,
-                                        SchmeNm: {
-                                            Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                Ccy: message.block4.MT34F[0].Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban,
+                                            SchmeNm: {
+                                                Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
+                                            }
                                         }
-                                    }
-                            }
-                        },
+                                }
+                            },
                         ElctrncSeqNb: message.block4.MT28C.SeqNo?.content,
                         LglSeqNb: message.block4.MT28C.StmtNo.content,
                         RptPgntn: {

@@ -26,51 +26,51 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT104 message as a record value.
 # + return - Returns the transformed ISO 20022 `Pacs003Document` structure.
 # An error is returned if there is any failure in transforming the SWIFT message to ISO 20022 format.
-isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns pacsIsoRecord:Pacs003Envelope|error => let 
+isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns pacsIsoRecord:Pacs003Envelope|error => let
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress) in {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                            message.block2.MIRLogicalTerminal)
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
                 }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: receiver
-                }
-            }
-        },
-        BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.003.001.08",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        FIToFICstmrDrctDbt: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                SttlmInf: {
-                    SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
-                },
-                NbOfTxs: message.block4.Transaction.length().toString(),
-                // TtlIntrBkSttlmAmt: {
-                //     content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                //     Ccy: message.block4.MT32B.Ccy.content
-                // },
-                // IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT30.Dt),
-                MsgId: message.block4.MT20.msgId.content
             },
-            DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3, receiver, getMessageSender(message.block1?.logicalTerminal,
-                message.block2.MIRLogicalTerminal))
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: receiver
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.003.001.08",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            FIToFICstmrDrctDbt: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    SttlmInf: {
+                        SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
+                    },
+                    NbOfTxs: message.block4.Transaction.length().toString(),
+                    // TtlIntrBkSttlmAmt: {
+                    //     content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+                    //     Ccy: message.block4.MT32B.Ccy.content
+                    // },
+                    // IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT30.Dt),
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3, receiver, getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal))
+            }
         }
-    }
-};
+    };
 
 # Processes an MT104 direct debit message and extracts direct debit transaction information into ISO 20022 format.
 # The function iterates over each transaction within the message, extracts relevant fields, and maps them 
@@ -216,7 +216,7 @@ isolated function transformMT104ToPain008(swiftmt:MT104Message message) returns 
             GrpHdr: {
                 CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                         true).ensureType(string),
-                InitgPty: message.block4.MT50C is () && message.block4.MT50L is () ? {Id: {OrgId: {AnyBIC:"NOTPROVIDED"}}} : {
+                InitgPty: message.block4.MT50C is () && message.block4.MT50L is () ? {Id: {OrgId: {AnyBIC: "NOTPROVIDED"}}} : {
                         Id: {
                             OrgId: message.block4.MT50C is () ? () : {
                                     AnyBIC: message.block4.MT50C?.IdnCd?.content

@@ -59,17 +59,17 @@ isolated function transformMT972ToCamt052(swiftmt:MT972Message message) returns 
                     {
                         Id: message.block4.MT20.msgId.content,
                         Acct: bban is () && iban is () ? {} : {
-                            Ccy: message.block4.MT62F.Ccy.content,
-                            Id: {
-                                IBAN: iban,
-                                Othr: bban is () ? () : {
-                                    Id: bban,
-                                    SchmeNm: {
-                                        Cd: getSchemaCode(message.block4.MT25?.Acc)
-                                    }
+                                Ccy: message.block4.MT62F.Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban,
+                                            SchmeNm: {
+                                                Cd: getSchemaCode(message.block4.MT25?.Acc)
+                                            }
+                                        }
                                 }
-                            }
-                        },
+                            },
                         RptPgntn: {
                             PgNb: "1",
                             LastPgInd: true

@@ -22,68 +22,68 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + message - The parsed MT204 message as record value.
 # + return - Returns a `Pacs010Document` containing the direct debit transaction instructions,
 # or an error if the transformation fails.
-isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns pacsIsoRecord:Pacs010Envelope|error => let 
+isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns pacsIsoRecord:Pacs010Envelope|error => let
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
-    string? sender =  getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: sender
+    string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal) in {
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: sender
+                    }
                 }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: receiver
-                }
-            }
-        },
-        BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "pacs.010.001.03",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        FIDrctDbt: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                NbOfTxs: message.block4.Transaction.length().toString(),
-                MsgId: message.block4.MT20.msgId.content
             },
-            CdtInstr: [
-                {
-                    InstgAgt: {
-                        FinInstnId: {
-                            BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
-                        }
-                    },
-                    InstdAgt: {
-                        FinInstnId: {
-                            BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
-                        }
-                    },
-                    Cdtr: getFinancialInstitution(message.block4.MT58A?.IdnCd?.content, message.block4.MT58D?.Nm,
-                            message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn, (), (),
-                            message.block4.MT58D?.AdrsLine) ?: {FinInstnId: {BICFI: receiver}},
-                    CdtrAcct: getCashAccount(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn),
-                    CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
-                            message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, (),
-                            message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
-                            message.block4.MT57B?.Lctn?.content),
-                    CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
-                            message.block4.MT57D?.PrtyIdn),
-                    CdtId: message.block4.MT20.msgId.content,
-                    InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[0],
-                    DrctDbtTxInf: check getMT204CreditTransferTransactionInfo(message.block4, message.block3, sender)
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: receiver
+                    }
                 }
-            ]
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "pacs.010.001.03",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            FIDrctDbt: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    NbOfTxs: message.block4.Transaction.length().toString(),
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                CdtInstr: [
+                    {
+                        InstgAgt: {
+                            FinInstnId: {
+                                BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)
+                            }
+                        },
+                        InstdAgt: {
+                            FinInstnId: {
+                                BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
+                            }
+                        },
+                        Cdtr: getFinancialInstitution(message.block4.MT58A?.IdnCd?.content, message.block4.MT58D?.Nm,
+                                message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn, (), (),
+                                message.block4.MT58D?.AdrsLine) ?: {FinInstnId: {BICFI: receiver}},
+                        CdtrAcct: getCashAccount(message.block4.MT58A?.PrtyIdn, message.block4.MT58D?.PrtyIdn),
+                        CdtrAgt: getFinancialInstitution(message.block4.MT57A?.IdnCd?.content, message.block4.MT57D?.Nm,
+                                message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn, (),
+                                message.block4.MT57D?.PrtyIdn, message.block4.MT57D?.AdrsLine,
+                                message.block4.MT57B?.Lctn?.content),
+                        CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
+                                message.block4.MT57D?.PrtyIdn),
+                        CdtId: message.block4.MT20.msgId.content,
+                        InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[0],
+                        DrctDbtTxInf: check getMT204CreditTransferTransactionInfo(message.block4, message.block3, sender)
+                    }
+                ]
+            }
         }
-    }
-};
+    };
 
 # This function extracts direct debit transaction information from an MT204 message 
 # and converts it into an array of ISO 20022 `DirectDebitTransactionInformation33` records.
