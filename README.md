@@ -4,8 +4,6 @@
 
 The DataMapper Library is a comprehensive toolkit designed to convert SWIFT MT FIN messages into ISO 20022 XML within Ballerina applications. It simplifies the process of mapping SWIFT MT fields to their corresponding ISO 20022 elements, leveraging predefined records and parsers from the SWIFT MT and ISO 20022 libraries. This enables developers to seamlessly convert financial messages from the flat, text-based SWIFT format into the structured ISO 20022 XML standard, ensuring accurate and efficient data conversion.
 
-**Minimum Ballerina Version Required:** Ballerina 2201.10.4 (Swan Lake Update 10) or above.
-
 ## Supported Conversions
 
 - SWIFT MT 1XX Category to ISO 20022
@@ -36,7 +34,9 @@ public function main() returns error? {
 
 ### Conversion of SWIFT fin message to ISO 20022 Xml Standard with Prefix
 
-To convert a SWIFT FIN message to the ISO 20022 XML standard with a prefix, follow the steps below:
+The library supports XML namespace prefixing for the generated ISO 20022 messages. When enabled, each XML element includes the appropriate namespace prefix based on the message type (such as "camt", "pain", or "pacs"). For example, in a pacs.008.001.08 message, elements in the Business Application Header will have the "head" prefix, while elements in the Document section will have the "pacs" prefix. 
+
+By default, namespace prefixing is enabled. To disable this feature, follow these steps:
 
 #### Step 1: Create a Configuration File
 
@@ -48,10 +48,8 @@ Add the following configuration settings to the `Config.Toml` file:
 
 ```ballerina
 [ballerinax.financial.swiftmtToIso20022]
-isAddPrefix = true
+isAddPrefix = false
 ```
-
-This configuration enables the addition of prefixes to the resulting XML elements. By default, this setting is set to `true`.
 
 ## Report issues
 
