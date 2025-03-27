@@ -58,10 +58,6 @@ isolated function transformMT107ToPacs003(swiftmt:MT107Message message) returns 
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
                     },
                     NbOfTxs: message.block4.Transaction.length().toString(),
-                    // TtlIntrBkSttlmAmt: {
-                    //     content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                    //     Ccy: message.block4.MT32B.Ccy.content
-                    // },
                     MsgId: message.block4.MT20.msgId.content
                 },
                 DrctDbtTxInf: check getDirectDebitTransactionInfoMT107(message.block4, message.block3, receiver, getMessageSender(message.block1?.logicalTerminal,

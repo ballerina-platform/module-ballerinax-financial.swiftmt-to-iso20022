@@ -59,11 +59,6 @@ isolated function transformMT104ToPacs003(swiftmt:MT104Message message) returns 
                         SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B)
                     },
                     NbOfTxs: message.block4.Transaction.length().toString(),
-                    // TtlIntrBkSttlmAmt: {
-                    //     content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                    //     Ccy: message.block4.MT32B.Ccy.content
-                    // },
-                    // IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT30.Dt),
                     MsgId: message.block4.MT20.msgId.content
                 },
                 DrctDbtTxInf: check getDirectDebitTransactionInfoMT104(message.block4, message.block3, receiver, getMessageSender(message.block1?.logicalTerminal,
@@ -262,23 +257,20 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Block4 block4, swift
         swiftmt:MT71A? dtlsOfChrgs = check getMT104RepeatingFields(block4, transaxion.MT71A, "71A").ensureType();
         swiftmt:MT77B? rgltryRptg = check getMT104RepeatingFields(block4, transaxion.MT77B, "77B").ensureType();
         string remmitanceInfo = getRemmitanceInformation(transaxion.MT70?.Nrtv?.content);
+        string|error chargeBearer= getDetailsChargesCd(dtlsOfChrgs?.Cd);
 
         paymentInstructionArray.push({
             Cdtr: getDebtorOrCreditor(creditor50A?.IdnCd, creditor50K?.Acc, creditor50A?.Acc, (), (), (),
-                    creditor50K?.Nm, (), creditor50K?.AdrsLine, (), false, rgltryRptg?.Nrtv),
+                    creditor50K?.Nm, (), creditor50K?.AdrsLine, (), false, rgltryRptg?.Nrtv, true),
             ReqdColltnDt: convertToISOStandardDateMandatory(block4.MT30.Dt),
+            BtchBookg: false,
             CdtrAcct: getCashAccount2(creditor50A?.Acc, creditor50K?.Acc) ?: {},
             CdtrAgt: getFinancialInstitution(accWthInstn52A?.IdnCd?.content, (), accWthInstn52A?.PrtyIdn,
                     accWthInstn52C?.PrtyIdn, accWthInstn52D?.PrtyIdn, (), accWthInstn52D?.AdrsLine)
                         ?: {FinInstnId: {}},
             CdtrAgtAcct: getCashAccount(accWthInstn52A?.PrtyIdn, accWthInstn52C?.PrtyIdn, accWthInstn52D?.PrtyIdn),
             PmtInfId: transaxion.MT21.Ref.content,
-            PmtTpInf: block4.MT23E is () ? () : {
-                    CtgyPurp: {
-                        Cd: block4.MT23E?.InstrnCd?.content
-                    }
-                },
-            ChrgBr: check getDetailsChargesCd(dtlsOfChrgs?.Cd).ensureType(painIsoRecord:ChargeBearerType1Code),
+            ChrgBr: chargeBearer is error ? () : check chargeBearer.ensureType(painIsoRecord:ChargeBearerType1Code),
             DrctDbtTxInf: [
                 {
                     DrctDbtTx: transaxion.MT21C is () ? () : {
@@ -304,7 +296,7 @@ isolated function getPaymentInformationOfMT104(swiftmt:MT104Block4 block4, swift
                     },
                     Dbtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc,
                             transaxion.MT59A?.Acc, (), (), (), transaxion.MT59?.Nm, (), transaxion.MT59?.AdrsLine, (),
-                            true, rgltryRptg?.Nrtv),
+                            true, rgltryRptg?.Nrtv, true),
                     RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),
                     RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                     Purp: trnsTp is () ? () : {

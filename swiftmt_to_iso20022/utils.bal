@@ -16,7 +16,7 @@
 
 import ballerina/data.xmldata;
 import ballerina/log;
-import ballerina/regex;
+import ballerina/lang.regexp;
 import ballerina/time;
 import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
 import ballerinax/financial.iso20022.payment_initiation as painIsoRecord;
@@ -244,7 +244,7 @@ isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns deci
         }
 
         log:printDebug("Converting with comma replacement");
-        decimal result = check decimal:fromString(regex:replace(numericString, "\\,", "."));
+        decimal result = check decimal:fromString(regexp:replace(re `\\,`, numericString, "."));
         log:printDebug("Converted value: " + result.toString());
         return result;
     } on fail {
@@ -280,7 +280,7 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
         }
 
         log:printDebug("Converting with comma replacement");
-        decimal result = check decimal:fromString(regex:replace(numericString, "\\,", "."));
+        decimal result = check decimal:fromString(regexp:replace(re `\\,`, numericString, "."));
         log:printDebug("Converted value: " + result.toString());
         return result;
     } on fail {
@@ -403,6 +403,9 @@ isolated function getStreetName(swiftmt:AdrsLine[]? address1, swiftmt:AdrsLine[]
     string streetName = "";
 
     foreach swiftmt:AdrsLine adrsLine in finalAddress {
+        if adrsLine.content.includes("/") {
+            continue;
+        }
         streetName += adrsLine.content + " ";    
     }
 
@@ -688,13 +691,29 @@ isolated function getName(swiftmt:Nm[]? name1, swiftmt:Nm[]? name2 = ()) returns
 # and the town is extracted from the remaining part of the string if present.
 #
 # + cntyNTw - An optional array of `CntyNTw` elements that contains country and town information.
+# + adrsline1 - An optional array of `AdrsLine` elements that may contain address lines.
+# + adrsline2 - A second optional array of `AdrsLine` elements that may also contain address lines.
 # + return - Returns a tuple with two elements: the country (first two characters) and the town 
 # (remainder of the string), or `[null, null]` if the input is invalid.
-isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw) returns [string?, string?] {
+isolated function getCountryAndTown(swiftmt:CntyNTw[]? cntyNTw, swiftmt:AdrsLine[]? adrsline1, swiftmt:AdrsLine[]? adrsline2) returns [string?, string?] {
     log:printDebug("Starting getCountryAndTown with cntyNTw: " + cntyNTw.toString());
 
     if cntyNTw is () {
         log:printDebug("Country and town info is null, returning empty tuple");
+        swiftmt:AdrsLine[] adrsline = [];
+        if adrsline1 is swiftmt:AdrsLine[] {
+            adrsline = adrsline1;
+        } else if adrsline2 is swiftmt:AdrsLine[] {
+            adrsline = adrsline2;
+        } else {
+            log:printDebug("No valid address line found, returning empty tuple");
+            return [];
+        }
+        foreach swiftmt:AdrsLine adrsLine in adrsline {
+            if adrsLine.content.includes("/") && adrsLine.content.length() > 3 {
+                return [adrsLine.content.substring(0, 2), adrsLine.content.substring(3)];
+            }
+        }
         return [];
     }
 
@@ -3021,7 +3040,7 @@ isolated function getCancellationReason(string narration) returns camtIsoRecord:
     string additionalInfo = "";
     string:RegExp reg = re `(CNCL|PDCR|RJCR).*`;
     if reg.isFullMatch(narration) {
-        if regex:matches(narration.substring(6), "(AC04|AGNT|AM04|ARDT|CUST|INDM|LEGL|NOAS|NOOR|PTNA|RQDA).*") {
+        if regexp:isFullMatch(re `(AC04|AGNT|AM04|ARDT|CUST|INDM|LEGL|NOAS|NOOR|PTNA|RQDA).*`, narration.substring(6)) {
             code = narration.substring(6, 10);
             additionalInfo = narration.substring(10);
         } else if (narration.substring(1, 5).equalsIgnoreCaseAscii("RJCR")) {
@@ -3912,7 +3931,7 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
     string[]? adrsLine = getAddressLineForDbtrOrCdtr(address1, address2, country);
     log:printDebug("Retrieved address lines: " + adrsLine.toString());
     string? streetName = getStreetName(address1, address2);
-    [string?, string?] [cntry, townName] = getCountryAndTown(country);
+    [string?, string?] [cntry, townName] = getCountryAndTown(country, address1, address2);
 
     string? nameStr = getName(name1, name2);
     log:printDebug("Retrieved name: " + nameStr.toString());
@@ -4055,7 +4074,7 @@ isolated function getChargesAmount(string narration) returns camtIsoRecord:Charg
         amount = amount.substring(0, amount.length() - 1);
         log:printDebug("Removed trailing comma, amount: " + amount);
     } else {
-        amount = regex:replace(amount, "\\,", ".");
+        amount = regexp:replace(re `\\,`, amount, ".");
         log:printDebug("Replaced commas with decimal points, amount: " + amount);
     }
 
