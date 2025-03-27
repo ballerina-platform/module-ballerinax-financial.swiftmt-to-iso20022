@@ -244,7 +244,7 @@ isolated function convertToDecimal(swiftmt:Amnt?|swiftmt:Rt? value) returns deci
         }
 
         log:printDebug("Converting with comma replacement");
-        decimal result = check decimal:fromString(regexp:replace(re `\\,`, numericString, "."));
+        decimal result = check decimal:fromString(regexp:replace(re `,`, numericString, "."));
         log:printDebug("Converted value: " + result.toString());
         return result;
     } on fail {
@@ -280,7 +280,7 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
         }
 
         log:printDebug("Converting with comma replacement");
-        decimal result = check decimal:fromString(regexp:replace(re `\\,`, numericString, "."));
+        decimal result = check decimal:fromString(regexp:replace(re `,`, numericString, "."));
         log:printDebug("Converted value: " + result.toString());
         return result;
     } on fail {
@@ -4074,7 +4074,7 @@ isolated function getChargesAmount(string narration) returns camtIsoRecord:Charg
         amount = amount.substring(0, amount.length() - 1);
         log:printDebug("Removed trailing comma, amount: " + amount);
     } else {
-        amount = regexp:replace(re `\\,`, amount, ".");
+        amount = regexp:replace(re `,`, amount, ".");
         log:printDebug("Replaced commas with decimal points, amount: " + amount);
     }
 
