@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -27,16 +27,33 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns a record in `camtIsoRecord:Camt026Document` format if successful, otherwise returns an error.
 isolated function transformMTn95ToCamt026(swiftmt:MTn95Message message) returns camtIsoRecord:Camt026Envelope|error => {
     AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt026.001.10", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
+        Fr: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageSender(message.block1?.logicalTerminal,
+                            message.block2.MIRLogicalTerminal)
+                }
+            }
+        },
+        To: {
+            FIId: {
+                FinInstnId: {
+                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                            message.block2.receiverAddress)
+                }
+            }
+        },
+        BizMsgIdr: message.block4.MT20.msgId.content,
+        MsgDefIdr: "camt.026.001.08",
+        BizSvc: "swift.cbprplus.02",
+        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                true).ensureType(string)
     },
     Document: {
         UblToApply: {
             Assgnmt: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
+                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                        true).ensureType(string),
                 Assgne: {
                     Agt: {
                         FinInstnId: {

@@ -1,0 +1,75 @@
+<!-- // Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations
+// under the License.
+-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+    <head:Fr>
+      <head:FIId>
+        <head:FinInstnId>
+          <head:BICFI>MYMBGB2LXXX</head:BICFI>
+        </head:FinInstnId>
+      </head:FIId>
+    </head:Fr>
+    <head:To>
+      <head:FIId>
+        <head:FinInstnId>
+          <head:BICFI>RBSSGBKCXXX</head:BICFI>
+        </head:FinInstnId>
+      </head:FIId>
+    </head:To>
+    <head:BizMsgIdr>camt108bzmsgidr1</head:BizMsgIdr>
+    <head:MsgDefIdr>camt.108.001.01</head:MsgDefIdr>
+    <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+    <head:CreDt>2022-10-20T10:05:00+00:00</head:CreDt>
+  </head:AppHdr>
+  <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.108.001.01">
+    <camt:ChqCxlOrStopReq>
+      <camt:GrpHdr>
+        <camt:MsgId>camt108bzmsgidr1</camt:MsgId>
+        <camt:CreDtTm>2022-10-20T10:05:00+00:00</camt:CreDtTm>
+        <camt:NbOfChqs>1</camt:NbOfChqs>
+      </camt:GrpHdr>
+      <camt:Chq>
+        <camt:InstrId>camt108bzmsgidr1</camt:InstrId>
+        <camt:OrgnlInstrId>NOTPROVIDED</camt:OrgnlInstrId>
+        <camt:ChqNb>102145</camt:ChqNb>
+        <camt:IsseDt>2022-10-20</camt:IsseDt>
+        <camt:Amt Ccy="GBP">25250</camt:Amt>
+        <camt:Pyee>
+          <camt:Nm>1/Ardent Finance</camt:Nm>
+          <camt:PstlAdr>
+            <camt:AdrLine>2/2/Main Street</camt:AdrLine>
+            <camt:AdrLine>2/3/GB/London</camt:AdrLine>
+          </camt:PstlAdr>
+          <camt:Id>
+            <camt:OrgId>
+              <camt:Othr>
+                <camt:Id>NOTPROVIDED</camt:Id>
+              </camt:Othr>
+            </camt:OrgId>
+          </camt:Id>
+        </camt:Pyee>
+        <camt:ChqCxlOrStopRsn>
+          <camt:Rsn>
+            <camt:Cd>CUST</camt:Cd>
+          </camt:Rsn>
+        </camt:ChqCxlOrStopRsn>
+      </camt:Chq>
+    </camt:ChqCxlOrStopReq>
+  </camt:Document>
+</Envelope>

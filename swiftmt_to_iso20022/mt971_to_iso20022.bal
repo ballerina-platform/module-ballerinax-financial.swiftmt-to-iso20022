@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -22,51 +22,70 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT971 message as a record value.
 # + return - Returns a `Camt052Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT971ToCamt052(swiftmt:MT971Message message) returns camtIsoRecord:Camt052Envelope|error => {
-    AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt052.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
-    },
-    Document: {
-        BkToCstmrAcctRpt: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-                MsgId: message.block4.MT20.msgId.content
-            },
-            Rpt: [
-                {
-                    Id: message.block4.MT20.msgId.content,
-                    Acct: {
-                        Id: {
-                            IBAN: validateAccountNumber(message.block4.MT25?.Acc)[0],
-                            Othr: {
-                                Id: validateAccountNumber(message.block4.MT25?.Acc)[1],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(message.block4.MT25?.Acc)
-                                }
-                            }
-                        }
-                    },
-                    Bal: [
-                        {
-                            Amt: {
-                                content: check convertToDecimalMandatory(message.block4.MT62F.Amnt),
-                                Ccy: message.block4.MT62F.Ccy.content
-                            },
-                            Dt: {Dt: convertToISOStandardDate(message.block4.MT62F.Dt)},
-                            CdtDbtInd: convertDbtOrCrdToISOStandard(message.block4.MT62F),
-                            Tp: {
-                                CdOrPrtry: {
-                                    Cd: "CLBD"
-                                }
-                            }
-                        }
-                    ]
+isolated function transformMT971ToCamt052(swiftmt:MT971Message message) returns camtIsoRecord:Camt052Envelope|error => let
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc) in {
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
                 }
-            ]
+            },
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "camt.052.001.08",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            BkToCstmrAcctRpt: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                Rpt: [
+                    {
+                        Id: message.block4.MT20.msgId.content,
+                        Acct: bban is () && iban is () ? {} : {
+                                Ccy: message.block4.MT62F.Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban,
+                                            SchmeNm: {
+                                                Cd: getSchemaCode(message.block4.MT25?.Acc)
+                                            }
+                                        }
+                                }
+                            },
+                        Bal: [
+                            {
+                                Amt: {
+                                    content: check convertToDecimalMandatory(message.block4.MT62F.Amnt),
+                                    Ccy: message.block4.MT62F.Ccy.content
+                                },
+                                Dt: {Dt: convertToISOStandardDate(message.block4.MT62F.Dt)},
+                                CdtDbtInd: convertDbtOrCrdToISOStandard(message.block4.MT62F),
+                                Tp: {
+                                    CdOrPrtry: {
+                                        Cd: "CLBD"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
         }
-    }
-};
+    };

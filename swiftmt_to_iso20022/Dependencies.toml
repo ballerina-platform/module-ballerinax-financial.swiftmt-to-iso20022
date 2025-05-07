@@ -5,7 +5,7 @@
 
 [ballerina]
 dependencies-toml-version = "2"
-distribution-version = "2201.10.1"
+distribution-version = "2201.10.4-20250127-170500-e3246f5f"
 
 [[package]]
 org = "ballerina"
@@ -25,6 +25,18 @@ dependencies = [
 ]
 modules = [
 	{org = "ballerina", packageName = "data.xmldata", moduleName = "data.xmldata"}
+]
+
+[[package]]
+org = "ballerina"
+name = "io"
+version = "1.6.3"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.value"}
+]
+modules = [
+	{org = "ballerina", packageName = "io", moduleName = "io"}
 ]
 
 [[package]]
@@ -77,6 +89,39 @@ version = "0.0.0"
 
 [[package]]
 org = "ballerina"
+name = "lang.regexp"
+version = "0.0.0"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerina", packageName = "lang.regexp", moduleName = "lang.regexp"}
+]
+
+[[package]]
+org = "ballerina"
+name = "lang.value"
+version = "0.0.0"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"}
+]
+
+[[package]]
+org = "ballerina"
+name = "log"
+version = "2.10.0"
+dependencies = [
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.value"},
+	{org = "ballerina", name = "observe"}
+]
+modules = [
+	{org = "ballerina", packageName = "log", moduleName = "log"}
+]
+
+[[package]]
+org = "ballerina"
 name = "observe"
 version = "1.3.0"
 dependencies = [
@@ -123,6 +168,18 @@ modules = [
 ]
 
 [[package]]
+org = "ballerina"
+name = "xmldata"
+version = "2.8.1"
+scope = "testOnly"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerina", packageName = "xmldata", moduleName = "xmldata"}
+]
+
+[[package]]
 org = "ballerinai"
 name = "observe"
 version = "0.0.0"
@@ -137,7 +194,7 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "financial.iso20022"
-version = "1.1.0"
+version = "2.0.1"
 dependencies = [
 	{org = "ballerina", name = "data.xmldata"},
 	{org = "ballerinai", name = "observe"}
@@ -152,7 +209,7 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "financial.swift.mt"
-version = "1.0.2"
+version = "3.0.1"
 dependencies = [
 	{org = "ballerina", name = "data.xmldata"},
 	{org = "ballerina", name = "jballerina.java"},
@@ -171,9 +228,13 @@ name = "financial.swiftmtToIso20022"
 version = "0.9.1"
 dependencies = [
 	{org = "ballerina", name = "data.xmldata"},
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "lang.regexp"},
+	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "test"},
 	{org = "ballerina", name = "time"},
 	{org = "ballerina", name = "uuid"},
+	{org = "ballerina", name = "xmldata"},
 	{org = "ballerinai", name = "observe"},
 	{org = "ballerinax", name = "financial.iso20022"},
 	{org = "ballerinax", name = "financial.swift.mt"}
@@ -181,4 +242,3 @@ dependencies = [
 modules = [
 	{org = "ballerinax", packageName = "financial.swiftmtToIso20022", moduleName = "financial.swiftmtToIso20022"}
 ]
-

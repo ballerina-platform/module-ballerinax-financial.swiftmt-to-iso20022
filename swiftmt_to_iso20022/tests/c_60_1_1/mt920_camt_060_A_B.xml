@@ -1,0 +1,82 @@
+<!-- // Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations
+// under the License.
+-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>INGBROBUXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>ABNANL2AXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>3948</head:BizMsgIdr>
+		<head:MsgDefIdr>camt.060.001.05</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>2022-10-20T07:25:00+00:00</head:CreDt>
+	</head:AppHdr>
+	<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.060.001.05">
+		<camt:AcctRptgReq>
+			<camt:GrpHdr>
+				<camt:MsgId>3948</camt:MsgId>
+				<camt:CreDtTm>2022-10-20T07:25:00+00:00</camt:CreDtTm>
+			</camt:GrpHdr>
+			<camt:RptgReq>
+				<camt:Id>3948</camt:Id>
+				<camt:ReqdMsgNmId>942</camt:ReqdMsgNmId>
+				<camt:Acct>
+					<camt:Id>
+						<camt:Othr>
+							<camt:Id>123-45678</camt:Id>
+						</camt:Othr>
+					</camt:Id>
+				</camt:Acct>
+				<camt:AcctOwnr>
+					<camt:Pty>
+						<camt:Id>
+							<camt:OrgId>
+								<camt:AnyBIC>NOTPROVIDED</camt:AnyBIC>
+							</camt:OrgId>
+						</camt:Id>
+					</camt:Pty>
+				</camt:AcctOwnr>
+				<camt:ReqdTxTp>
+					<camt:Sts>
+						<camt:Cd>PDNG</camt:Cd>
+					</camt:Sts>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:FlrLmt>
+						<camt:Amt Ccy="CHF">1000000</camt:Amt>
+						<camt:CdtDbtInd>DEBT</camt:CdtDbtInd>
+					</camt:FlrLmt>
+					<camt:FlrLmt>
+						<camt:Amt Ccy="CHF">100000</camt:Amt>
+						<camt:CdtDbtInd>CRED</camt:CdtDbtInd>
+					</camt:FlrLmt>
+				</camt:ReqdTxTp>
+			</camt:RptgReq>
+		</camt:AcctRptgReq>
+	</camt:Document>
+</Envelope>

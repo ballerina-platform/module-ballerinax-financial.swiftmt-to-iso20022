@@ -1,0 +1,111 @@
+<!-- // Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations
+// under the License.
+-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>INGBROBUXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>YOURBANKXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>C11126C9224</head:BizMsgIdr>
+		<head:MsgDefIdr>camt.054.001.08</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>2022-10-20T07:25:00+00:00</head:CreDt>
+	</head:AppHdr>
+	<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.054.001.08">
+		<camt:BkToCstmrDbtCdtNtfctn>
+			<camt:GrpHdr>
+				<camt:MsgId>C11126C9224</camt:MsgId>
+				<camt:CreDtTm>2022-10-20T07:25:00+00:00</camt:CreDtTm>
+			</camt:GrpHdr>
+			<camt:Ntfctn>
+				<camt:Id>C11126C9224</camt:Id>
+				<camt:Acct>
+					<camt:Id>
+						<camt:Othr>
+							<camt:Id>6-9412771</camt:Id>
+							<camt:SchmeNm>
+								<camt:Cd>BBAN</camt:Cd>
+							</camt:SchmeNm>
+						</camt:Othr>
+					</camt:Id>
+					<camt:Ccy>USD</camt:Ccy>
+				</camt:Acct>
+				<camt:Ntry>
+					<camt:NtryRef>NOTPROVIDED</camt:NtryRef>
+					<camt:Amt Ccy="USD">500000</camt:Amt>
+					<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:BookgDt>
+						<camt:DtTm>2014-01-23T14:26:00+01:00</camt:DtTm>
+					</camt:BookgDt>
+					<camt:ValDt>
+						<camt:Dt>2014-01-23</camt:Dt>
+					</camt:ValDt>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:InstrId>494936/DEV</camt:InstrId>
+								<camt:EndToEndId>494936/DEV</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="USD">500000</camt:Amt>
+							<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+							<camt:RltdPties>
+								<camt:Dbtr>
+									<camt:Agt>
+										<camt:FinInstnId>
+											<camt:BICFI>BKAUATWW</camt:BICFI>
+										</camt:FinInstnId>
+									</camt:Agt>
+								</camt:Dbtr>
+							</camt:RltdPties>
+							<camt:RltdAgts>
+								<camt:IntrmyAgt1>
+									<camt:FinInstnId>
+										<camt:BICFI>BKTRUS33</camt:BICFI>
+									</camt:FinInstnId>
+								</camt:IntrmyAgt1>
+							</camt:RltdAgts>
+							<camt:RltdDts>
+								<camt:IntrBkSttlmDt>2014-01-23</camt:IntrBkSttlmDt>
+							</camt:RltdDts>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+			</camt:Ntfctn>
+		</camt:BkToCstmrDbtCdtNtfctn>
+	</camt:Document>
+</Envelope>

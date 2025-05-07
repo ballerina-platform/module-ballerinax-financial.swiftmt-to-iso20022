@@ -1,0 +1,325 @@
+<!-- // Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations
+// under the License.
+-->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>INGBROBUXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>ABNANL2AXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>123456</head:BizMsgIdr>
+		<head:MsgDefIdr>camt.053.001.08</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>2022-10-20T07:25:00+00:00</head:CreDt>
+	</head:AppHdr>
+	<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
+		<camt:BkToCstmrStmt>
+			<camt:GrpHdr>
+				<camt:MsgId>123456</camt:MsgId>
+				<camt:CreDtTm>2022-10-20T07:25:00+00:00</camt:CreDtTm>
+			</camt:GrpHdr>
+			<camt:Stmt>
+				<camt:Id>123456</camt:Id>
+				<camt:StmtPgntn>
+					<camt:PgNb>1</camt:PgNb>
+					<camt:LastPgInd>true</camt:LastPgInd>
+				</camt:StmtPgntn>
+				<camt:LglSeqNb>102</camt:LglSeqNb>
+				<camt:Acct>
+					<camt:Id>
+						<camt:Othr>
+							<camt:Id>123-456789</camt:Id>
+						</camt:Othr>
+					</camt:Id>
+					<camt:Ccy>EUR</camt:Ccy>
+				</camt:Acct>
+				<camt:Bal>
+					<camt:Tp>
+						<camt:CdOrPrtry>
+							<camt:Cd>OPBD</camt:Cd>
+						</camt:CdOrPrtry>
+					</camt:Tp>
+					<camt:Amt Ccy="EUR">3723495</camt:Amt>
+					<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+					<camt:Dt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:Dt>
+				</camt:Bal>
+				<camt:Bal>
+					<camt:Tp>
+						<camt:CdOrPrtry>
+							<camt:Cd>CLBD</camt:Cd>
+						</camt:CdOrPrtry>
+					</camt:Tp>
+					<camt:Amt Ccy="EUR">3709865.13</camt:Amt>
+					<camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+					<camt:Dt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:Dt>
+				</camt:Bal>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">1.2</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>67914</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>494935/DEV</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">1.2</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">30.2</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>123464</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>78911</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">30.2</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">250</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>123460</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>67822</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">250</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">450</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>PO64118</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>494933/DEV</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">450</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+							<camt:AddtlTxInf>FAVOUR K. DESMID</camt:AddtlTxInf>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">500</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>123456</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>45633</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">500</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">1058.47</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>3841188 FAVOUR H.F. JANSSEN</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>494931</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">1058.47</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">2500</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>123457</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>56728</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">2500</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">3840</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>3841189</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>494935</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">3840</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+							<camt:AddtlTxInf>FAVOUR H.F. JANSSEN</camt:AddtlTxInf>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+				<camt:Ntry>
+					<camt:Amt Ccy="EUR">5000</camt:Amt>
+					<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+					<camt:Sts>
+						<camt:Cd>BOOK</camt:Cd>
+					</camt:Sts>
+					<camt:ValDt>
+						<camt:Dt>2009-05-28</camt:Dt>
+					</camt:ValDt>
+					<camt:AcctSvcrRef>47829</camt:AcctSvcrRef>
+					<camt:BkTxCd>
+						<camt:Prtry>
+							<camt:Cd>NOTPROVIDED</camt:Cd>
+							<camt:Issr>NOTPROVIDED</camt:Issr>
+						</camt:Prtry>
+					</camt:BkTxCd>
+					<camt:NtryDtls>
+						<camt:TxDtls>
+							<camt:Refs>
+								<camt:EndToEndId>23/200516</camt:EndToEndId>
+							</camt:Refs>
+							<camt:Amt Ccy="EUR">5000</camt:Amt>
+							<camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+							<camt:AddtlTxInf>ORDER ROTTERDAM</camt:AddtlTxInf>
+						</camt:TxDtls>
+					</camt:NtryDtls>
+				</camt:Ntry>
+			</camt:Stmt>
+		</camt:BkToCstmrStmt>
+	</camt:Document>
+</Envelope>

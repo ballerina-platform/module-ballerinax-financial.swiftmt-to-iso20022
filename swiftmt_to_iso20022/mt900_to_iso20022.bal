@@ -1,4 +1,4 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -23,113 +23,124 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MT900 message as a record value.
 # + return - Returns a `Camt054Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns camtIsoRecord:Camt054Envelope|error => {
-    AppHdr: {
-        Fr: {FIId: {FinInstnId: {BICFI: getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal)}}}, 
-        To: {FIId: {FinInstnId: {BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)}}}, 
-        BizMsgIdr: message.block4.MT20.msgId.content, 
-        MsgDefIdr: "camt054.001.12", 
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string)
-    },
-    Document: {
-        BkToCstmrDbtCdtNtfctn: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime, true).ensureType(string),
-                MsgId: message.block4.MT20.msgId.content
+isolated function transformMT900ToCamt054(swiftmt:MT900Message message) returns camtIsoRecord:Camt054Envelope|error =>
+    let string? dateTime = convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm),
+    [string?, string?] [iban, bban] = validateAccountNumber(message.block4.MT25?.Acc,
+            acc2 = message.block4.MT25P?.Acc)
+    in {
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
             },
-            Ntfctn: [
-                {
-                    Id: message.block4.MT20.msgId.content,
-                    Acct: {
-                        Id: {
-                            IBAN: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[0],
-                            Othr: {
-                                Id: validateAccountNumber(message.block4.MT25?.Acc, acc2 = message.block4.MT25P?.Acc)[1],
-                                SchmeNm: {
-                                    Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
-                                }
-                            }
-                        },
-                        Ownr: {
-                            Id: {
-                                OrgId: {
-                                    AnyBIC: message.block4.MT25P?.IdnCd?.content
-                                }
-                            }
-                        }
-                    },
-                    Ntry: [{
-                        BookgDt: {
-                            DtTm: convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm) is () ? (): 
-                            convertToISOStandardDateTime(message.block4.MT13D?.Dt, message.block4.MT13D?.Tm).toString()
-                            + message.block4.MT13D?.Sgn?.content.toString() + message.block4.MT13D?.TmOfst?.content.toString().substring(0,2) + 
-                            ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2)
-                        },
-                        Amt: {
-                            content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
-                            Ccy: message.block4.MT32A.Ccy.content
-                        },
-                        CdtDbtInd: camtIsoRecord:DBIT,
-                        ValDt: {
-                            Dt: convertToISOStandardDate(message.block4.MT32A.Dt)
-                        },
-                        Sts: {},
-                        BkTxCd: {},
-                        NtryDtls: [
-                            {
-                                TxDtls: [
-                                    {
-                                        Amt: {
-                                            content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
-                                            Ccy: message.block4.MT32A.Ccy.content
-                                        },
-                                        RltdDts: {
-                                            IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt)
-                                        },
-                                        CdtDbtInd: camtIsoRecord:DBIT,
-                                        RltdPties: {
-                                            Dbtr: {
-                                                Agt: {
-                                                    FinInstnId: {
-                                                        BICFI: message.block4.MT52A?.IdnCd?.content,
-                                                        ClrSysMmbId: {
-                                                            MmbId: "", 
-                                                            ClrSysId: {
-                                                                Cd: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[0]
-                                                            }
-                                                        },
-                                                        Nm: getName(message.block4.MT52D?.Nm),
-                                                        PstlAdr: {
-                                                            AdrLine: getAddressLine(message.block4.MT52D?.AdrsLine)
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            DbtrAcct: {
-                                                Id: {
-                                                    IBAN: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[1],
-                                                    Othr: {
-                                                        Id: getPartyIdentifierOrAccount2(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn)[2],
-                                                        SchmeNm: {
-                                                            Cd: getSchemaCode(prtyIdn1 = message.block4.MT52A?.PrtyIdn, prtyIdn2 = message.block4.MT52D?.PrtyIdn)
-                                                        }
-                                                    }
-                                                }
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "camt.054.001.08",
+            BizSvc: "swift.cbprplus.02",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            BkToCstmrDbtCdtNtfctn: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    MsgId: message.block4.MT20.msgId.content
+                },
+                Ntfctn: [
+                    {
+                        Id: message.block4.MT20.msgId.content,
+                        Acct: bban is () && iban is () ? {} : {
+                                Ccy: message.block4.MT32A.Ccy.content,
+                                Id: {
+                                    IBAN: iban,
+                                    Othr: bban is () ? () : {
+                                            Id: bban,
+                                            SchmeNm: {
+                                                Cd: getSchemaCode(message.block4.MT25?.Acc, message.block4.MT25P?.Acc)
                                             }
-                                        }, 
-                                        Refs: {
-                                            EndToEndId: message.block4.MT21.Ref.content,
-                                            InstrId: message.block4.MT21.Ref.content,
-                                            UETR: message.block3?.NdToNdTxRef?.value
-                                        },
-                                        AddtlTxInf: message.block4.MT72?.Cd?.content
+                                        }
+                                },
+                                Ownr: message.block4.MT25P is () ? () : {
+                                        Id: {
+                                            OrgId: {
+                                                AnyBIC: message.block4.MT25P?.IdnCd?.content
+                                            }
+                                        }
+                                    }
+                            },
+                        Ntry: [
+                            {
+                                BookgDt: dateTime is () ? () : {
+                                        DtTm: dateTime + message.block4.MT13D?.Sgn?.content.toString() +
+                                        message.block4.MT13D?.TmOfst?.content.toString().substring(0, 2) +
+                                        ":" + message.block4.MT13D?.TmOfst?.content.toString().substring(2)
+                                    },
+                                NtryRef: "NOTPROVIDED",
+                                Amt: {
+                                    content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
+                                    Ccy: message.block4.MT32A.Ccy.content
+                                },
+                                CdtDbtInd: camtIsoRecord:DBIT,
+                                ValDt: {
+                                    Dt: convertToISOStandardDate(message.block4.MT32A.Dt)
+                                },
+                                Sts: {
+                                    Cd: "BOOK"
+                                },
+                                BkTxCd: {
+                                    Prtry: {
+                                        Cd: "NOTPROVIDED",
+                                        Issr: "NOTPROVIDED"
+                                    }
+                                },
+                                NtryDtls: [
+                                    {
+                                        TxDtls: [
+                                            {
+                                                Amt: {
+                                                    content: check convertToDecimalMandatory(message.block4.MT32A.Amnt),
+                                                    Ccy: message.block4.MT32A.Ccy.content
+                                                },
+                                                RltdDts: {
+                                                    IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt)
+                                                },
+                                                CdtDbtInd: camtIsoRecord:DBIT,
+                                                RltdPties: {
+                                                    Dbtr: {
+                                                        Agt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
+                                                                message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
+                                                                message.block4.MT52D?.PrtyIdn, (), (),
+                                                                message.block4.MT52D?.AdrsLine)
+                                                    },
+                                                    DbtrAcct: getCashAccount(message.block4.MT52A?.PrtyIdn,
+                                                            message.block4.MT52D?.PrtyIdn)
+                                                },
+                                                Refs: {
+                                                    EndToEndId: message.block4.MT21.Ref.content,
+                                                    InstrId: message.block4.MT21.Ref.content,
+                                                    UETR: message.block3?.NdToNdTxRef?.value
+                                                },
+                                                AddtlTxInf: message.block4.MT72?.Cd?.content
+                                            }
+                                        ]
                                     }
                                 ]
                             }
                         ]
-                    }]
-                }
-            ]
+                    }
+                ]
+            }
         }
-    }
-};
+    };
