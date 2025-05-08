@@ -33,7 +33,8 @@ function dataProvider_mt200() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
         "pc_09_1_1_pacs009_A_B_111": [finMessage_00911_mt200_A_B, check io:fileReadXml("./tests/pc_09_1_1/mt200_pacs_009_A_B.xml")],
-        "pc_09_1_1_pacs009_C_D_111": [finMessage_00911_mt200_C_D, check io:fileReadXml("./tests/pc_09_1_1/mt200_pacs_009_C_D.xml")]
+        "pc_09_1_1_pacs009_C_D_111": [finMessage_00911_mt200_C_D, check io:fileReadXml("./tests/pc_09_1_1/mt200_pacs_009_C_D.xml")],
+        "pc_09_1_1_pacs009_A_B_112": [finMessage_00911_mt202_A_B, check io:fileReadXml("./tests/pc_09_1_1/mt202_pacs_009_A_B.xml")]
     };
     return dataSet;
 }
@@ -50,4 +51,16 @@ string finMessage_00911_mt200_C_D = "{1:F01RBOSGB2LXXXX0000000000}{2:O2000815221
     ":53B:/34554-3049\r\n" +
     ":56A:CITIUS33\r\n" +
     ":57A:CITIUS33MIA\r\n" +
+    "-}";
+
+string finMessage_00911_mt202_A_B = "{1:F01HELSFIHHXXXX0000000000}{2:O2020000991231NDEAFIHHXXXX00000000009912310000N}{3:{121:dab3b64f-092b-4839-b7e9-8f438af50961}}{4:\r\n" +
+    ":20:pacs9bizmsgidr02\r\n" +
+    ":21:pacs009EndToEnd\r\n" +
+    ":32A:200803EUR654489,98\r\n" +
+    ":52A:RBOSGB2LXXX\r\n" +
+    ":53A:CP01AA89787\r\n" +
+    ":57A:HELSFIHHXXX\r\n" +
+    ":58A:EVSEFIHHXXX\r\n" +
+    ":72:/INS/ABNANL2AXXX\r\n" +
+    "/BNF/Invoice: 456464-9663\r\n" +
     "-}";

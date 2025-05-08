@@ -1586,7 +1586,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
             "BNF"|"TSU" => {
                 log:printDebug("Setting remittance information with code: " + code[i]);
                 remmitanceInfo = {
-                    Ustrd: [check additionalInfo[i].ensureType(pacsIsoRecord:Max140Text)]
+                    Ustrd: [check ("/" + code[i]+ "/" + additionalInfo[i].toString()).ensureType(pacsIsoRecord:Max140Text)]
                 };
             }
             "PURP" => {
@@ -4294,4 +4294,13 @@ isolated function extractStatusReason(swiftmt:Nrtv[]? narrativeArray) returns [s
                 ", additionalInformation: " + additionalInformation.toString() +
                 ", statusId: " + statusId.toString());
     return [reason, additionalInformation, statusId];
+}
+
+isolated function getPacs009MessageType(swiftmt:MT53A? field53A, swiftmt:MT53B? field53B, swiftmt:MT53D? field53D) returns string {
+
+    if field53A is swiftmt:MT53A || field53D is swiftmt:MT53D {
+        return "swift.cbprplus.adv.02";
+    }
+
+    return "swift.cbprplus.02";
 }
