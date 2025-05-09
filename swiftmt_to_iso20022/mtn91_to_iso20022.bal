@@ -78,6 +78,15 @@ isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns 
         }
     };
 
+# Retrieves the charges per transaction for an MTn91 message.
+#
+# + message - The parsed MTn91 message as a record value.
+# + isMultipleTx - Indicates if there are multiple transactions.
+# + chrgRqstr - The charge requester, which can be a BICFI or empty.
+# + chrgsBrkdwn - The breakdown of charges as an array of `ChargesBreakdown1` records.
+# + instr - Instruction for the instructed agent, which can be empty.
+# + info - Additional information for the instructed agent, which can be empty.
+# + return - Returns an array of `ChargesPerTransactionRecord3` records or an error.
 isolated function getChrgsPerTx(swiftmt:MTn91Message message, boolean isMultipleTx, string? chrgRqstr,
         camtIsoRecord:ChargesBreakdown1[] chrgsBrkdwn, string? instr, string? info)
         returns camtIsoRecord:ChargesPerTransactionRecord3[]|error {

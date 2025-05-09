@@ -78,6 +78,13 @@ isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns 
         }
     };
 
+# Retrieves the charges per transaction for an MTn90 message.
+#
+# + message - The parsed MTn90 message as a record value.
+# + isMultipleTx - Indicates if there are multiple transactions.
+# + chrgsBrkdwn - The breakdown of charges as an array of `ChargesBreakdown1` records.
+# + chrgrsRqstr - The identifier of the charge requester as a `BranchAndFinancialInstitutionIdentification8` record.
+# + return - Returns an array of `ChargesPerTransactionRecord4` records or an error if the transformation fails.
 isolated function getChrgsPerTxForMtn90(swiftmt:MTn90Message message, boolean isMultipleTx,
         camtIsoRecord:ChargesBreakdown1[] chrgsBrkdwn, camtIsoRecord:BranchAndFinancialInstitutionIdentification8? chrgrsRqstr)
         returns camtIsoRecord:ChargesPerTransactionRecord4[]|error {

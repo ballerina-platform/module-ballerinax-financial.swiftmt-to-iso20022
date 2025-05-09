@@ -461,6 +461,11 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
         }
     };
 
+
+# Get charge bearer and return reason information from the sender-receiver information of the MT202 message.
+#
+# + sndRcvInfo - The sender-receiver information from the MT202 message.
+# + return - Returns a `ChargeBearerType1Code` object if the transformation is successful,
 isolated function getChrgBrAndRtrRsnInf(swiftmt:MT72? sndRcvInfo) returns pacsIsoRecord:ChargeBearerType1Code? {
     pacsIsoRecord:ChargeBearerType1Code? chrgBr = "SHAR";
     log:printWarn(getSwiftLogMessage(WARNING, "T20096"));

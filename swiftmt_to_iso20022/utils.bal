@@ -3694,10 +3694,10 @@ isolated function get202Or205RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo)
                             });
                         } else {
                             // next element is not additional info, so add only code
-                    returnReasonArray.push({
+                            returnReasonArray.push({
                                 Rsn: {Cd: code}
-                    });
-                }
+                            });
+                        }
                         returnReasoninfoCollected = true;
                     }
                 }
@@ -4120,62 +4120,6 @@ isolated function getChargesAmount(string narration) returns camtIsoRecord:Charg
                     ", currency: " + currency +
                     ", code: " + code);
     }
-    // string amount = "";
-    // string currency = "";
-    // string code = "";
-    // boolean isAmount = false;
-
-    // log:printDebug("Parsing narration character by character");
-    // foreach int i in 1 ... narration.length() - 1 {
-    //     if isAmount && (narration.substring(i, i + 1).matches(re `^[0-9]$`) || narration.substring(i, i + 1) == ",") {
-    //         amount += narration.substring(i, i + 1);
-    //         log:printDebug("Added digit to amount: " + narration.substring(i, i + 1) + ", current amount: " + amount);
-    //         continue;
-    //     }
-    //     if narration.substring(i, i + 1) == "/" {
-    //         log:printDebug("Found '/' character at position " + i.toString());
-
-    //         if isAmount {
-    //             log:printDebug("Already found amount, breaking loop");
-    //             break;
-    //         }
-
-    //         if narration.length() - 1 >= i + 3 {
-    //             currency = narration.substring(i + 1, i + 4);
-    //             log:printDebug("Extracted currency: " + currency);
-    //         }
-
-    //         code = narration.substring(1, i);
-    //         log:printDebug("Extracted code: " + code);
-    //         isAmount = true;
-    //     }
-    // }
-
-    // log:printDebug("Parsing complete, raw amount: " + amount);
-
-    // if amount.endsWith(",") {
-    //     amount = amount.substring(0, amount.length() - 1);
-    //     log:printDebug("Removed trailing comma, amount: " + amount);
-    // } else {
-    //     amount = regexp:replace(re `,`, amount, ".");
-    //     log:printDebug("Replaced commas with decimal points, amount: " + amount);
-    // }
-
-    // decimal decimalAmount = check decimal:fromString(amount);
-    // log:printDebug("Converted to decimal: " + decimalAmount.toString());
-
-    // camtIsoRecord:ChargesBreakdown1[] result = [
-    //     {
-    //         Amt: {content: decimalAmount, Ccy: currency},
-    //         Tp: {Cd: code},
-    //         CdtDbtInd: "DBIT"
-    //     }
-    // ];
-
-    // log:printDebug("Returning charges breakdown with amount: " + decimalAmount.toString() +
-    //             ", currency: " + currency +
-    //             ", code: " + code);
-
     return result;
 }
 
