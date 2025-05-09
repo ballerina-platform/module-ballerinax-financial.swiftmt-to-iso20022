@@ -155,7 +155,7 @@ isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns 
                         TxInfAndSts: [
                             {
                                 OrgnlGrpInf: {
-                                    OrgnlMsgId: "",
+                                    OrgnlMsgId: "NOTPROVIDED",
                                     OrgnlMsgNmId: getOrignalMessageName(message.block4.MT11R?.MtNum?.content),
                                     OrgnlCreDtTm: date is () ? () : date + "T00:00:00+00:00"
                                 },
@@ -164,7 +164,16 @@ isolated function transformMTn96ToCamt029(swiftmt:MTn96Message message) returns 
                                     : message.block3?.NdToNdTxRef?.value,
                                 RslvdCase: {
                                     Id: message.block4.MT21.Ref.content,
-                                    Cretr: {}
+                                    Cretr: {
+                                        Agt: {
+                                            FinInstnId: {
+                                                Nm: "NOTPROVIDED",
+                                                PstlAdr: {
+                                                    AdrLine: ["NOTPROVIDED"]
+                                                }
+                                            }
+                                        }
+                                    }
                                 },
                                 CxlStsRsnInf: getCancellationReason(message.block4.MT76.Nrtv.content)
                             }

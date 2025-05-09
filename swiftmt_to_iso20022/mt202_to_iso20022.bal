@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/log;
 import ballerinax/financial.iso20022.payments_clearing_and_settlement as pacsIsoRecord;
 import ballerinax/financial.swift.mt as swiftmt;
 
@@ -53,7 +54,7 @@ isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pa
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.009.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: getPacs009MessageType(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -358,7 +359,8 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
     string[]? address = getAddressForCdtrAgtInPacs004(field57Acct, field57AdrsLine),
     [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
     [string?, pacsIsoRecord:PaymentReturnReason7[]] [instructionId, returnReasonArray] =
-        get202Or205RETNSndRcvrInfoForPacs004(message.block4.MT72)
+        get202Or205RETNSndRcvrInfoForPacs004(message.block4.MT72),
+    pacsIsoRecord:ChargeBearerType1Code? chrgBr = getChrgBrAndRtrRsnInf(message.block4.MT72)
     in {
         AppHdr: {
             Fr: {
@@ -420,7 +422,7 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
                                 CdtDtTm: crdtTime,
                                 DbtDtTm: dbitTime
                             },
-                        ChrgBr: "SHAR",
+                        ChrgBr: chrgBr,
                         RtrChain: {
                             Cdtr: {
                                 Agt: getFinancialInstitution(message.block4.MT58A?.IdnCd?.content, message.block4.MT58D?.Nm,
@@ -458,3 +460,12 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
             }
         }
     };
+
+isolated function getChrgBrAndRtrRsnInf(swiftmt:MT72? sndRcvInfo) returns pacsIsoRecord:ChargeBearerType1Code? {
+    pacsIsoRecord:ChargeBearerType1Code? chrgBr = "SHAR";
+    log:printWarn(getSwiftLogMessage(WARNING, "T20096"));
+    if (sndRcvInfo?.Cd != () && sndRcvInfo?.Cd?.content.toString().includes("/CHGS/")) {
+        log:printWarn(getSwiftLogMessage(WARNING, "T20234"));
+    }
+    return chrgBr;
+}

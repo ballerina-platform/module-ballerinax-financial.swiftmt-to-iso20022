@@ -22,74 +22,93 @@ import ballerinax/financial.swift.mt as swiftmt;
 #
 # + message - The parsed MTn90 message as a record value.
 # + return - Returns a `Camt105Document` object if the transformation is successful, otherwise returns an error.
-isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns camtIsoRecord:Camt105Envelope|error => {
-    AppHdr: {
-        Fr: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: getMessageSender(message.block1?.logicalTerminal,
-                            message.block2.MIRLogicalTerminal)
-                }
-            }
-        },
-        To: {
-            FIId: {
-                FinInstnId: {
-                    BICFI: getMessageReceiver(message.block1?.logicalTerminal,
-                            message.block2.receiverAddress)
-                }
-            }
-        },
-        BizMsgIdr: message.block4.MT20.msgId.content,
-        MsgDefIdr: "camt.105.001.02",
-        BizSvc: "swift.cbprplus.02",
-        CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                true).ensureType(string)
-    },
-    Document: {
-        ChrgsPmtNtfctn: {
-            GrpHdr: {
-                CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
-                        true).ensureType(string),
-                MsgId: message.block4.MT20.msgId.content,
-                ChrgsAcct: getCashAccount2(message.block4.MT25?.Acc, ()),
-                ChrgsRqstr: message.block4.MT72?.Cd?.content is string &&
+isolated function transformMTn90ToCamt105(swiftmt:MTn90Message message) returns camtIsoRecord:Camt105Envelope|error =>
+    let camtIsoRecord:ChargesBreakdown1[] chrgsBrkdwn = check getChargesAmount(message.block4.MT71B.Nrtv.content),
+    boolean isMultipleTx = chrgsBrkdwn.length() > 1,
+    camtIsoRecord:BranchAndFinancialInstitutionIdentification8? chrgrsRqstr = message.block4.MT72?.Cd?.content is string &&
                     message.block4.MT72?.Cd?.content.toString().length() > 6 ?
-                    {FinInstnId: {BICFI: message.block4.MT72?.Cd?.content.toString().substring(6)}} : ()
+                    {FinInstnId: {BICFI: message.block4.MT72?.Cd?.content.toString().substring(6)}} : () in {
+        AppHdr: {
+            Fr: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageSender(message.block1?.logicalTerminal,
+                                message.block2.MIRLogicalTerminal)
+                    }
+                }
             },
-            Chrgs: {
-                PerTx: {
-                    ChrgsId: message.block4.MT20.msgId.content,
-                    Rcrd: [
-                        {
-                            UndrlygTx: {
-                                InstrId: message.block4.MT21.Ref.content,
-                                UETR: message.block3?.NdToNdTxRef?.value
+            To: {
+                FIId: {
+                    FinInstnId: {
+                        BICFI: getMessageReceiver(message.block1?.logicalTerminal,
+                                message.block2.receiverAddress)
+                    }
+                }
+            },
+            BizMsgIdr: message.block4.MT20.msgId.content,
+            MsgDefIdr: "camt.105.001.02",
+            BizSvc: isMultipleTx ? "swift.cbprplus.mlp.01" : "swift.cbprplus.01",
+            CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                    true).ensureType(string)
+        },
+        Document: {
+            ChrgsPmtNtfctn: {
+                GrpHdr: {
+                    CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
+                            true).ensureType(string),
+                    MsgId: message.block4.MT20.msgId.content,
+                    ChrgsAcct: getCashAccount2(message.block4.MT25?.Acc, ()),
+                    ChrgsRqstr: isMultipleTx ? () : chrgrsRqstr,
+                    TtlChrgs: isMultipleTx ? {
+                            NbOfChrgsRcrds: chrgsBrkdwn.length().toString(),
+                            TtlChrgsAmt: {
+                                content: check convertToDecimalMandatory(message.block4.MT32D?.Amnt),
+                                Ccy: message.block4.MT32D?.Ccy?.content ?: ""
                             },
-                            TtlChrgsPerRcrd: {
-                                NbOfChrgsBrkdwnItms: "1",
-                                TtlChrgsAmt: {
-                                    content: message.block4.MT32C is () ?
-                                        check convertToDecimalMandatory(message.block4.MT32D?.Amnt) :
-                                        check convertToDecimalMandatory(message.block4.MT32C?.Amnt),
-                                    Ccy: message.block4.MT32C is () ? message.block4.MT32D?.Ccy?.content.toString() :
-                                        message.block4.MT32C?.Ccy?.content.toString()
-                                },
-                                CdtDbtInd: message.block4.MT32C is () ? "DBIT" : "CRDT"
-                            },
-                            ValDt: {
-                                Dt: message.block4.MT32C is () ? convertToISOStandardDate(message.block4.MT32D?.Dt) :
-                                    convertToISOStandardDate(message.block4.MT32C?.Dt)
-                            },
-                            DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
-                                    message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
-                                    (), message.block4.MT52D?.AdrsLine),
-                            DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                            ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content)
-                        }
-                    ]
+                            CdtDbtInd: "DBIT"
+                        } : ()
+                },
+                Chrgs: {
+                    PerTx: {
+                        ChrgsId: message.block4.MT20.msgId.content,
+                        Rcrd: check getChrgsPerTxForMtn90(message, isMultipleTx, chrgsBrkdwn, chrgrsRqstr)
+                    }
                 }
             }
         }
+    };
+
+isolated function getChrgsPerTxForMtn90(swiftmt:MTn90Message message, boolean isMultipleTx,
+        camtIsoRecord:ChargesBreakdown1[] chrgsBrkdwn, camtIsoRecord:BranchAndFinancialInstitutionIdentification8? chrgrsRqstr)
+        returns camtIsoRecord:ChargesPerTransactionRecord4[]|error {
+
+    camtIsoRecord:ChargesPerTransactionRecord4[] chrgsPerTx = [];
+    foreach int i in 0 ... chrgsBrkdwn.length() - 1 {
+        chrgsPerTx.push(
+        {
+            ChrgsRqstr: isMultipleTx ? chrgrsRqstr : (),
+            UndrlygTx: {
+                InstrId: message.block4.MT21.Ref.content,
+                UETR: message.block3?.NdToNdTxRef?.value
+            },
+            TtlChrgsPerRcrd: {
+                NbOfChrgsBrkdwnItms: "1",
+                TtlChrgsAmt: {
+                    content: chrgsBrkdwn[i].Amt.content,
+                    Ccy: chrgsBrkdwn[i].Amt.Ccy
+                },
+                CdtDbtInd: message.block4.MT32C is () ? "DBIT" : "CRDT"
+            },
+            ValDt: {
+                Dt: message.block4.MT32C is () ? convertToISOStandardDate(message.block4.MT32D?.Dt) :
+                    convertToISOStandardDate(message.block4.MT32C?.Dt)
+            },
+            DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
+                    message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
+                    (), message.block4.MT52D?.AdrsLine),
+            DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
+            ChrgsBrkdwn: [chrgsBrkdwn[i]]
+        });
     }
-};
+    return chrgsPerTx;
+}

@@ -43,7 +43,7 @@ isolated function transformMT203ToPacs009(swiftmt:MT203Message message) returns 
         },
         BizMsgIdr: uuid:createType4AsString().substring(0, 35),
         MsgDefIdr: "pacs.009.001.08",
-        BizSvc: "swift.cbprplus.02",
+        BizSvc: getPacs009MessageType(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)
     },
