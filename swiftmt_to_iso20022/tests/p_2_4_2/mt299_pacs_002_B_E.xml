@@ -1,0 +1,75 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+        <head:Fr>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>BOFSGB2LXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:Fr>
+        <head:To>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>NDEADKK2XXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:To>
+        <head:BizMsgIdr>pacs002bizmsgid+</head:BizMsgIdr>
+        <head:MsgDefIdr>pacs.002.001.10</head:MsgDefIdr>
+        <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+        <head:CreDt>2022-10-20T08:35:00+00:00</head:CreDt>
+    </head:AppHdr>
+    <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.002.001.10">
+        <pacs:FIToFIPmtStsRpt>
+            <pacs:GrpHdr>
+                <pacs:MsgId>pacs002bizmsgid+</pacs:MsgId>
+                <pacs:CreDtTm>2022-10-20T08:35:00+00:00</pacs:CreDtTm>
+            </pacs:GrpHdr>
+            <pacs:TxInfAndSts>
+                <pacs:OrgnlGrpInf>
+                    <pacs:OrgnlMsgId>pcs010bizmsgidr1</pacs:OrgnlMsgId>
+                    <pacs:OrgnlMsgNmId>MT299</pacs:OrgnlMsgNmId>
+                </pacs:OrgnlGrpInf>
+                <pacs:OrgnlInstrId>pcs010bizmsgidr1</pacs:OrgnlInstrId>
+                <pacs:OrgnlEndToEndId>MANDATE123456</pacs:OrgnlEndToEndId>
+                <pacs:OrgnlUETR>7a562c67-ca16-48ba-b074-65581be6f001</pacs:OrgnlUETR>
+                <pacs:TxSts>RJCT</pacs:TxSts>
+                <pacs:StsRsnInf>
+                    <pacs:Rsn>
+                        <pacs:Cd>XT99</pacs:Cd>
+                    </pacs:Rsn>
+                    <pacs:AddtlInf>MD01</pacs:AddtlInf>
+                </pacs:StsRsnInf>
+                <pacs:InstgAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>BOFSGB2LXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstgAgt>
+                <pacs:InstdAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>NDEADKK2XXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstdAgt>
+            </pacs:TxInfAndSts>
+        </pacs:FIToFIPmtStsRpt>
+    </pacs:Document>
+</Envelope>

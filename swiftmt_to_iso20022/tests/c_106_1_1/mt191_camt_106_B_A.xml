@@ -1,0 +1,83 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+        <head:Fr>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>INGBROBUXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:Fr>
+        <head:To>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>MYMBGB2LXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:To>
+        <head:BizMsgIdr>camt106chrgid1</head:BizMsgIdr>
+        <head:MsgDefIdr>camt.106.001.02</head:MsgDefIdr>
+        <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+        <head:CreDt>2022-10-20T10:20:00+00:00</head:CreDt>
+    </head:AppHdr>
+    <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.106.001.02">
+        <camt:ChrgsPmtReq>
+            <camt:GrpHdr>
+                <camt:MsgId>camt106chrgid1</camt:MsgId>
+                <camt:CreDtTm>2022-10-20T10:20:00+00:00</camt:CreDtTm>
+                <camt:ChrgsRqstr>
+                    <camt:FinInstnId>
+                        <camt:BICFI>INGBROBUXXX</camt:BICFI>
+                    </camt:FinInstnId>
+                </camt:ChrgsRqstr>
+            </camt:GrpHdr>
+            <camt:Chrgs>
+                <camt:PerTx>
+                    <camt:ChrgsId>camt106chrgid1</camt:ChrgsId>
+                    <camt:Rcrd>
+                        <camt:UndrlygTx>
+                            <camt:MsgNmId>pacs.008.001.08</camt:MsgNmId>
+                            <camt:InstrId>pacs008bzmsgid-1</camt:InstrId>
+                            <camt:UETR>7a562c67-ca16-48ba-b074-65581be6f001</camt:UETR>
+                        </camt:UndrlygTx>
+                        <camt:TtlChrgsPerRcrd>
+                            <camt:NbOfChrgsBrkdwnItms>1</camt:NbOfChrgsBrkdwnItms>
+                            <camt:TtlChrgsAmt Ccy="RON">15</camt:TtlChrgsAmt>
+                            <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+                        </camt:TtlChrgsPerRcrd>
+                        <camt:ChrgsBrkdwn>
+                            <camt:Amt Ccy="RON">15</camt:Amt>
+                            <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+                            <camt:Tp>
+                                <camt:Cd>OURC</camt:Cd>
+                            </camt:Tp>
+                        </camt:ChrgsBrkdwn>
+                        <camt:DbtrAgt>
+                            <camt:FinInstnId>
+                                <camt:BICFI>MYMBGB2LXXX</camt:BICFI>
+                            </camt:FinInstnId>
+                        </camt:DbtrAgt>
+                    </camt:Rcrd>
+                </camt:PerTx>
+            </camt:Chrgs>
+        </camt:ChrgsPmtReq>
+    </camt:Document>
+</Envelope>
