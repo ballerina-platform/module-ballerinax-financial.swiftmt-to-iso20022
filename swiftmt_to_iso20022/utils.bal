@@ -829,7 +829,7 @@ isolated function validateIBAN(string account) returns [string?, string?] {
             log:printDebug("IBAN validation successful");
             return [account, ()];
         }
-        log:printDebug("IBAN validation failed: " + (result is error ? result.message() : "Unknown error"));
+        log:printDebug("IBAN validation failed: " + result.message());
     }
 
     log:printDebug("No country code match or IBAN validation failed, returning as non-IBAN account");
@@ -1548,7 +1548,9 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
             }
             "ACC"|"UDLC"|"PHONBEN"|"TELEBEN" => {
                 log:printDebug("Adding instruction for creditor agent with code: " + code[i]);
-                instrFrCdtrAgt.push({Cd: code[i], InstrInf: additionalInfo[i]});
+                string additional = additionalInfo[i] is string && !additionalInfo[i].toString().startsWith(" ") ?
+                    additionalInfo[i].toString() : "";
+                instrFrCdtrAgt.push({InstrInf: "/" + code[i] + "/" + additional});
             }
             "INS"|"INTA" => {
                 if additionalInfo[i] is string {
@@ -1573,7 +1575,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with Name: " + additionalInfo[i].toString());
-                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
+                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         } else {
                             log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
                             intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
@@ -1586,7 +1588,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
             "BNF"|"TSU" => {
                 log:printDebug("Setting remittance information with code: " + code[i]);
                 remmitanceInfo = {
-                    Ustrd: [check ("/" + code[i]+ "/" + additionalInfo[i].toString()).ensureType(pacsIsoRecord:Max140Text)]
+                    Ustrd: ["/" + code[i] + "/" + check additionalInfo[i].ensureType(pacsIsoRecord:Max140Text)]
                 };
             }
             "PURP" => {
@@ -3660,33 +3662,58 @@ isolated function get202Or205RETNSndRcvrInfoForPacs004(swiftmt:MT72? sndRcvInfo)
 
         pacsIsoRecord:PaymentReturnReason7[] returnReasonArray = [];
         string? instructionId = ();
+        boolean returnReasoninfoCollected = false;
 
         foreach int i in 1 ... infoArray.length() - 1 {
             log:printDebug("Processing infoArray[" + i.toString() + "]: " + infoArray[i]);
 
-            if i + 1 <= infoArray.length() - 1 && (infoArray[i].trim().matches(re `^[A-Z]{4}$`)) {
+            if i + 1 <= infoArray.length() - 1 && (infoArray[i].trim().matches(re `^[A-Z]{4}|[A-Z]{2}[0-9]{2}$`)) {
                 if infoArray[i].includes("MREF") {
                     instructionId = infoArray[i + 1];
                     log:printDebug("Found MREF, setting instructionId: " + instructionId.toString());
-                } else if infoArray[i].includes("TEXT") {
+                } else if !returnReasoninfoCollected && infoArray[i].includes("TEXT") {
                     log:printDebug("Found TEXT, adding additional info: " + infoArray[i + 1]);
                     returnReasonArray.push({
                         AddtlInf: [infoArray[i + 1]]
                     });
-                } else if infoArray[i].matches(re `^[A-Z]{2}[0-9]{2}$`) {
-                    log:printDebug("Found reason code pattern: " + infoArray[i] + ", with additional info: " + infoArray[i + 1]);
-                    returnReasonArray.push({
-                        Rsn: {Cd: infoArray[i]},
-                        AddtlInf: [infoArray[i + 1]]
-                    });
+                    returnReasoninfoCollected = true;
+                } else if !returnReasoninfoCollected {
+                    string code = "";
+                    string info = infoArray[i + 1].startsWith(" ") ? "" : infoArray[i + 1];
+                    if regexp:isFullMatch(re `(AC04|AGNT|AM04|ARDT|CUST|INDM|LEGL|NOAS|NOOR|PTNA|RQDA).*`, infoArray[i]) {
+                        code = infoArray[i];
+                    } else if (infoArray[i].equalsIgnoreCaseAscii("CHGS")) {
+                        code = "NARR";
+                        info = "/" + infoArray[i] + "/" + info;
+                    }
+                    if code != "" {
+                        if info != "" {
+                            returnReasonArray.push({
+                                Rsn: {Cd: code},
+                                AddtlInf: [info]
+                            });
+                        } else {
+                            // next element is not additional info, so add only code
+                            returnReasonArray.push({
+                                Rsn: {Cd: code}
+                            });
+                        }
+                        returnReasoninfoCollected = true;
+                    }
                 }
                 continue;
             }
 
-            if infoArray[i].matches(re `^[A-Z]{2}[0-9]{2}$`) && infoArray[i].length() == 4 {
+            if !returnReasoninfoCollected && infoArray[i].matches(re `^[A-Z]{4}|[A-Z]{2}[0-9]{2}$`) && infoArray[i].length() == 4 {
                 log:printDebug("Found standalone reason code: " + infoArray[i]);
+                string code = "";
+                if regexp:isFullMatch(re `(AC04|AGNT|AM04|ARDT|CUST|INDM|LEGL|NOAS|NOOR|PTNA|RQDA).*`, infoArray[i]) {
+                    code = infoArray[i];
+                } else if (infoArray[i].equalsIgnoreCaseAscii("RJCR")) {
+                    code = "NARR";
+                }
                 returnReasonArray.push({
-                    Rsn: {Cd: infoArray[i]}
+                    Rsn: {Cd: code}
                 });
             }
         }
@@ -3892,17 +3919,13 @@ isolated function getCashAccount2(swiftmt:Acc? acc1, swiftmt:Acc? acc2, swiftmt:
         Id: {
             IBAN: iban,
             Othr: {
-                Id: bban,
-                SchmeNm: bban == "NOTPROVIDED" ? {
-                        Cd: "TXID"
-                    } : ()
+                Id: bban
             }
         }
     };
 
     log:printDebug("Returning CashAccount40 with IBAN: " + iban.toString() +
-                ", BBAN: " + bban.toString() +
-                ", SchemeName: " + (bban == "NOTPROVIDED" ? "TXID" : "null"));
+                ", BBAN: " + bban.toString());
     return result;
 }
 
@@ -4036,63 +4059,67 @@ isolated function getAddressLineForDbtrOrCdtr(swiftmt:AdrsLine[]? address1, swif
 
 isolated function getChargesAmount(string narration) returns camtIsoRecord:ChargesBreakdown1[]|error {
     log:printDebug("Starting getChargesAmount with narration: " + narration);
+    string:RegExp r = re `\n`;
+    string[] narrationParts = r.split(narration);
 
-    string amount = "";
-    string currency = "";
-    string code = "";
-    boolean isAmount = false;
+    camtIsoRecord:ChargesBreakdown1[] result = [];
+    foreach string item in narrationParts {
+        string amount = "";
+        string currency = "";
+        string code = "";
+        boolean isAmount = false;
 
-    log:printDebug("Parsing narration character by character");
-    foreach int i in 1 ... narration.length() - 1 {
-        if isAmount && (narration.substring(i, i + 1).matches(re `^[0-9]$`) || narration.substring(i, i + 1) == ",") {
-            amount += narration.substring(i, i + 1);
-            log:printDebug("Added digit to amount: " + narration.substring(i, i + 1) + ", current amount: " + amount);
-            continue;
-        }
-        if narration.substring(i, i + 1) == "/" {
-            log:printDebug("Found '/' character at position " + i.toString());
-
-            if isAmount {
-                log:printDebug("Already found amount, breaking loop");
-                break;
+        log:printDebug("Parsing narration character by character");
+        foreach int i in 1 ... item.length() - 1 {
+            if isAmount && (item.substring(i, i + 1).matches(re `^[0-9]$`) || item.substring(i, i + 1) == ",") {
+                amount += item.substring(i, i + 1);
+                log:printDebug("Added digit to amount: " + item.substring(i, i + 1) + ", current amount: " + amount);
+                continue;
             }
+            if narration.substring(i, i + 1) == "/" {
+                log:printDebug("Found '/' character at position " + i.toString());
 
-            if narration.length() - 1 >= i + 3 {
-                currency = narration.substring(i + 1, i + 4);
-                log:printDebug("Extracted currency: " + currency);
+                if isAmount {
+                    log:printDebug("Already found amount, breaking loop");
+                    break;
+                }
+
+                if item.length() - 1 >= i + 3 {
+                    currency = item.substring(i + 1, i + 4);
+                    log:printDebug("Extracted currency: " + currency);
+                }
+
+                code = item.substring(1, i);
+                log:printDebug("Extracted code: " + code);
+                isAmount = true;
             }
-
-            code = narration.substring(1, i);
-            log:printDebug("Extracted code: " + code);
-            isAmount = true;
         }
-    }
 
-    log:printDebug("Parsing complete, raw amount: " + amount);
+        log:printDebug("Parsing complete, raw amount: " + amount);
 
-    if amount.endsWith(",") {
-        amount = amount.substring(0, amount.length() - 1);
-        log:printDebug("Removed trailing comma, amount: " + amount);
-    } else {
-        amount = regexp:replace(re `,`, amount, ".");
-        log:printDebug("Replaced commas with decimal points, amount: " + amount);
-    }
-
-    decimal decimalAmount = check decimal:fromString(amount);
-    log:printDebug("Converted to decimal: " + decimalAmount.toString());
-
-    camtIsoRecord:ChargesBreakdown1[] result = [
-        {
-            Amt: {content: decimalAmount, Ccy: currency},
-            Tp: {Cd: code},
-            CdtDbtInd: "DBIT"
+        if amount.endsWith(",") {
+            amount = amount.substring(0, amount.length() - 1);
+            log:printDebug("Removed trailing comma, amount: " + amount);
+        } else {
+            amount = regexp:replace(re `,`, amount, ".");
+            log:printDebug("Replaced commas with decimal points, amount: " + amount);
         }
-    ];
 
-    log:printDebug("Returning charges breakdown with amount: " + decimalAmount.toString() +
-                ", currency: " + currency +
-                ", code: " + code);
+        decimal decimalAmount = check decimal:fromString(amount);
+        log:printDebug("Converted to decimal: " + decimalAmount.toString());
 
+        result.push(
+            {
+                Amt: {content: decimalAmount, Ccy: currency},
+                Tp: {Cd: code},
+                CdtDbtInd: "DBIT"
+            }
+        );
+
+        log:printDebug("Returning charges breakdown with amount: " + decimalAmount.toString() +
+                    ", currency: " + currency +
+                    ", code: " + code);
+    }
     return result;
 }
 

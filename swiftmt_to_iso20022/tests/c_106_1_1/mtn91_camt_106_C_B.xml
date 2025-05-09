@@ -34,7 +34,7 @@
     </head:To>
     <head:BizMsgIdr>camt106chrgid1</head:BizMsgIdr>
     <head:MsgDefIdr>camt.106.001.02</head:MsgDefIdr>
-    <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+    <head:BizSvc>swift.cbprplus.01</head:BizSvc>
     <head:CreDt>2022-10-20T20:00:00+00:00</head:CreDt>
   </head:AppHdr>
   <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.106.001.02">
@@ -47,11 +47,6 @@
             <camt:BICFI>RZBRROBUXXX</camt:BICFI>
           </camt:FinInstnId>
         </camt:ChrgsRqstr>
-        <camt:ChrgsAcctAgt>
-          <camt:FinInstnId>
-            <camt:BICFI>MYMBGB2LXXX</camt:BICFI>
-          </camt:FinInstnId>
-        </camt:ChrgsAcctAgt>
       </camt:GrpHdr>
       <camt:Chrgs>
         <camt:PerTx>
@@ -59,6 +54,7 @@
           <camt:Rcrd>
             <camt:UndrlygTx>
               <camt:InstrId>pcs008bzmsgid-2</camt:InstrId>
+              <camt:MsgNmId>pacs.008.001.08</camt:MsgNmId>
               <camt:UETR>7a562c67-ca16-48ba-b074-65581be6f001</camt:UETR>
             </camt:UndrlygTx>
             <camt:TtlChrgsPerRcrd>

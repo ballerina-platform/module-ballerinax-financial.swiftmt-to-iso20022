@@ -23,7 +23,11 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns an ISO 20022 Camt.057Document or an error if the transformation fails.
 isolated function transformMT210ToCamt057(swiftmt:MT210Message message) returns camtIsoRecord:Camt057Envelope|error =>
     let string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
-    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress) in {
+    string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
+    camtIsoRecord:BranchAndFinancialInstitutionIdentification8? debtorAgt =
+        getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
+                            message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
+                            message.block4.MT52D?.AdrsLine) in {
         AppHdr: {
             Fr: {FIId: {FinInstnId: {BICFI: sender}}},
             To: {FIId: {FinInstnId: {BICFI: receiver}}},
@@ -49,7 +53,6 @@ isolated function transformMT210ToCamt057(swiftmt:MT210Message message) returns 
                                 Ccy: message.block4.MT32B.Ccy.content
                             },
                             XpctdValDt: convertToISOStandardDate(message.block4.MT30?.Dt),
-                            EndToEndId: message.block4.MT21.Ref.content,
                             UETR: message.block3?.NdToNdTxRef?.value
                         }
                     ],
@@ -72,9 +75,7 @@ isolated function transformMT210ToCamt057(swiftmt:MT210Message message) returns 
                                 message.block4.MT50F?.AdrsLine, message.block4.MT50?.AdrsLine,
                                 message.block4.MT50F?.CntyNTw, true)
                     },
-                    DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
-                            message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
-                            message.block4.MT52D?.AdrsLine),
+                    DbtrAgt: debtorAgt == () ? {FinInstnId: {BICFI: "NOTPROVIDED"}} : debtorAgt,
                     IntrmyAgt: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content, message.block4.MT56D?.Nm,
                             message.block4.MT56A?.PrtyIdn,
                             (), message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),

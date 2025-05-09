@@ -1,0 +1,146 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+        <head:Fr>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>CLYDGB2SXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:Fr>
+        <head:To>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>BOFSGB2LXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:To>
+        <head:BizMsgIdr>pacs9bizmsgidr01</head:BizMsgIdr>
+        <head:MsgDefIdr>pacs.009.001.08</head:MsgDefIdr>
+        <head:BizSvc>swift.cbprplus.cov.02</head:BizSvc>
+        <head:CreDt>2020-08-10T09:10:00+00:00</head:CreDt>
+    </head:AppHdr>
+    <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.009.001.08">
+        <pacs:FICdtTrf>
+            <pacs:GrpHdr>
+                <pacs:MsgId>pacs9bizmsgidr01</pacs:MsgId>
+                <pacs:CreDtTm>2020-08-10T09:10:00+00:00</pacs:CreDtTm>
+                <pacs:NbOfTxs>1</pacs:NbOfTxs>
+                <pacs:SttlmInf>
+                    <pacs:SttlmMtd>INDA</pacs:SttlmMtd>
+                </pacs:SttlmInf>
+            </pacs:GrpHdr>
+            <pacs:CdtTrfTxInf>
+                <pacs:PmtId>
+                    <pacs:InstrId>pacs9bizmsgidr01</pacs:InstrId>
+                    <pacs:EndToEndId>pacs8bizmsgidr01</pacs:EndToEndId>
+                    <pacs:UETR>54b2852b-bfaa-4c89-980e-8ad806388f44</pacs:UETR>
+                </pacs:PmtId>
+                <pacs:IntrBkSttlmAmt Ccy="EUR">35612.21</pacs:IntrBkSttlmAmt>
+                <pacs:IntrBkSttlmDt>2020-08-10</pacs:IntrBkSttlmDt>
+                <pacs:PrvsInstgAgt1>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>BOFSGB2L</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt1>
+                <pacs:InstgAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>CLYDGB2SXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstgAgt>
+                <pacs:InstdAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>BOFSGB2LXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstdAgt>
+                <pacs:Dbtr>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>CLYDGB2S</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:Dbtr>
+                <pacs:DbtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>2020-08-10</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAcct>
+                <pacs:CdtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>BSCHESMM</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:CdtrAgt>
+                <pacs:Cdtr>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>CAIXESBB</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:Cdtr>
+                <pacs:CdtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>BOFSGB2L</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:CdtrAcct>
+                <pacs:UndrlygCstmrCdtTrf>
+                    <pacs:Dbtr>
+                        <pacs:Nm>A Investor</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>2/Long Street</pacs:AdrLine>
+                            <pacs:AdrLine>3/GB/Glasgow</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:Dbtr>
+                    <pacs:DbtrAcct>
+                        <pacs:Id>
+                            <pacs:Othr>
+                                <pacs:Id>601915153</pacs:Id>
+                            </pacs:Othr>
+                        </pacs:Id>
+                    </pacs:DbtrAcct>
+                    <pacs:DbtrAgt>
+                        <pacs:FinInstnId>
+                            <pacs:BICFI>CLYDGB2S</pacs:BICFI>
+                        </pacs:FinInstnId>
+                    </pacs:DbtrAgt>
+                    <pacs:CdtrAgt>
+                        <pacs:FinInstnId>
+                            <pacs:BICFI>CAIXESBB</pacs:BICFI>
+                        </pacs:FinInstnId>
+                    </pacs:CdtrAgt>
+                    <pacs:Cdtr>
+                        <pacs:Nm>Spanish Investor</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>2/Las Ramblas</pacs:AdrLine>
+                            <pacs:AdrLine>3/ES/Barcelona</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:Cdtr>
+                    <pacs:CdtrAcct>
+                        <pacs:Id>
+                            <pacs:Othr>
+                                <pacs:Id>282717259</pacs:Id>
+                            </pacs:Othr>
+                        </pacs:Id>
+                    </pacs:CdtrAcct>
+                </pacs:UndrlygCstmrCdtTrf>
+            </pacs:CdtTrfTxInf>
+        </pacs:FICdtTrf>
+    </pacs:Document>
+</Envelope>

@@ -24,7 +24,9 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns a `Camt106Document` object if the transformation is successful, otherwise returns an error.
 isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns camtIsoRecord:Camt106Envelope|error =>
     let [string?, string?, string?] [chrgRqstr, instr, info] =
-        getChrgRqstrAndInstrFrAgt(message.block4.MT72?.Cd?.content)
+        getChrgRqstrAndInstrFrAgt(message.block4.MT72?.Cd?.content),
+    camtIsoRecord:ChargesBreakdown1[] chrgsBrkdwn = check getChargesAmount(message.block4.MT71B.Nrtv.content),
+    boolean isMultipleTx = chrgsBrkdwn.length() > 1
     in {
         AppHdr: {
             Fr: {
@@ -45,7 +47,7 @@ isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns 
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "camt.106.001.02",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: isMultipleTx ? "swift.cbprplus.mlp.01" : "swift.cbprplus.01",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -55,43 +57,68 @@ isolated function transformMTn91ToCamt106(swiftmt:MTn91Message message) returns 
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                             true).ensureType(string),
                     MsgId: message.block4.MT20.msgId.content,
-                    ChrgsAcctAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
-                            message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
-                            message.block4.MT52D?.AdrsLine),
                     ChrgsAcctAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                    ChrgsRqstr: chrgRqstr is () ? () : {FinInstnId: {BICFI: chrgRqstr}}
+                    ChrgsRqstr: isMultipleTx ? () : chrgRqstr is () ? () : {FinInstnId: {BICFI: chrgRqstr}},
+                    TtlChrgs: isMultipleTx ? {
+                            NbOfChrgsRcrds: chrgsBrkdwn.length().toString(),
+                            TtlChrgsAmt: {
+                                content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
+                                Ccy: message.block4.MT32B.Ccy.content
+                            },
+                            CdtDbtInd: "DBIT"
+                        } : ()
                 },
                 Chrgs: {
                     PerTx: {
                         ChrgsId: message.block4.MT20.msgId.content,
-                        Rcrd: [
-                            {
-                                UndrlygTx: {
-                                    InstrId: message.block4.MT21.Ref.content,
-                                    UETR: message.block3?.NdToNdTxRef?.value
-                                },
-                                TtlChrgsPerRcrd: {
-                                    NbOfChrgsBrkdwnItms: "1",
-                                    TtlChrgsAmt: {
-                                        content: check convertToDecimalMandatory(message.block4.MT32B.Amnt),
-                                        Ccy: message.block4.MT32B.Ccy.content
-                                    },
-                                    CdtDbtInd: "DBIT"
-                                },
-                                DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
-                                        message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
-                                        message.block4.MT52D?.PrtyIdn, (), (), message.block4.MT52D?.AdrsLine),
-                                DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                                ChrgsBrkdwn: check getChargesAmount(message.block4.MT71B.Nrtv.content),
-                                InstrForInstdAgt: instr is () && info is () ? () : {
-                                        Cd: instr is () ? () : instr,
-                                        InstrInf: info is () ? () : info
-                                    }
-                            }
-                        ]
+                        Rcrd: check getChrgsPerTx(message, isMultipleTx, chrgRqstr, chrgsBrkdwn, instr, info)
                     }
                 }
             }
         }
     };
 
+# Retrieves the charges per transaction for an MTn91 message.
+#
+# + message - The parsed MTn91 message as a record value.
+# + isMultipleTx - Indicates if there are multiple transactions.
+# + chrgRqstr - The charge requester, which can be a BICFI or empty.
+# + chrgsBrkdwn - The breakdown of charges as an array of `ChargesBreakdown1` records.
+# + instr - Instruction for the instructed agent, which can be empty.
+# + info - Additional information for the instructed agent, which can be empty.
+# + return - Returns an array of `ChargesPerTransactionRecord3` records or an error.
+isolated function getChrgsPerTx(swiftmt:MTn91Message message, boolean isMultipleTx, string? chrgRqstr,
+        camtIsoRecord:ChargesBreakdown1[] chrgsBrkdwn, string? instr, string? info)
+        returns camtIsoRecord:ChargesPerTransactionRecord3[]|error {
+
+    camtIsoRecord:ChargesPerTransactionRecord3[] chrgsPerTx = [];
+    foreach int i in 0 ... chrgsBrkdwn.length() - 1 {
+        chrgsPerTx.push(
+        {
+            ChrgsRqstr: isMultipleTx ? chrgRqstr is () ? () : {FinInstnId: {BICFI: chrgRqstr}} : (),
+            UndrlygTx: {
+                MsgNmId: "pacs.008.001.08",
+                InstrId: message.block4.MT21.Ref.content,
+                UETR: message.block3?.NdToNdTxRef?.value
+            },
+            TtlChrgsPerRcrd: {
+                NbOfChrgsBrkdwnItms: "1",
+                TtlChrgsAmt: {
+                    content: chrgsBrkdwn[i].Amt.content,
+                    Ccy: chrgsBrkdwn[i].Amt.Ccy
+                },
+                CdtDbtInd: "DBIT"
+            },
+            DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
+                    message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn,
+                    message.block4.MT52D?.PrtyIdn, (), (), message.block4.MT52D?.AdrsLine),
+            DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
+            ChrgsBrkdwn: [chrgsBrkdwn[i]],
+            InstrForInstdAgt: instr is () && info is () ? () : {
+                    Cd: instr is () ? () : instr,
+                    InstrInf: info is () ? () : info
+                }
+        });
+    }
+    return chrgsPerTx;
+}

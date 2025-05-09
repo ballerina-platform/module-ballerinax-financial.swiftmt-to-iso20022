@@ -80,7 +80,6 @@
         </camt:DbtrAgt>
         <camt:Itm>
           <camt:Id>ITM-021</camt:Id>
-          <camt:EndToEndId>ITM-021</camt:EndToEndId>
           <camt:Amt Ccy="EUR">125650</camt:Amt>
           <camt:XpctdValDt>2022-10-25</camt:XpctdValDt>
         </camt:Itm>

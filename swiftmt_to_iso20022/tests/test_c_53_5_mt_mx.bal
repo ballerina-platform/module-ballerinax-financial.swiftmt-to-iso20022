@@ -20,32 +20,38 @@ import ballerina/xmldata;
 
 @test:Config {
     groups: ["mt_mx"],
-    dataProvider: dataProvider_mt210
+    dataProvider: dataProvider_C535
 }
-isolated function testMt210ToMx(string finMessage, xml mxXml) returns error? {
+isolated function testC535(string finMessage, xml mxXml) returns error? {
     xml result = check toIso20022Xml(finMessage);
     json expectedResult = check xmldata:toJson(mxXml);
     json actualResult = check xmldata:toJson(result);
     test:assertEquals(actualResult, expectedResult, "Invalid transformation of MT to MX");
 }
 
-function dataProvider_mt210() returns map<[string, xml]>|error {
+function dataProvider_C535() returns map<[string, xml]>|error {
     // fin message, xml file
     map<[string, xml]> dataSet = {
-        "c_29_1_1_camt057_A_B_210": [finMessage_5811_mt210_A_B, check io:fileReadXml("./tests/c_58_1_1/mt210_camt_057_A_B.xml")]
+        "mt103_pacs008": [finMessage_535_A_B, check io:fileReadXml("./tests/c_53_5/mt103_pacs008_A_B.xml")]
     };
     return dataSet;
 }
 
-string finMessage_5811_mt210_A_B = "{1:F01NDEAFIHHXXXX0000000000}{2:O2100925221020OKOYFIHHXXXX00000000002210200925N}{4:\r\n" +
-    ":20:cmt057bizmsgidr\r\n" +
-    ":25:25698745\r\n" +
-    ":30:221025\r\n" +
-    ":21:ITM-021\r\n" +
-    ":32B:EUR125650,\r\n" +
-    ":50F:/NOTPROVIDED\r\n" +
-    "1/NT Asset Management\r\n" +
-    "2/50 Bank Street\r\n" +
-    "3/GB/London\r\n" +
-    ":52A:CITIGB2L\r\n" +
+string finMessage_535_A_B = "{1:F01DBSSSGSGXXXX0000000000}{2:O1030905200805WPACAU2SXXXX00000000002008050905N}{3:{121:174c245f-2682-4291-ad67-2a41e530cd27}}{4:\r\n" +
+    ":20:pacs8bizmsgidr01\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:200805SGD500000,\r\n" +
+    ":50F:/458756241\r\n" +
+    "1/Australian Submarine\r\n" +
+    "2/694 Mersey Rd\r\n" +
+    "3/AU/Adelaide\r\n" +
+    ":52A:WPACAU2S\r\n" +
+    ":56A:DBSSSGSG\r\n" +
+    ":57A:UOVBSGSG\r\n" +
+    ":59F:/985412687\r\n" +
+    "1/Agoda Company\r\n" +
+    "2/30 Cecil Street\r\n" +
+    "3/SG/Singapore\r\n" +
+    ":70:/ROC/E2E04044506271305\r\n" +
+    ":71A:OUR\r\n" +
     "-}";

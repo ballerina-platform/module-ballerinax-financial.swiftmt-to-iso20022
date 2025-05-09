@@ -34,7 +34,7 @@
     </head:To>
     <head:BizMsgIdr>camt105chrgid1</head:BizMsgIdr>
     <head:MsgDefIdr>camt.105.001.02</head:MsgDefIdr>
-    <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+    <head:BizSvc>swift.cbprplus.01</head:BizSvc>
     <head:CreDt>2022-10-20T10:20:00+00:00</head:CreDt>
   </head:AppHdr>
   <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.105.001.02">

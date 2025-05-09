@@ -1,0 +1,120 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+        <head:Fr>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>NDEAFIHHXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:Fr>
+        <head:To>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>HELSFIHHXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:To>
+        <head:BizMsgIdr>pacs8bizmsgidr03</head:BizMsgIdr>
+        <head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
+        <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+        <head:CreDt>2021-04-09T07:20:00+00:00</head:CreDt>
+    </head:AppHdr>
+    <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
+        <pacs:FIToFICstmrCdtTrf>
+            <pacs:GrpHdr>
+                <pacs:MsgId>pacs8bizmsgidr03</pacs:MsgId>
+                <pacs:CreDtTm>2021-04-09T07:20:00+00:00</pacs:CreDtTm>
+                <pacs:NbOfTxs>1</pacs:NbOfTxs>
+                <pacs:SttlmInf>
+                    <pacs:SttlmMtd>INDA</pacs:SttlmMtd>
+                </pacs:SttlmInf>
+            </pacs:GrpHdr>
+            <pacs:CdtTrfTxInf>
+                <pacs:PmtId>
+                    <pacs:InstrId>pacs8bizmsgidr03</pacs:InstrId>
+                    <pacs:EndToEndId>pacs008EndToEndId-001</pacs:EndToEndId>
+                    <pacs:UETR>8a562c67-ca16-48ba-b074-65581be6f001</pacs:UETR>
+                </pacs:PmtId>
+                <pacs:IntrBkSttlmAmt Ccy="EUR">15669.38</pacs:IntrBkSttlmAmt>
+                <pacs:IntrBkSttlmDt>2021-04-09</pacs:IntrBkSttlmDt>
+                <pacs:InstdAmt Ccy="EUR">15669.38</pacs:InstdAmt>
+                <pacs:ChrgBr>DEBT</pacs:ChrgBr>
+                <pacs:PrvsInstgAgt1>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>ABNANL2AXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt1>
+                <pacs:InstgAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>NDEAFIHHXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstgAgt>
+                <pacs:InstdAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>HELSFIHHXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstdAgt>
+                <pacs:Dbtr>
+                    <pacs:Nm>C Consumer</pacs:Nm>
+                    <pacs:PstlAdr>
+                        <pacs:AdrLine>2/High Street</pacs:AdrLine>
+                        <pacs:AdrLine>3/GB/Epping</pacs:AdrLine>
+                    </pacs:PstlAdr>
+                </pacs:Dbtr>
+                <pacs:DbtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>12547896</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAcct>
+                <pacs:DbtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>RBOSGB2LXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:DbtrAgt>
+                <pacs:CdtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>HELSFIHHXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:CdtrAgt>
+                <pacs:Cdtr>
+                    <pacs:Nm>Evli</pacs:Nm>
+                    <pacs:PstlAdr>
+                        <pacs:AdrLine>2/Aleksanterinkatu 19</pacs:AdrLine>
+                        <pacs:AdrLine>3/FI/Helsinki</pacs:AdrLine>
+                    </pacs:PstlAdr>
+                </pacs:Cdtr>
+                <pacs:CdtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>98653214</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:CdtrAcct>
+                <pacs:RmtInf>
+                    <pacs:Ustrd>/ROC/pacs008EndToEndId-001</pacs:Ustrd>
+                </pacs:RmtInf>
+            </pacs:CdtTrfTxInf>
+        </pacs:FIToFICstmrCdtTrf>
+    </pacs:Document>
+</Envelope>

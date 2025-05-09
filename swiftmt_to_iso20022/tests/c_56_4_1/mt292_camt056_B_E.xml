@@ -1,0 +1,101 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<Envelope
+	xmlns="urn:swift:xsd:envelope"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<head:AppHdr
+		xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>TDOMUS33XXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>NWBKGB2LXXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>CSE-001</head:BizMsgIdr>
+		<head:MsgDefIdr>camt.056.001.08</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>2021-04-27T15:15:00+00:00</head:CreDt>
+	</head:AppHdr>
+	<camt:Document
+		xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.056.001.08">
+		<camt:FIToFIPmtCxlReq>
+			<camt:Assgnmt>
+				<camt:Id>CSE-001</camt:Id>
+				<camt:Assgnr>
+					<camt:Agt>
+						<camt:FinInstnId>
+							<camt:BICFI>TDOMUS33XXX</camt:BICFI>
+						</camt:FinInstnId>
+					</camt:Agt>
+				</camt:Assgnr>
+				<camt:Assgne>
+					<camt:Agt>
+						<camt:FinInstnId>
+							<camt:BICFI>NWBKGB2LXXX</camt:BICFI>
+						</camt:FinInstnId>
+					</camt:Agt>
+				</camt:Assgne>
+				<camt:CreDtTm>2021-04-27T15:15:00+00:00</camt:CreDtTm>
+			</camt:Assgnmt>
+			<camt:Undrlyg>
+				<camt:TxInf>
+					<camt:Case>
+						<camt:Id>CSE-001</camt:Id>
+						<camt:Cretr>
+							<camt:Agt>
+								<camt:FinInstnId>
+								<camt:Nm>NOTPROVIDED</camt:Nm>
+
+								<camt:PstlAdr>
+									<camt:AdrLine>NOTPROVIDED</camt:AdrLine>
+</camt:PstlAdr>
+								</camt:FinInstnId>
+							</camt:Agt>
+						</camt:Cretr>
+					</camt:Case>
+					<camt:OrgnlGrpInf>
+						<camt:OrgnlMsgId>pacs9bizmsgidr01</camt:OrgnlMsgId>
+						<camt:OrgnlMsgNmId>pacs.009</camt:OrgnlMsgNmId>
+						<camt:OrgnlCreDtTm>2021-04-27T00:00:00+00:00</camt:OrgnlCreDtTm>
+					</camt:OrgnlGrpInf>
+					<camt:OrgnlInstrId>pacs9bizmsgidr01</camt:OrgnlInstrId>
+					<camt:OrgnlEndToEndId>NOTPROVIDED</camt:OrgnlEndToEndId>
+					<camt:OrgnlUETR>7a562c67-ca16-48ba-b074-65581be6f001</camt:OrgnlUETR>
+					<camt:OrgnlIntrBkSttlmAmt
+						Ccy="CAD">2565972</camt:OrgnlIntrBkSttlmAmt>
+					<camt:OrgnlIntrBkSttlmDt>2021-04-27</camt:OrgnlIntrBkSttlmDt>
+					<camt:CxlRsnInf>
+						<camt:Rsn>
+							<camt:Cd>AM09</camt:Cd>
+						</camt:Rsn>
+						<camt:AddtlInf>NOTPROVIDED</camt:AddtlInf>
+					</camt:CxlRsnInf>
+				</camt:TxInf>
+			</camt:Undrlyg>
+		</camt:FIToFIPmtCxlReq>
+	</camt:Document>
+</Envelope>

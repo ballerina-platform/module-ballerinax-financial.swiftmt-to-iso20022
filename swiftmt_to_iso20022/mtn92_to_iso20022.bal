@@ -176,8 +176,10 @@ isolated function transformMTn92ToCamt056(swiftmt:MTn92Message message) returns 
                                     Cretr: {
                                         Agt: {
                                             FinInstnId: {
-                                                BICFI: getMessageSender(message.block1?.logicalTerminal,
-                                                        message.block2.MIRLogicalTerminal)
+                                            Nm: "NOTPROVIDED",
+                                            PstlAdr: {
+                                                AdrLine: ["NOTPROVIDED"]
+                                            }
                                             }
                                         }
                                     }
