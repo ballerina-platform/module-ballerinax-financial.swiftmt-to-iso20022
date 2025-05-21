@@ -157,9 +157,8 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                             },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
-                        InstdAmt: {
-                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                                    stlmntAmnt = message.block4.MT32A),
+                        InstdAmt:  message.block4.MT33B is () ? () : {
+                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B),
                             Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, message.block4.MT52D?.Nm,
@@ -335,9 +334,8 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                             },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
-                        InstdAmt: {
-                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                                    stlmntAmnt = message.block4.MT32A),
+                        InstdAmt:  message.block4.MT33B is () ? () : {
+                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B),
                             Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content, (),
@@ -511,10 +509,9 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                             },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
-                        InstdAmt: {
-                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B,
-                                    stlmntAmnt = message.block4.MT32A),
-                            Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
+                        InstdAmt:  message.block4.MT33B is () ? () : {
+                            content: check getInstructedAmount(instrdAmnt = message.block4.MT33B),
+                            Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, ())
                         },
                         DbtrAgt: getFinancialInstitution(message.block4.MT52A?.IdnCd?.content,
                                 message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
