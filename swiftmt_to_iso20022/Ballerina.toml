@@ -2,7 +2,7 @@
 org = "ballerinax"
 name = "financial.swiftmtToIso20022"
 version = "1.0.1"
-distribution = "2201.10.1"
+distribution = "2201.10.5"
 authors=["Ballerina"]
 keywords=["Financial", "SWIFT MT", "ISO 20022", "Conversion"]
 repository="https://github.com/ballerina-platform/module-ballerinax-financial.swiftmt-to-iso20022"
