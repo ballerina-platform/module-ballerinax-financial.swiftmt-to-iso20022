@@ -301,9 +301,11 @@ isolated function getRemmitanceInformation(string? remmitanceInfo) returns strin
         log:printDebug("No remittance information found, returning empty string");
         return "";
     }
+    string formattedRemmitanceInfo = regexp:replaceAll(re `\n`, remmitanceInfo, "//");
 
-    log:printDebug("Returning remittance information: " + remmitanceInfo);
-    return remmitanceInfo;
+    log:printDebug("Returning remittance information: " + formattedRemmitanceInfo);
+
+    return formattedRemmitanceInfo;
 }
 
 # Extracts and returns the content of the provided field if it is of type string.
