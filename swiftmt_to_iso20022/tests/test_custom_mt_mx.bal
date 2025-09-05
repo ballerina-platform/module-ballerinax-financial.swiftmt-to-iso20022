@@ -17,6 +17,8 @@
 import ballerina/io;
 import ballerina/test;
 import ballerina/xmldata;
+import ballerina/time;
+import ballerina/lang.regexp;
 
 @test:Config {
     groups: ["mt_mx"],
@@ -26,7 +28,11 @@ isolated function testCustom(string finMessage, xml mxXml) returns error? {
     xml result = check toIso20022Xml(finMessage);
     json expectedResult = check xmldata:toJson(mxXml);
     json actualResult = check xmldata:toJson(result);
-    test:assertEquals(actualResult, expectedResult, "Invalid transformation of MT to MX");
+
+    string time = time:utcToString(time:utcNow()).substring(0, 19) + "+00:00";
+    json dateFormattedJson = check regexp:replaceAll(re `CURRENT_TIME`, expectedResult.toString(), time).fromJsonString();
+
+    test:assertEquals(actualResult, dateFormattedJson, string`Invalid transformation of MT to MX ${time}`);
 }
 
 function dataProvider_custom() returns map<[string, xml]>|error {
@@ -37,7 +43,8 @@ function dataProvider_custom() returns map<[string, xml]>|error {
         "205_pacs004_with_CHGS_after_code": [finMessage_205RETN_pacs004_3, check io:fileReadXml("./tests/custom/mt205_pacs_004_3.xml")],
         "205_pacs004_with_CHGS": [finMessage_205RETN_pacs004_4, check io:fileReadXml("./tests/custom/mt205_pacs_004_4.xml")],
         "camt106_muliple1": [finMessage_camt106_multiple_1, check io:fileReadXml("./tests/custom/camt106_multiple1.xml")],
-        "205_pacscamt106_muliple2": [finMessage_camt106_multiple_2, check io:fileReadXml("./tests/custom/camt106_multiple2.xml")]
+        "205_pacscamt106_muliple2": [finMessage_camt106_multiple_2, check io:fileReadXml("./tests/custom/camt106_multiple2.xml")],
+        "103_pacs008_test_pmtTpInf": [finMessage_pacs008_test_pmtTpInf, check io:fileReadXml("./tests/custom/mt103_pacs008.xml")]
     };
     return dataSet;
 }
@@ -119,3 +126,30 @@ string finMessage_camt106_multiple_2 = "{1:F01CBRLGB2LXXXX0000000000}{2:O1910000
     "/OURC/RON25,/D\r\n" +
     ":72:/CHRQ/RBOSGBCHXXX\r\n" +
     "-}{5:{CHK:F4A951119A8F}}";
+
+string finMessage_pacs008_test_pmtTpInf = "{1:F01PABSLKL0XXXX0000000000}{2:I103HANYUS33XXXXN}{3:{111:001}{121:8403c004-66b2-40fc-acba-9f11d1a4ad84}}{4:\r\n" +
+    ":20:990OTT250827000\r\n" +
+    ":23B:CRED\r\n" +
+    ":23E:SDVA\r\n" +
+    ":23E:CORT\r\n" +
+    ":23E:INTC\r\n" +
+    ":32A:250827USD7138,40\r\n" +
+    ":33B:USD7138,40\r\n" +
+    ":50K:/100811000148\r\n" +
+    "UNITED ENGINEERING SERVICES (PVT) L\r\n" +
+    "NO 852-60\r\n" +
+    "SUSITHA PURA\r\n" +
+    "SRI LANKA\r\n" +
+    ":52A:/NUGEGODA BRANCH\r\n" +
+    "PABSLKLXXXX\r\n" +
+    ":57A:SMBCTHBKXXX\r\n" +
+    ":59:/2110144802\r\n" +
+    "KATAYAMA CHAIN THAILAND\r\n" +
+    "CO LTD\r\n" +
+    ":70:IMPORT OF ROLLER CHAINS\r\n" +
+    "INV NIO : SO2508107SRI\r\n" +
+    "INV DATE : 26.08.2025\r\n" +
+    ":71A:BEN\r\n" +
+    ":72:/SVCLVL/SDVAa\r\n" +
+    "/LOCINS/0090\r\n" +
+    "-}}";

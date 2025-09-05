@@ -105,8 +105,9 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(block4.MT13C);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
             pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
-            pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt1,
+            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,  pacsIsoRecord:ServiceLevel8Choice[], 
+            pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, 
+            instrFrNxtAgt, prvsInstgAgt1, intrmyAgt1,
             serviceLevel, lclInstrm, purpose] = check getMT1XXSenderToReceiverInformation(block4.MT72);
     foreach swiftmt:MT102STPTransaction transaxion in block4.Transaction {
         swiftmt:MT26T? trnsTyp = check getMT102STPRepeatingFields(block4, transaxion.MT26T, "26T").ensureType();
@@ -139,12 +140,8 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
                 InstrId: block4.MT20.msgId.content,
                 UETR: block3?.NdToNdTxRef?.value
             },
-            PmtTpInf: serviceLevel is () && purpose is () && lclInstrm is () ? () : {
-                    SvcLvl: serviceLevel is () ? () : [
-                            {
-                                Cd: serviceLevel
-                            }
-                        ],
+            PmtTpInf: serviceLevel.length() == 0 && purpose is () && lclInstrm is () ? () : {
+                    SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
                     LclInstrm: lclInstrm,
                     CtgyPurp: purpose
                 },
@@ -270,7 +267,8 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(block4.MT13C);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
             pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
+            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+            pacsIsoRecord:LocalInstrument2Choice?,
             pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt1,
             serviceLevel, lclInstrm, purpose] = check getMT1XXSenderToReceiverInformation(block4.MT72);
     foreach swiftmt:MT102Transaction transaxion in block4.Transaction {
@@ -306,12 +304,8 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
                 InstrId: block4.MT20.msgId.content,
                 UETR: block3?.NdToNdTxRef?.value
             },
-            PmtTpInf: serviceLevel is () && purpose is () && lclInstrm is () ? () : {
-                    SvcLvl: serviceLevel is () ? () : [
-                            {
-                                Cd: serviceLevel
-                            }
-                        ],
+            PmtTpInf: serviceLevel.length() == 0 && purpose is () && lclInstrm is () ? () : {
+                    SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
                     LclInstrm: lclInstrm,
                     CtgyPurp: purpose
                 },

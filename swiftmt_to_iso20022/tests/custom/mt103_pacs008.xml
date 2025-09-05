@@ -1,0 +1,142 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+		<head:Fr>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>PABSLKL0XXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:Fr>
+		<head:To>
+			<head:FIId>
+				<head:FinInstnId>
+					<head:BICFI>HANYUS33XXX</head:BICFI>
+				</head:FinInstnId>
+			</head:FIId>
+		</head:To>
+		<head:BizMsgIdr>990OTT250827000</head:BizMsgIdr>
+		<head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
+		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:CreDt>CURRENT_TIME</head:CreDt>
+	</head:AppHdr>
+	<pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
+		<pacs:FIToFICstmrCdtTrf>
+			<pacs:GrpHdr>
+				<pacs:MsgId>990OTT250827000</pacs:MsgId>
+				<pacs:CreDtTm>CURRENT_TIME</pacs:CreDtTm>
+				<pacs:NbOfTxs>1</pacs:NbOfTxs>
+				<pacs:SttlmInf>
+					<pacs:SttlmMtd>INDA</pacs:SttlmMtd>
+				</pacs:SttlmInf>
+			</pacs:GrpHdr>
+			<pacs:CdtTrfTxInf>
+				<pacs:PmtId>
+					<pacs:InstrId>990OTT250827000</pacs:InstrId>
+					<pacs:EndToEndId>NOTPROVIDED</pacs:EndToEndId>
+					<pacs:UETR>8403c004-66b2-40fc-acba-9f11d1a4ad84</pacs:UETR>
+				</pacs:PmtId>
+				<pacs:PmtTpInf>
+					<pacs:SvcLvl>
+						<pacs:Cd>G001</pacs:Cd>
+					</pacs:SvcLvl>
+					<pacs:SvcLvl>
+						<pacs:Cd>SDVA</pacs:Cd>
+					</pacs:SvcLvl>
+					<pacs:SvcLvl>
+						<pacs:Prtry>SDVAa</pacs:Prtry>
+					</pacs:SvcLvl>
+					<pacs:LclInstrm>
+						<pacs:Cd>0090</pacs:Cd>
+					</pacs:LclInstrm>
+					<pacs:CtgyPurp>
+						<pacs:Prtry>CORT INTC</pacs:Prtry>
+					</pacs:CtgyPurp>
+				</pacs:PmtTpInf>
+				<pacs:IntrBkSttlmAmt
+					Ccy="USD">7138.4</pacs:IntrBkSttlmAmt>
+				<pacs:IntrBkSttlmDt>2025-08-27</pacs:IntrBkSttlmDt>
+				<pacs:InstdAmt
+					Ccy="USD">7138.4</pacs:InstdAmt>
+				<pacs:ChrgBr>CRED</pacs:ChrgBr>
+				<pacs:InstgAgt>
+					<pacs:FinInstnId>
+						<pacs:BICFI>PABSLKL0XXX</pacs:BICFI>
+					</pacs:FinInstnId>
+				</pacs:InstgAgt>
+				<pacs:InstdAgt>
+					<pacs:FinInstnId>
+						<pacs:BICFI>HANYUS33XXX</pacs:BICFI>
+					</pacs:FinInstnId>
+				</pacs:InstdAgt>
+				<pacs:Dbtr>
+					<pacs:Nm>UNITED ENGINEERING SERVICES (PVT) L</pacs:Nm>
+					<pacs:PstlAdr>
+						<pacs:AdrLine>NO 852-60</pacs:AdrLine>
+						<pacs:AdrLine>SUSITHA PURA</pacs:AdrLine>
+						<pacs:AdrLine>SRI LANKA</pacs:AdrLine>
+					</pacs:PstlAdr>
+				</pacs:Dbtr>
+				<pacs:DbtrAcct>
+					<pacs:Id>
+						<pacs:Othr>
+							<pacs:Id>100811000148</pacs:Id>
+						</pacs:Othr>
+					</pacs:Id>
+				</pacs:DbtrAcct>
+				<pacs:DbtrAgt>
+					<pacs:FinInstnId>
+						<pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+					</pacs:FinInstnId>
+				</pacs:DbtrAgt>
+				<pacs:DbtrAgtAcct>
+					<pacs:Id>
+						<pacs:Othr>
+							<pacs:Id>NUGEGODA BRANCH</pacs:Id>
+						</pacs:Othr>
+					</pacs:Id>
+				</pacs:DbtrAgtAcct>
+				<pacs:CdtrAgt>
+					<pacs:FinInstnId>
+						<pacs:BICFI>SMBCTHBKXXX</pacs:BICFI>
+					</pacs:FinInstnId>
+				</pacs:CdtrAgt>
+				<pacs:Cdtr>
+					<pacs:Nm>KATAYAMA CHAIN THAILAND</pacs:Nm>
+					<pacs:PstlAdr>
+						<pacs:AdrLine>CO LTD</pacs:AdrLine>
+					</pacs:PstlAdr>
+				</pacs:Cdtr>
+				<pacs:CdtrAcct>
+					<pacs:Id>
+						<pacs:Othr>
+							<pacs:Id>2110144802</pacs:Id>
+						</pacs:Othr>
+					</pacs:Id>
+				</pacs:CdtrAcct>
+				<pacs:RmtInf>
+					<pacs:Ustrd>IMPORT OF ROLLER CHAINS INV NIO : SO2508107SRI INV DATE : 26.08.2025</pacs:Ustrd>
+				</pacs:RmtInf>
+			</pacs:CdtTrfTxInf>
+		</pacs:FIToFICstmrCdtTrf>
+	</pacs:Document>
+</Envelope>
