@@ -279,6 +279,7 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
             return result;
         }
 
+        numericString = removeTrailingCharacters(numericString, "0");
         log:printDebug("Converting with comma replacement");
         decimal result = check decimal:fromString(regexp:replace(re `,`, numericString, "."));
         log:printDebug("Converted value: " + result.toString());
@@ -2917,20 +2918,21 @@ isolated function getMessageSender(string? logicalTerminal, string? mirLogicalTe
     log:printDebug("Starting getMessageSender with logicalTerminal: " + logicalTerminal.toString() +
                 ", mirLogicalTerminal: " + mirLogicalTerminal.toString());
 
+    string? sender = ();
     if mirLogicalTerminal is string {
-        log:printDebug("Using mirLogicalTerminal, returning first 11 characters: " +
-                    mirLogicalTerminal.substring(0, 11));
-        return mirLogicalTerminal.substring(0, 11);
+        sender = logicalTerminalAddressToBIC(mirLogicalTerminal);
+        log:printDebug("Using mirLogicalTerminal, returning BIC 11 characters: " + sender.toString());
+        return sender;
     }
 
     if logicalTerminal is string {
-        log:printDebug("Using logicalTerminal, returning first 11 characters: " +
-                    logicalTerminal.substring(0, 11));
-        return logicalTerminal.substring(0, 11);
+        sender = logicalTerminalAddressToBIC(logicalTerminal);
+        log:printDebug("Using logicalTerminal, returning BIC 11 characters: " + sender.toString());
+        return sender;
     }
 
     log:printDebug("No valid terminal identifier found, returning null");
-    return ();
+    return sender;
 }
 
 # Retrieves the receiver's logical terminal identifier from the message.
@@ -2945,20 +2947,21 @@ isolated function getMessageReceiver(string? logicalTerminal, string? receiverAd
     log:printDebug("Starting getMessageReceiver with logicalTerminal: " + logicalTerminal.toString() +
                 ", receiverAddress: " + receiverAddress.toString());
 
+    string? receiver = ();
     if receiverAddress is string {
-        log:printDebug("Using receiverAddress, returning first 11 characters: " +
-                    receiverAddress.substring(0, 11));
-        return receiverAddress.substring(0, 11);
+        receiver = logicalTerminalAddressToBIC(receiverAddress);
+        log:printDebug("Using receiverAddress, returning BIC 11 characters: " + receiver.toString());
+        return receiver;
     }
 
     if logicalTerminal is string {
-        log:printDebug("Using logicalTerminal, returning first 11 characters: " +
-                    logicalTerminal.substring(0, 11));
-        return logicalTerminal.substring(0, 11);
+        receiver = logicalTerminalAddressToBIC(logicalTerminal);
+        log:printDebug("Using logicalTerminal, returning BIC 11 characters: " + receiver.toString());
+        return receiver;
     }
 
     log:printDebug("No valid receiver identifier found, returning null");
-    return ();
+    return receiver;
 }
 
 # Constructs a concatenated description from an array of narrative elements.
@@ -4388,4 +4391,35 @@ isolated function getPacs009MessageType(swiftmt:MT53A? field53A, swiftmt:MT53B? 
     }
 
     return "swift.cbprplus.02";
+}
+
+# Removes trailing occurrences of specified characters from the end of a string.
+#
+# + input - The input string to process
+# + charToRemove - The character(s) to remove from the end of the string
+# + return - Returns the input string with trailing occurrences of the specified character(s) removed
+isolated function removeTrailingCharacters(string input, string charToRemove) returns string {
+    log:printDebug(string `Starting removeTrailingCharacters with input: ${input}, charToRemove: ${charToRemove}`);
+    final string output = re `${charToRemove}+$`.replace(input, "");
+    log:printDebug(string `Final result after removals: ${output}`);
+    return output;
+}
+
+# Converts a 12-character Logical Terminal (LT) Address to a 11-character BIC code.
+# 
+# The LT Address structure:
+# - Characters 0-8: BIC 8 CODE (8 characters)
+# - Character 9: Logical Terminal Code (1 uppercase alphabetic character)
+# - Characters 10-12: BIC Branch Code (3 characters)
+#
+# The resulting BIC code combines the BIC 8 CODE + BIC Branch Code (11 characters total).
+#
+# + ltAddress - The 12-character Logical Terminal Address
+# + return - The 11-character BIC code, or the original string if invalid format
+isolated function logicalTerminalAddressToBIC(string ltAddress) returns string {
+    if ltAddress.length() != 12 {
+        log:printDebug(string `Invalid LT Address length: ${ltAddress.length()}, expected 12`);
+        return ltAddress;
+    }
+    return ltAddress.substring(0, 8) + ltAddress.substring(9, 12);
 }
