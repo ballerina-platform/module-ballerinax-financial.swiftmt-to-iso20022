@@ -279,7 +279,10 @@ isolated function convertToDecimalMandatory(swiftmt:Amnt?|swiftmt:Rt? value) ret
             return result;
         }
 
-        numericString = removeTrailingCharacters(numericString, "0");
+        if !(numericString.indexOf(",") is ()) {
+            numericString = removeTrailingCharacters(numericString, "0");
+        }
+
         log:printDebug("Converting with comma replacement");
         decimal result = check decimal:fromString(regexp:replace(re `,`, numericString, "."));
         log:printDebug("Converted value: " + result.toString());
