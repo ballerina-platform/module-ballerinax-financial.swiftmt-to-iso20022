@@ -28,9 +28,10 @@ import ballerinax/financial.swift.mt as swiftmt;
 isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
-    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
-        check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, pacsIsoRecord:ServiceLevel8Choice[],
+    pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:LocalInstrument2Choice?] 
+        [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose, lclInstrm] =
+        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, ()),
     [string, string?, string?] [remmitanceInfo, narration, xmlContent] = getEnvelopeContent(
             message.block4.MT77T.EnvCntnt.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
@@ -51,7 +52,10 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
             message.block4.MT55A?.IdnCd?.content, message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
             message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine, message.block4.MT55B?.Lctn?.content),
     pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-            message.block4.MT55D?.PrtyIdn)
+            message.block4.MT55D?.PrtyIdn),
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn, 
+        message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn, 
+        message.block4.MT57D?.PrtyIdn)
     in {
         AppHdr: {
             Fr: {
@@ -147,13 +151,11 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                                 CdtDtTm: crdtTime,
                                 DbtDtTm: dbitTime
                             },
-                        PmtTpInf: serviceLevel is () && purpose is () ? () : {
-                                SvcLvl: serviceLevel is () ? () : [
-                                        {
-                                            Cd: serviceLevel
-                                        }
-                                    ],
-                                CtgyPurp: purpose
+                        PmtTpInf: serviceLevel.length() == 0 && purpose is () ? () : {
+                                ClrChanl: isRTGS ? "RTGS" : (),
+                                SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
+                                CtgyPurp: purpose,
+                                LclInstrm: lclInstrm is () ? () : lclInstrm
                             },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
@@ -214,9 +216,10 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
 isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
-    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
-        check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,pacsIsoRecord:ServiceLevel8Choice[],
+    pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:LocalInstrument2Choice?] 
+        [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose, lclInstrm] =
+        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, ()),
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
@@ -231,7 +234,9 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     pacsIsoRecord:CashAccount40? instdRmbrmntAcct = getCashAccount(message.block4.MT54A?.PrtyIdn, ()),
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? thrdRmbrmntAgt = getFinancialInstitution(
             message.block4.MT55A?.IdnCd?.content, (), message.block4.MT55A?.PrtyIdn, ()),
-    pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, ()) in {
+    pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, ()),
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), (), 
+        message.block4.MT57A?.PrtyIdn, (), ()) in {
         AppHdr: {
             Fr: {
                 FIId: {
@@ -324,13 +329,11 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                                 CdtDtTm: crdtTime,
                                 DbtDtTm: dbitTime
                             },
-                        PmtTpInf: serviceLevel is () && purpose is () ? () : {
-                                SvcLvl: serviceLevel is () ? () : [
-                                        {
-                                            Cd: serviceLevel
-                                        }
-                                    ],
-                                CtgyPurp: purpose
+                        PmtTpInf: serviceLevel.length() == 0 && purpose is () ? () : {
+                                ClrChanl: isRTGS ? "RTGS" : (),
+                                SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
+                                CtgyPurp: purpose,
+                                LclInstrm: lclInstrm is () ? () : lclInstrm
                             },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
@@ -381,9 +384,11 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
 isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, string?,
-    pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose] =
-        check getInformationForAgents(message.block4.MT23E, message.block4.MT72),
+    string? serviceTypeIdentifier = message.block3?.ServiceTypeIdentifier?.value,
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, pacsIsoRecord:ServiceLevel8Choice[],
+    pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:LocalInstrument2Choice?] 
+        [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose, lclInstrm] =
+        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, serviceTypeIdentifier),
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
@@ -403,7 +408,10 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
             message.block4.MT55A?.IdnCd?.content, message.block4.MT55D?.Nm, message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
             message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine, message.block4.MT55B?.Lctn?.content),
     pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
-            message.block4.MT55D?.PrtyIdn)
+            message.block4.MT55D?.PrtyIdn),
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn, 
+        message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn, 
+        message.block4.MT57D?.PrtyIdn)
     in {
         AppHdr: {
             Fr: {
@@ -499,13 +507,11 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                                 CdtDtTm: crdtTime,
                                 DbtDtTm: dbitTime
                             },
-                        PmtTpInf: serviceLevel is () && purpose is () ? () : {
-                                SvcLvl: serviceLevel is () ? () : [
-                                        {
-                                            Cd: serviceLevel
-                                        }
-                                    ],
-                                CtgyPurp: purpose
+                        PmtTpInf: serviceLevel.length() == 0 && purpose is () ? () : {
+                                ClrChanl: isRTGS ? "RTGS" : (),
+                                SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
+                                CtgyPurp: purpose,
+                                LclInstrm: lclInstrm is () ? () : lclInstrm
                             },
                         IntrBkSttlmDt: convertToISOStandardDate(message.block4.MT32A.Dt),
                         XchgRate: check convertToDecimal(message.block4.MT36?.Rt),
