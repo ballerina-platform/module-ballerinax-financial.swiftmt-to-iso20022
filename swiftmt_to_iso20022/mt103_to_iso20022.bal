@@ -28,10 +28,11 @@ import ballerinax/financial.swift.mt as swiftmt;
 isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
+    string? serviceTypeIdentifier = message.block3?.ServiceTypeIdentifier?.value,
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array, pacsIsoRecord:ServiceLevel8Choice[],
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:LocalInstrument2Choice?] 
         [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose, lclInstrm] =
-        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, ()),
+        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, serviceTypeIdentifier),
     [string, string?, string?] [remmitanceInfo, narration, xmlContent] = getEnvelopeContent(
             message.block4.MT77T.EnvCntnt.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
@@ -216,10 +217,11 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
 isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     returns pacsIsoRecord:Pacs008Envelope|error => let
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
+    string? serviceTypeIdentifier = message.block3?.ServiceTypeIdentifier?.value,
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,pacsIsoRecord:ServiceLevel8Choice[],
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:LocalInstrument2Choice?] 
         [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, purpose, lclInstrm] =
-        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, ()),
+        check getInformationForAgents(message.block4.MT23E, message.block4.MT72, serviceTypeIdentifier),
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),

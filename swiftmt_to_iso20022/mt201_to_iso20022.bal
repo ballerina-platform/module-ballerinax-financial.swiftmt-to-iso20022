@@ -117,8 +117,8 @@ isolated function getCreditTransferTransactionInfo(swiftmt:MT201Block4 block4, s
             DbtrAcct: getCashAccount(block4.MT53B?.PrtyIdn, ()),
             IntrmyAgt1: intrmyAgt,
             IntrmyAgt1Acct: getCashAccount(transaxion.MT56A?.PrtyIdn, transaxion.MT56D?.PrtyIdn),
-            InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, 2))[1],
-            InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, 2))[0]
+            InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, (), 2))[1],
+            InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, (), 2))[0]
         });
     }
     return cdtTrfTxInfArray;

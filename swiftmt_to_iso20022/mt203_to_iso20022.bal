@@ -96,6 +96,7 @@ isolated function transformMT203ToPacs009(swiftmt:MT203Message message) returns 
 isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Block4 block4, swiftmt:Block3? block3)
     returns pacsIsoRecord:CreditTransferTransaction62[]|error {
     pacsIsoRecord:CreditTransferTransaction62[] cdtTrfTxInfArray = [];
+    string? serviceTypeIdentifier = block3?.ServiceTypeIdentifier?.value;
     foreach swiftmt:MT203Transaction transaxion in block4.Transaction {
         swiftmt:MT72? sndToRcvrInfo = getMT203RepeatingFields(block4, transaxion.MT72, "72");
         [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
@@ -104,7 +105,7 @@ isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Block4 bloc
                 pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?,
                 pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
                 [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose,
-                remmitanceInfo, purpose] = check getMT2XXSenderToReceiverInfo(sndToRcvrInfo);
+                remmitanceInfo, purpose] = check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, serviceTypeIdentifier);
 
         cdtTrfTxInfArray.push({
             Cdtr: getFinancialInstitution(transaxion.MT58A?.IdnCd?.content, transaxion.MT58D?.Nm,
