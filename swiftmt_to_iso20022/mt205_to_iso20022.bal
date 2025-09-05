@@ -23,13 +23,15 @@ import ballerinax/financial.swift.mt as swiftmt;
 # + return - Returns a `Pacs009Document` containing the payment instruction information, 
 # or an error if the transformation fails.
 isolated function transformMT205ToPacs009(swiftmt:MT205Message message) returns pacsIsoRecord:Pacs009Envelope|error =>
-    let [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
+    let 
+    string? serviceTypeIdentifier = message.block3?.ServiceTypeIdentifier?.value,
+    [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
     [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
-    purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72),
+    purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier),
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
         message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, (), 
@@ -217,13 +219,14 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVMessage message, swi
     swiftmt:MT57D? cdtrAgt57D = check getUnderlyingCustomerTransactionField57(block4.UndrlygCstmrCdtTrf.MT57A,
             block4.UndrlygCstmrCdtTrf.MT57B, (), block4.UndrlygCstmrCdtTrf.MT52D, block4)[3].ensureType();
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C);
+    string? serviceTypeIdentifier = message.block3?.ServiceTypeIdentifier?.value;
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
         pacsIsoRecord:LocalInstrument2Choice?,
         pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
         [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
-        purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72);
+        purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier);
     string remmitanceInfo2 = getRemmitanceInformation(block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content);
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), message.block4.MT56D?.PrtyIdn, 
         message.block4.MT57A?.PrtyIdn, (), message.block4.MT57D?.PrtyIdn);
@@ -312,10 +315,10 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVMessage message, swi
                     block4.UndrlygCstmrCdtTrf.MT59F?.CntyNTw),
             CdtrAcct: getCashAccount2(block4.UndrlygCstmrCdtTrf.MT59?.Acc, block4.UndrlygCstmrCdtTrf.MT59A?.Acc,
                     block4.UndrlygCstmrCdtTrf.MT59F?.Acc),
-            IntrmyAgt2: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72))[3],
-            PrvsInstgAgt1: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72))[2],
-            InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72))[1],
-            InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72))[0],
+            IntrmyAgt2: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, ()))[3],
+            PrvsInstgAgt1: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, ()))[2],
+            InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, ()))[1],
+            InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, ()))[0],
             RmtInf: remmitanceInfo2 == "" ? () : {
                     Ustrd: [
                         getRemmitanceInformation(
