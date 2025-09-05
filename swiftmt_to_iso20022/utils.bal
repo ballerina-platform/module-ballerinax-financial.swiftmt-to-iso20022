@@ -15,8 +15,8 @@
 // under the License.
 
 import ballerina/data.xmldata;
-import ballerina/log;
 import ballerina/lang.regexp;
+import ballerina/log;
 import ballerina/time;
 import ballerinax/financial.iso20022.cash_management as camtIsoRecord;
 import ballerinax/financial.iso20022.payment_initiation as painIsoRecord;
@@ -302,7 +302,7 @@ isolated function getRemmitanceInformation(string? remmitanceInfo) returns strin
         log:printDebug("No remittance information found, returning empty string");
         return "";
     }
-    string formattedRemmitanceInfo = regexp:replaceAll(re `\n`, remmitanceInfo, "//");
+    string formattedRemmitanceInfo = regexp:replaceAll(re `\n`, remmitanceInfo, " ");
 
     log:printDebug("Returning remittance information: " + formattedRemmitanceInfo);
 
@@ -1207,7 +1207,8 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, stri
 isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+    pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?]|error {
     log:printDebug("Starting getMT1XXSenderToReceiverInformation with sndRcvInfo: " + sndRcvInfo.toString());
 
@@ -1274,8 +1275,8 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
 isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, string?[] additionalInfo = []) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
-    pacsIsoRecord:CategoryPurpose1Choice?] {
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+    pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?] {
     log:printDebug("Starting getMT1XXSenderToReceiverInformationForAgts with codes: " + code.toString() +
                 ", additionalInfo: " + additionalInfo.toString());
 
@@ -1283,8 +1284,9 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
     pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? intrmyAgt2 = ();
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? prvsInstgAgt1 = ();
-    [string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?]
-            [serviceLevel, lclInstrm, purpose] = [(), (), ()];
+    pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
+    [pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?]
+            [lclInstrm, purpose] = [(), ()];
 
     foreach int i in 0 ... code.length() - 1 {
         log:printDebug("Processing code[" + i.toString() + "]: " + code[i]);
@@ -1332,12 +1334,17 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
                 }
             }
             "SVCLVL" => {
-                log:printDebug("Setting service level: " + code[i]);
-                serviceLevel = code[i];
+                log:printDebug("Setting service level: " + additionalInfo[i].toString());
+                serviceLevel.push({Prtry: additionalInfo[i]});
             }
             "LOCINS" => {
                 log:printDebug("Setting local instrument: " + code[i]);
-                lclInstrm = {Cd: code[i]};
+                if LOCAL_INSTRUMENT_CODES.indexOf(additionalInfo[i].toString()) > 0 {
+                    lclInstrm = {Cd: additionalInfo[i]};
+                } else {
+                    lclInstrm = {Prtry: additionalInfo[i]};
+                }
+                
             }
             "CATPURP" => {
                 log:printDebug("Setting category purpose: " + code[i]);
@@ -1364,11 +1371,14 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 #
 # + instnCd - An optional array of `swiftmt:MT23E` records containing instruction codes and details.
 # + sndRcvInfo - An optional `swiftmt:MT72` record containing sender-to-receiver information.
+# + serviceTypeIdentifier - An optional string representing the service type identifier.
 # + return - Returns a tuple extracted information based on the content in `instnCd` and `sndRcvInfo`.
 # If an error occurs during processing, it returns the corresponding error.
-isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72? sndRcvInfo) returns
-    [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
-    pacsIsoRecord:CategoryPurpose1Choice?]|error {
+isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72? sndRcvInfo, 
+    string? serviceTypeIdentifier) returns
+    [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], 
+        pacsIsoRecord:ServiceLevel8Choice[], pacsIsoRecord:CategoryPurpose1Choice?, 
+        pacsIsoRecord:LocalInstrument2Choice?]|error {
     log:printDebug("Starting getInformationForAgents with instnCd: " + instnCd.toString() +
                 ", sndRcvInfo: " + sndRcvInfo.toString());
 
@@ -1382,10 +1392,11 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
     log:printDebug("Getting sender-to-receiver information");
     var sndRcvInformation = check getMT1XXSenderToReceiverInformation(sndRcvInfo);
 
-    [string?, string?] [serviceLevel1, serviceLevel2] = [
+    [string?, pacsIsoRecord:ServiceLevel8Choice[]] [serviceLevel1, serviceLevel2] = [
         mt103Instructions[2],
         sndRcvInformation[4]
     ];
+    pacsIsoRecord:LocalInstrument2Choice? lclInstrm = sndRcvInformation[5];
 
     log:printDebug("Service levels - from MT103: " + serviceLevel1.toString() + ", from MT1XX: " + serviceLevel2.toString());
 
@@ -1414,13 +1425,38 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
         log:printDebug("Added next agent instruction from sender-to-receiver info: " + instruction.toString());
     }
 
-    if serviceLevel1 is string {
-        finalServiceLevel = serviceLevel1;
-        log:printDebug("Using service level from MT103: " + finalServiceLevel.toString());
-    } else {
-        finalServiceLevel = serviceLevel2;
-        log:printDebug("Using service level from sender-to-receiver info: " + finalServiceLevel.toString());
+    pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
+    string:RegExp reg = re `^00[1-9]{1}`;
+    if serviceTypeIdentifier is string {
+        if reg.isFullMatch(serviceTypeIdentifier) {
+            pacsIsoRecord:ServiceLevel8Choice svclvl = {
+                Cd: string `G${serviceTypeIdentifier}`
+            };
+            serviceLevel.push(svclvl);
+            log:printDebug("Added service type identifier to service level: " + string `G${serviceTypeIdentifier}`);
+        } else {
+            log:printDebug(string `Service type identifier $${serviceTypeIdentifier} does not match expected pattern.`);
+        }
     }
+    if instnCd is swiftmt:MT23E[] {
+        foreach swiftmt:MT23E code in instnCd {
+            if code.InstrnCd.content is string && code.InstrnCd.content == "SDVA" {
+                pacsIsoRecord:ServiceLevel8Choice svclvl = {
+                    Cd: code.InstrnCd.content
+                };
+                serviceLevel.push(svclvl);
+                log:printDebug("Added instruction code to service level: " + code.InstrnCd.content);
+            }
+        }
+    }
+
+    if serviceLevel2.length() > 0 {
+        foreach pacsIsoRecord:ServiceLevel8Choice svclvl in serviceLevel2 {
+            serviceLevel.push(svclvl);
+            log:printDebug("Added service level from sender-to-receiver info: " + svclvl.toString());
+        }
+    }
+    
 
     if purpose1 is pacsIsoRecord:CategoryPurpose1Choice {
         finalPurpose = purpose1;
@@ -1432,10 +1468,11 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
 
     log:printDebug("Returning combined information - instrFrCdtrAgt: " + instrFrCdtrAgt.toString() +
                     ", instrFrNxtAgt: " + instrFrNxtAgt.toString() +
-                    ", finalServiceLevel: " + finalServiceLevel.toString() +
-                    ", finalPurpose: " + finalPurpose.toString());
+                    "serviceLvl: " + serviceLevel.toString() +
+                    ", finalPurpose: " + finalPurpose.toString() +
+                    ", localInstrument: " + lclInstrm.toString());
 
-    return [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose];
+    return [instrFrCdtrAgt, instrFrNxtAgt, serviceLevel, finalPurpose, lclInstrm];
 }
 
 # Extracts the Sender to Receiver Information (MT72) from the given SWIFT MT2XX message.
@@ -1447,7 +1484,8 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
 isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int sndCdNum = 1) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+    pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
     log:printDebug("Starting getMT2XXSenderToReceiverInfo with sndRcvInfo: " + sndRcvInfo.toString() +
                 ", sndCdNum: " + sndCdNum.toString());
@@ -1529,7 +1567,8 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int snd
 isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] additionalInfo = []) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+    pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
     log:printDebug("Starting getMT2XXSenderToReceiverInfoForAgts with codes: " + code.toString() +
                 ", additionalInfo: " + additionalInfo.toString());
@@ -1538,8 +1577,9 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
     pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
     [pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?]
             [intrmyAgt2, prvsInstgAgt1] = [(), ()];
-    [string?, pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?,
-            pacsIsoRecord:Purpose2Choice?] [serviceLevel, lclInstrm, catPurpose, remmitanceInfo, purpose] = [(), (), (), (), ()];
+    [pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?,
+            pacsIsoRecord:Purpose2Choice?] [lclInstrm, catPurpose, remmitanceInfo, purpose] = [(), (), (), ()];
+    pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
 
     foreach int i in 0 ... code.length() - 1 {
         log:printDebug("Processing code[" + i.toString() + "]: " + code[i]);
@@ -1602,7 +1642,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
             }
             "SVCLVL" => {
                 log:printDebug("Setting service level: " + code[i]);
-                serviceLevel = code[i];
+                serviceLevel.push({Prtry: additionalInfo[i]});
             }
             "LOCINS" => {
                 log:printDebug("Setting local instrument: " + code[i]);
@@ -3819,6 +3859,22 @@ isolated function getInfoFromField79ForPacs002(swiftmt:Nrtv[]? narrativeArray) r
     return [];
 }
 
+isolated function isRTGSTransaction(swiftmt:PrtyIdn? ptyId56a, swiftmt:PrtyIdn? ptyId56c, swiftmt:PrtyIdn? ptyId56d,
+        swiftmt:PrtyIdn? ptyId57a, swiftmt:PrtyIdn? ptyId57c, swiftmt:PrtyIdn? ptyId57d) returns boolean {
+    log:printDebug("Checking isRTGSTransaction with PartyIdentifiers 56a: " + ptyId56a.toString() +
+                ", 56c: " + ptyId56c.toString() + ", 56d: " + ptyId56d.toString() + ", 57a: " + ptyId57a.toString() +
+                ", 57c: " + ptyId57c.toString() + ", 57d: " + ptyId57d.toString());
+    if ptyId56a.toString().startsWith("//RT") || ptyId56a.toString().startsWith("//FW") ||
+        ptyId56c.toString().startsWith("//RT") || ptyId56d.toString().startsWith("//RT") ||
+        ptyId57a.toString().startsWith("//RT") || ptyId57a.toString().startsWith("//FW") ||
+        ptyId57c.toString().startsWith("//RT") || ptyId57d.toString().startsWith("//RT") {
+        log:printDebug("At least one agent starts with //RT or //FW, returning true for RTGS transaction");
+        return true;
+    }
+    return false;
+
+}
+
 isolated function getCashAccount(swiftmt:PrtyIdn? acc1, swiftmt:PrtyIdn? acc2, swiftmt:PrtyIdn? acc3 = (), swiftmt:PrtyIdn? acc4 = ()) returns pacsIsoRecord:CashAccount40? {
     log:printDebug("Starting getCashAccount with acc1: " + acc1.toString() +
                 ", acc2: " + acc2.toString() +
@@ -4115,10 +4171,10 @@ isolated function getChargesAmount(string narration) returns camtIsoRecord:Charg
 
         result.push(
             {
-                Amt: {content: decimalAmount, Ccy: currency},
-                Tp: {Cd: code},
-                CdtDbtInd: "DBIT"
-            }
+            Amt: {content: decimalAmount, Ccy: currency},
+            Tp: {Cd: code},
+            CdtDbtInd: "DBIT"
+        }
         );
 
         log:printDebug("Returning charges breakdown with amount: " + decimalAmount.toString() +

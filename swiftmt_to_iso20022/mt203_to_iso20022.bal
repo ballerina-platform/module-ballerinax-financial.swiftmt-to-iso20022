@@ -100,7 +100,7 @@ isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Block4 bloc
         swiftmt:MT72? sndToRcvrInfo = getMT203RepeatingFields(block4, transaxion.MT72, "72");
         [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
                 pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-                pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?,
+                pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[],
                 pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?,
                 pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
                 [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose,
@@ -126,12 +126,8 @@ isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Block4 bloc
                 InstrId: transaxion.MT20.msgId.content,
                 UETR: block3?.NdToNdTxRef?.value
             },
-            PmtTpInf: serviceLevel is () && catPurpose is () && lclInstrm is () ? () : {
-                    SvcLvl: serviceLevel is () ? () : [
-                            {
-                                Cd: serviceLevel
-                            }
-                        ],
+            PmtTpInf: serviceLevel.length() == 0 && catPurpose is () && lclInstrm is () ? () : {
+                    SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
                     CtgyPurp: catPurpose,
                     LclInstrm: lclInstrm
                 },

@@ -440,3 +440,12 @@ const COUNTRY_CODES = [
 ];
 
 final readonly & map<string> LETTER_LIST = {"A": "10", "B": "11", "C": "12", "D": "13", "E": "14", "F": "15", "G": "16", "H": "17", "I": "18", "J": "19", "K": "20", "L": "21", "M": "22", "N": "23", "O": "24", "P": "25", "Q": "26", "R": "27", "S": "28", "T": "29", "U": "20", "V": "31", "W": "32", "X": "33", "Y": "34", "Z": "35"};
+
+final readonly & string[] LOCAL_INSTRUMENT_CODES = ["CTR", "0090", "89", "04", "05", "CTX", "08", "DDMC", "0091", "0092", "CARD", 
+    "STR", "IDEAL", "SDD", "ICMC", "B2B", "0002", "CORAMIPM", "BSE", "0000", "0001", "SDN", "SBTI", "RIDO", "DDFA", 
+    "IN", "19", "RIDV", "POP", "INSTTC01", "ARC", "WEB", "POS", "DDMU", "ASTI", "RCK", "DDMP", "IAT", "BTR", "SVC", 
+    "PPD", "INSTNT01", "RTR", "RDD", "FDP", "ISE", "DDNR", "SDCL", "INST", "DRC", "CLSCCPERX", "DRB", "MANP", "SOP", 
+    "CORE", "SGT", "ADD", "CPP", "ITP", "DRW", "CHN", "TRF", "RIBA", "FFS", "FFR", "COR1", "UDD", "MDP", "NLGOV", "CIE", 
+    "IMD", "58", 	"ONCL","INSTNT01IDEAL","BPA","ACCEPT","60","SRD","PERI","0226","0227","0224","0225","0222","SRT",
+    "0223","DDT","B2BAMIPM","0220","0221","FADAMIPM","CLSCCPLCH","CCD","CCI","GST","CKS","NLDO","DEP","INSTIDEAL",
+    "BACP","INSTTC01IDEAL","82","TEL","IPA","83","CR1AMIPM","85","NLUP","CTP","SCN"];

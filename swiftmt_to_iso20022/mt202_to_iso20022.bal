@@ -30,11 +30,14 @@ type InstructionForCreditorAgentArray pacsIsoRecord:InstructionForCreditorAgent3
 isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pacsIsoRecord:Pacs009Envelope|error =>
     let [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+    pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
     [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
     purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72),
-    [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C) in {
+    [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
+        message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, (), message.block4.MT57D?.PrtyIdn) in {
         AppHdr: {
             Fr: {
                 FIId: {
@@ -112,15 +115,12 @@ isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pa
                                 BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
                             }
                         },
-                        PmtTpInf: serviceLevel is () && catPurpose is () && lclInstrm is () ? () : {
-                                SvcLvl: serviceLevel is () ? () : [
-                                        {
-                                            Cd: serviceLevel
-                                        }
-                                    ],
-                                CtgyPurp: catPurpose,
-                                LclInstrm: lclInstrm
-                            },
+                        PmtTpInf: serviceLevel.length() == 0 && catPurpose is () && lclInstrm is () ? () : {
+                            ClrChanl: isRTGS ? "RTGS" : (),
+                            SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
+                            CtgyPurp: purpose,
+                            LclInstrm: lclInstrm is () ? () : lclInstrm
+                        },
                         SttlmTmReq: clsTime is () ? () : {
                                 CLSTm: clsTime
                             },
@@ -233,11 +233,14 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, string?, pacsIsoRecord:LocalInstrument2Choice?,
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
+        pacsIsoRecord:LocalInstrument2Choice?,
         pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
         [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
         purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72);
     string remmitanceInfo2 = getRemmitanceInformation(block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content);
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
+        message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, (), message.block4.MT57D?.PrtyIdn);
 
     cdtTrfTxInfArray.push({
         Cdtr: getFinancialInstitution(block4.MT58A?.IdnCd?.content, block4.MT58D?.Nm, block4.MT58A?.PrtyIdn,
@@ -266,15 +269,12 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
                 BICFI: getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress)
             }
         },
-        PmtTpInf: serviceLevel is () && catPurpose is () && lclInstrm is () ? () : {
-                SvcLvl: serviceLevel is () ? () : [
-                        {
-                            Cd: serviceLevel
-                        }
-                    ],
-                CtgyPurp: catPurpose,
-                LclInstrm: lclInstrm
-            },
+        PmtTpInf: serviceLevel.length() == 0 && purpose is () ? () : {
+            ClrChanl: isRTGS ? "RTGS" : (),
+            SvcLvl: serviceLevel.length() == 0 ? () : serviceLevel,
+            CtgyPurp: purpose,
+            LclInstrm: lclInstrm is () ? () : lclInstrm
+        },
         SttlmTmReq: clsTime is () ? () : {
                 CLSTm: clsTime
             },

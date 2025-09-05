@@ -209,9 +209,10 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "financial.swift.mt"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
 	{org = "ballerina", name = "data.xmldata"},
+	{org = "ballerina", name = "io"},
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerinai", name = "observe"}
 ]
