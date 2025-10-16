@@ -163,7 +163,7 @@ isolated function getDirectDebitTransactionInfoMT104(swiftmt:MT104Block4 block4,
                     }
                 },
             ChrgBr: check getDetailsChargesCd(dtlsOfChrgs?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver, false),
             Dbtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc, transaxion.MT59A?.Acc, (), (),
                     (), transaxion.MT59?.Nm, (), transaxion.MT59?.AdrsLine, (), true, rgltryRptg?.Nrtv),
             RgltryRptg: getRegulatoryReporting(rgltryRptg?.Nrtv?.content),

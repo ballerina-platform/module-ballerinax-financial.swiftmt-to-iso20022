@@ -78,6 +78,17 @@
 				<pacs:InstdAmt
 					Ccy="USD">7138.4</pacs:InstdAmt>
 				<pacs:ChrgBr>CRED</pacs:ChrgBr>
+				<pacs:ChrgsInf>
+					<pacs:Amt Ccy="USD">0</pacs:Amt>
+					<pacs:Agt>
+						<pacs:FinInstnId>
+							<pacs:Nm>NOTPROVIDED</pacs:Nm>
+							<pacs:PstlAdr>
+								<pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+							</pacs:PstlAdr>
+						</pacs:FinInstnId>
+					</pacs:Agt>
+				</pacs:ChrgsInf>
 				<pacs:InstgAgt>
 					<pacs:FinInstnId>
 						<pacs:BICFI>PABSLKL0XXX</pacs:BICFI>

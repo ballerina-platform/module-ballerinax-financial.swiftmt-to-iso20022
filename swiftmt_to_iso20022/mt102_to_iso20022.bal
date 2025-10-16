@@ -119,6 +119,8 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
         swiftmt:MT71A? dtlsChrgsCd = check getMT102STPRepeatingFields(block4, transaxion.MT71A, "71A").ensureType();
         swiftmt:MT77B? rgltyRptg = check getMT102STPRepeatingFields(block4, transaxion.MT77B, "77B").ensureType();
         string remmitanceInfo = getRemmitanceInformation(transaxion.MT70?.Nrtv?.content);
+        pacsIsoRecord:ChargeBearerType1Code chargeBearer = 
+            check getDetailsChargesCd(dtlsChrgsCd?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code);
 
         cdtTrfTxInfArray.push({
             Cdtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc,
@@ -161,14 +163,14 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
             DbtrAgt: getFinancialInstitution(ordgInstn52A?.IdnCd?.content, (), ordgInstn52A?.PrtyIdn,
                     ()) ?: {FinInstnId: {BICFI: sender}},
             DbtrAgtAcct: getCashAccount(ordgInstn52A?.PrtyIdn, ()),
-            ChrgBr: check getDetailsChargesCd(dtlsChrgsCd?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
+            ChrgBr: chargeBearer,
             DbtrAcct: getCashAccount2(ordgCstm50A?.Acc, ordgCstm50K?.Acc, (), ordgCstm50F?.PrtyIdn),
             Dbtr: getDebtorOrCreditor(ordgCstm50A?.IdnCd, ordgCstm50A?.Acc, ordgCstm50K?.Acc, (),
                     ordgCstm50F?.PrtyIdn, ordgCstm50F?.Nm, ordgCstm50K?.Nm, ordgCstm50F?.AdrsLine,
                     ordgCstm50K?.AdrsLine, ordgCstm50F?.CntyNTw, true, rgltyRptg?.Nrtv),
             PrvsInstgAgt1: prvsInstgAgt1,
             IntrmyAgt1: intrmyAgt1,
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver, "CRED" == chargeBearer),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
             RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
             InstrForNxtAgt: instrFrNxtAgt,
@@ -283,6 +285,8 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
         swiftmt:MT71A? dtlsChrgsCd = check getMT102RepeatingFields(block4, transaxion.MT71A, "71A").ensureType();
         swiftmt:MT77B? rgltyRptg = check getMT102RepeatingFields(block4, transaxion.MT77B, "77B").ensureType();
         string remmitanceInfo = getRemmitanceInformation(transaxion.MT70?.Nrtv?.content);
+        pacsIsoRecord:ChargeBearerType1Code chargeBearer = 
+            check getDetailsChargesCd(dtlsChrgsCd?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code);
 
         cdtTrfTxInfArray.push({
             Cdtr: getDebtorOrCreditor(transaxion.MT59A?.IdnCd, transaxion.MT59?.Acc,
@@ -326,14 +330,14 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
                     ordgInstn52B?.PrtyIdn, ordgInstn52C?.PrtyIdn, (), (), ordgInstn52B?.Lctn?.content)
                         ?: {FinInstnId: {BICFI: sender}},
             DbtrAgtAcct: getCashAccount(ordgInstn52A?.PrtyIdn, ordgInstn52B?.PrtyIdn, ordgInstn52C?.PrtyIdn),
-            ChrgBr: check getDetailsChargesCd(dtlsChrgsCd?.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
+            ChrgBr: chargeBearer,
             DbtrAcct: getCashAccount2(ordgCstm50A?.Acc, ordgCstm50K?.Acc, (), ordgCstm50F?.PrtyIdn),
             Dbtr: getDebtorOrCreditor(ordgCstm50A?.IdnCd, ordgCstm50A?.Acc, ordgCstm50K?.Acc, (),
                     ordgCstm50F?.PrtyIdn, ordgCstm50F?.Nm, ordgCstm50K?.Nm, ordgCstm50F?.AdrsLine,
                     ordgCstm50K?.AdrsLine, ordgCstm50F?.CntyNTw, true, rgltyRptg?.Nrtv),
             PrvsInstgAgt1: prvsInstgAgt1,
             IntrmyAgt1: intrmyAgt1,
-            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver),
+            ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver, "CRED" == chargeBearer),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
             RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
             InstrForNxtAgt: instrFrNxtAgt,

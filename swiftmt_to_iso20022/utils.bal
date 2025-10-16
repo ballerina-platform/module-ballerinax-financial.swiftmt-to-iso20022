@@ -1085,13 +1085,15 @@ isolated function getAccountId(string? account, string? prtyIdn) returns string?
 # + sndsChrgs - An optional `swiftmt:MT71F` object that contains information about sender's charges.
 # + rcvsChrgs - An optional `swiftmt:MT71G` object that contains information about receiver's charges.
 # + receiver - The BIC code of the receiver.
+# + shouldAddChrgsInf - A boolean indicating whether to add default charges information.
 # + return - An array of `camtIsoRecord:Charges16` containing two entries:
 # - The first entry includes the sender's charges amount and currency, with a charge type of "CRED".
 # - The second entry includes the receiver's charges amount and currency, with a charge type of "DEBT".
 #
 # The function uses helper methods `convertToDecimalMandatory` to convert the amount and 
 # `getMandatoryFields` to fetch the currency.
-isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71G? rcvsChrgs, string? receiver)
+isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71G? rcvsChrgs,
+        string? receiver, boolean shouldAddChrgsInf = false)
     returns camtIsoRecord:Charges16[]?|error {
     log:printDebug("Starting getChargesInformation with sndsChrgs: " + sndsChrgs.toString() +
                 ", rcvsChrgs: " + rcvsChrgs.toString());
@@ -1142,8 +1144,24 @@ isolated function getChargesInformation(swiftmt:MT71F[]? sndsChrgs, swiftmt:MT71
     }
 
     if chrgsInf.length() == 0 {
-        log:printDebug("No charges information found, returning null");
-        return ();
+        if (shouldAddChrgsInf) {
+            log:printDebug("shouldAddChrgsInf is true, adding zero amount charge");
+            chrgsInf.push({
+                Amt: {
+                    content: 0,
+                    Ccy: "USD"
+                },
+                Agt: {
+                    FinInstnId: {
+                        Nm: "NOTPROVIDED",
+                        PstlAdr: {AdrLine: ["NOTPROVIDED"]}
+                    }
+                }
+            });
+        } else {
+            log:printDebug("No charges information found, returning null");
+            return ();
+        }
     }
 
     log:printDebug("Returning charges information with " + chrgsInf.length().toString() + " entries");

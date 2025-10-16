@@ -56,7 +56,9 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
             message.block4.MT55D?.PrtyIdn),
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn, 
         message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn, 
-        message.block4.MT57D?.PrtyIdn)
+        message.block4.MT57D?.PrtyIdn),
+    pacsIsoRecord:ChargeBearerType1Code chargeBearer = 
+        check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code)
     in {
         AppHdr: {
             Fr: {
@@ -168,8 +170,7 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                                 message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (), (),
                                 message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {BICFI: sender}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                        ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
-                            pacsIsoRecord:ChargeBearerType1Code),
+                        ChrgBr: chargeBearer,
                         Dbtr: getDebtorOrCreditor(message.block4.MT50A?.IdnCd, message.block4.MT50A?.Acc,
                                 message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
                                 message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
@@ -184,7 +185,8 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
                                 message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
-                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
+                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver,
+                                "CRED" == chargeBearer),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
                         RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                         InstrForNxtAgt: instrFrNxtAgt,
@@ -237,8 +239,11 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? thrdRmbrmntAgt = getFinancialInstitution(
             message.block4.MT55A?.IdnCd?.content, (), message.block4.MT55A?.PrtyIdn, ()),
     pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, ()),
-    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), (), 
-        message.block4.MT57A?.PrtyIdn, (), ()) in {
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), (),
+            message.block4.MT57A?.PrtyIdn, (), ()),
+    pacsIsoRecord:ChargeBearerType1Code chargeBearer = check getDetailsChargesCd(message.block4.MT71A.Cd)
+        .ensureType(pacsIsoRecord:ChargeBearerType1Code)
+    in {
         AppHdr: {
             Fr: {
                 FIId: {
@@ -347,8 +352,7 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                                 message.block4.MT52A?.PrtyIdn,
                                 ()) ?: {FinInstnId: {BICFI: sender}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, ()),
-                        ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
-                            pacsIsoRecord:ChargeBearerType1Code),
+                        ChrgBr: chargeBearer,
                         Dbtr: getDebtorOrCreditor(message.block4.MT50A?.IdnCd, message.block4.MT50A?.Acc,
                                 message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
                                 message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
@@ -361,7 +365,8 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                                 message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
-                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
+                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver,
+                                "CRED" == chargeBearer),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
                         RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                         InstrForNxtAgt: instrFrNxtAgt,
@@ -411,9 +416,11 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
             message.block4.MT55D?.PrtyIdn, (), message.block4.MT55D?.AdrsLine, message.block4.MT55B?.Lctn?.content),
     pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, message.block4.MT55B?.PrtyIdn,
             message.block4.MT55D?.PrtyIdn),
-    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn, 
-        message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn, 
-        message.block4.MT57D?.PrtyIdn)
+    boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
+            message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
+            message.block4.MT57D?.PrtyIdn),
+    pacsIsoRecord:ChargeBearerType1Code chargeBearer = check getDetailsChargesCd(message.block4.MT71A.Cd)
+        .ensureType(pacsIsoRecord:ChargeBearerType1Code)
     in {
         AppHdr: {
             Fr: {
@@ -525,8 +532,7 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                                 message.block4.MT52D?.Nm, message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn, (),
                                 (), message.block4.MT52D?.AdrsLine) ?: {FinInstnId: {BICFI: sender}},
                         DbtrAgtAcct: getCashAccount(message.block4.MT52A?.PrtyIdn, message.block4.MT52D?.PrtyIdn),
-                        ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
-                            pacsIsoRecord:ChargeBearerType1Code),
+                        ChrgBr: chargeBearer,
                         Dbtr: getDebtorOrCreditor(message.block4.MT50A?.IdnCd, message.block4.MT50A?.Acc,
                                 message.block4.MT50K?.Acc, (), message.block4.MT50F?.PrtyIdn,
                                 message.block4.MT50F?.Nm, message.block4.MT50K?.Nm,
@@ -541,7 +547,8 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
                                 message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[3],
-                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
+                        ChrgsInf: check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver, 
+                                "CRED" == chargeBearer),
                         RgltryRptg: getRegulatoryReporting(message.block4.MT77B?.Nrtv?.content),
                         RmtInf: remmitanceInfo == "" ? () : {Ustrd: [remmitanceInfo], Strd: []},
                         InstrForNxtAgt: instrFrNxtAgt,
@@ -567,7 +574,10 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
     returns pacsIsoRecord:Pacs004Envelope|error => let
     [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
-    pacsIsoRecord:Charges16[]? charges = check getChargesInformation(message.block4.MT71F, message.block4.MT71G, receiver),
+    pacsIsoRecord:ChargeBearerType1Code chargeBearer = check getDetailsChargesCd(message.block4.MT71A.Cd)
+        .ensureType(pacsIsoRecord:ChargeBearerType1Code),
+    pacsIsoRecord:Charges16[]? charges = check getChargesInformation(message.block4.MT71F, message.block4.MT71G, 
+        receiver, "CRED" == chargeBearer),
     [string?, string?, pacsIsoRecord:PaymentReturnReason7[], pacsIsoRecord:Charges16[]] [instructionId, endToEndId,
         returnReasonArray, sndRcvrInfoChrgs] = check get103Or202RETNSndRcvrInfoForPacs004(message.block4.MT72)
     in {
@@ -636,8 +646,7 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
                                     stlmntAmnt = message.block4.MT32A),
                             Ccy: getCurrency(message.block4.MT33B?.Ccy?.content, message.block4.MT32A.Ccy.content)
                         },
-                        ChrgBr: check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(
-                        pacsIsoRecord:ChargeBearerType1Code),
+                        ChrgBr: chargeBearer,
                         ChrgsInf: getChargesInfo(charges, sndRcvrInfoChrgs),
                         RtrChain: {
                             Cdtr: getCreditorForPacs004(message.block4.MT59, message.block4.MT59A, message.block4.MT59F,

@@ -35,7 +35,8 @@ function dataProvider_p212() returns map<[string, xml]>|error {
         "103_pasc004": [finMessage_p_2_1_2_B_A, check io:fileReadXml("./tests/p_2_1_2/mt103_pacs_004_B_A.xml")],
         "103_pasc004-2": [finMessage_p_2_1_2_C_B, check io:fileReadXml("./tests/p_2_1_2/mt103_pacs_004_C_B.xml")],
         "103_pasc008_A_B": [finMessage_p_2_1_2_A_B, check io:fileReadXml("./tests/p_2_1_2/mt103_pacs_008_A_B.xml")],
-        "103_pasc008_B_C": [finMessage_p_2_1_2_B_C, check io:fileReadXml("./tests/p_2_1_2/mt103_pacs008_B_C.xml")]
+        "103_pasc008_B_C": [finMessage_p_2_1_2_B_C, check io:fileReadXml("./tests/p_2_1_2/mt103_pacs008_B_C.xml")],
+        "103_pacs004_B_B": [finMessage_p_2_1_2_B_B, check io:fileReadXml("./tests/p_2_1_2/mt103_pacs_004_B_B.xml")]
     };
     return dataSet;
 };
@@ -114,4 +115,22 @@ string finMessage_p_2_1_2_B_C = "{1:F01ANBTUS44XXXX0000000000}{2:O1030523210511C
     ":70:/ROC/E2E04044506271305\r\n" +
     ":71A:SHA\r\n" +
     ":71F:USD10,\r\n" +
+    "-}";
+
+string finMessage_p_2_1_2_B_B = "{1:F01CHASGB2LXXXX0000000000}{2:O1030703210511CHASUS33XXXX00000000002105110703N}{3:{121:174c245f-2682-4291-ad67-2a41e530cd27}}{4:\r\n" +
+    ":20:P4B2A-006\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:210511USD136480,\r\n" +
+    ":33B:USD136480,\r\n" +
+    ":50A:ANBTUS44XXX\r\n" +
+    ":52A:CHASUS33XXX\r\n" +
+    ":57A:CHASGB2LXXX\r\n" +
+    ":59F:1/GB Engineering \r\n" +
+    "2/Industrial Park\r\n" +
+    "3/GB/Cambridge\r\n" +
+    ":71A:BEN\r\n" +
+    ":72:/RETN/99\r\n" +
+    "/AC04/\r\n" +
+    "/MREF/A2B0506272708\r\n" +
+    "/TREF/E2E040445062713+\r\n" +
     "-}";
