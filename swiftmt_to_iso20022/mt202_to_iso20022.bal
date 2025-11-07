@@ -36,17 +36,17 @@ isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pa
     [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
     purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72),
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
-    string? sender = getMessageSender(message.block1?.logicalTerminal,message.block2.MIRLogicalTerminal),
+    string? senderBICFI = getMessageSender(message.block1?.logicalTerminal,message.block2.MIRLogicalTerminal),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     pacsIsoRecord:SettlementMethod1Code sttlmMtd = getCBPRPlusMTtoMXSettlementMethod(message.block4.MT53A, message.block4.MT53B, 
-        message.block4.MT53D, message.block4.MT54A, message.block4.MT54B, message.block4.MT54D, sender, receiver),
+        message.block4.MT53D, message.block4.MT54A, message.block4.MT54B, message.block4.MT54D, senderBICFI, receiver),
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
         message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, (), message.block4.MT57D?.PrtyIdn) in {
         AppHdr: {
             Fr: {
                 FIId: {
                     FinInstnId: {
-                        BICFI: sender
+                        BICFI: senderBICFI
                     }
                 }
             },
