@@ -1744,6 +1744,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 # + mt53D - An optional `swiftmt:MT53D` record. If provided, and MT53A or MT53D is valid, returns "COVE".
 # + return - Returns "INGA", "INDA", or "COVE" based on the provided inputs. If no conditions match, returns "INDA" 
 # by default.
+# NOTE: Please refer to getCBPRPlusMTtoMXSettlementMethod for MT202 specific version of this function.
 isolated function getSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? mt53B = (), swiftmt:MT53D? mt53D = ())
     returns camtIsoRecord:SettlementMethod1Code {
     log:printDebug("Starting getSettlementMethod with mt53A: " + mt53A.toString() +
@@ -4477,4 +4478,92 @@ isolated function logicalTerminalAddressToBIC(string ltAddress) returns string {
         return ltAddress;
     }
     return ltAddress.substring(0, 8) + ltAddress.substring(9, 12);
+}
+
+
+# Determines the settlement method based on the input MT53A, MT53B, MT53D, or MT54A record.
+#
+# + mt53A - An optional `swiftmt:MT53A` record. 
+# + mt53B - An optional `swiftmt:MT53B` record.
+# + mt53D - An optional `swiftmt:MT53D` record. 
+# + mt54A - An optional `swiftmt:MT54A` record.
+# + mt54B - An optional `swiftmt:MT54B` record.
+# + mt54D - An optional `swiftmt:MT54D` record.
+# + sender - An optional string representing the sender's BICFI.
+# + receiver - An optional string representing the receiver's BICFI.
+# + return - Returns "INGA", "INDA", or "COVE" based on the provided inputs. If no conditions match, returns "INDA" by default.
+isolated function getCBPRPlusMTtoMXSettlementMethod(swiftmt:MT53A? mt53A = (), swiftmt:MT53B? mt53B = (), swiftmt:MT53D? mt53D = (),
+        swiftmt:MT54A? mt54A = (), swiftmt:MT54B? mt54B = (), swiftmt:MT54D? mt54D = (), string? sender = (), string? receiver = ())
+        returns camtIsoRecord:SettlementMethod1Code {
+    log:printDebug("Starting getMT202SettlementMethod with mt53A: " + mt53A.toString() +
+                ", mt53B: " + mt53B.toString() +
+                ", mt53D: " + mt53D.toString() +
+                ", mt54A: " + mt54A.toString() +
+                ", mt54B: " + mt54B.toString() +
+                ", mt54D: " + mt54D.toString());
+
+    if (mt53A is () && mt54A is ()) {
+        log:printDebug("Neither MT53A nor MT54A is provided, returning INDA");
+        return camtIsoRecord:INDA;
+    } else if (mt53A is swiftmt:MT53A && mt54A is ()) {
+        string prtyIdnContent = mt53A?.PrtyIdn?.content ?: "";
+        if (isValidAccountNumber(prtyIdnContent)) {
+            if (prtyIdnContent == "C" || prtyIdnContent.startsWith("C/")) {
+                return camtIsoRecord:INGA;
+            } else {
+                return camtIsoRecord:INDA;
+            }
+        } else if (mt53A.IdnCd.content == sender || mt53A.IdnCd.content == receiver) {
+            return camtIsoRecord:INDA;
+        } else {
+            return camtIsoRecord:COVE;
+        }
+    } else if ((mt53B is swiftmt:MT53B || mt53D is swiftmt:MT53D) && mt54A is ()) {
+        string prtyIdnContent = mt53B?.PrtyIdn?.content ?: mt53D?.PrtyIdn?.content ?: "";
+        if (isValidAccountNumber(prtyIdnContent)) {
+            if (prtyIdnContent == "C" || prtyIdnContent.startsWith("C/")) {
+                return camtIsoRecord:INGA;
+            } else {
+                return camtIsoRecord:INDA;
+            }
+        } else {
+            return camtIsoRecord:INDA;
+        }
+    } else if (mt53A is swiftmt:MT53A && mt54A is swiftmt:MT54A) {
+        string prtyIdnContent = mt53A?.PrtyIdn?.content ?: "";
+        if (mt53A.IdnCd.content == sender && mt54A.IdnCd.content == receiver) {
+            return camtIsoRecord:INDA;
+        } else if (mt53A.IdnCd.content == sender && isValidAccountNumber(prtyIdnContent)) {
+            if (prtyIdnContent == "C" || prtyIdnContent.startsWith("C/")) {
+                return camtIsoRecord:INGA;
+            } else {
+                return camtIsoRecord:INDA;
+            }
+        } else {
+            return camtIsoRecord:COVE;
+        }
+    } else if ((mt53B is swiftmt:MT53B || mt53D is swiftmt:MT53D) && mt54A is swiftmt:MT54A) {
+        string prtyIdnContent = mt53B?.PrtyIdn?.content ?: mt53D?.PrtyIdn?.content ?: "";
+        if (isValidAccountNumber(prtyIdnContent)) {
+            if (prtyIdnContent == "C" || prtyIdnContent.startsWith("C/")) {
+                return camtIsoRecord:INGA;
+            } else {
+                return camtIsoRecord:INDA;
+            }
+        } else if (mt53B is swiftmt:MT53B) {
+            return camtIsoRecord:INDA;
+        } else {
+            return camtIsoRecord:COVE;
+        }
+    } else if (mt53A is () && mt54A is swiftmt:MT54A) {
+        if (mt54A.IdnCd.content == sender || mt54A.IdnCd.content == receiver) {
+            return camtIsoRecord:INDA;
+        } else {
+            return camtIsoRecord:COVE;
+        }
+    } else if (mt53A is () && (mt54B is swiftmt:MT54B || mt54D is swiftmt:MT54D)) {
+        return camtIsoRecord:COVE;
+    }
+    log:printDebug("No matching conditions found, returning INDA");
+    return camtIsoRecord:INDA;
 }

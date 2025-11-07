@@ -227,7 +227,8 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
-    pacsIsoRecord:SettlementMethod1Code settlementMethod = getSettlementMethod(message.block4.MT53A, message.block4.MT53B),
+    pacsIsoRecord:SettlementMethod1Code settlementMethod = getCBPRPlusMTtoMXSettlementMethod(message.block4.MT53A, 
+        message.block4.MT53B, (), message.block4.MT54A, (), (), sender, receiver),
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instgRmbrmntAgt = getFinancialInstitution(
             message.block4.MT53A?.IdnCd?.content, (), message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
             (), (), (), message.block4.MT53B?.Lctn?.content),
@@ -399,7 +400,8 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
     string remmitanceInfo = getRemmitanceInformation(message.block4.MT70?.Nrtv?.content),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
-    pacsIsoRecord:SettlementMethod1Code settlementMethod = getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+    pacsIsoRecord:SettlementMethod1Code settlementMethod = getCBPRPlusMTtoMXSettlementMethod(message.block4.MT53A, 
+        message.block4.MT53B, (), message.block4.MT54A, (), (), sender, receiver),
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? instgRmbrmntAgt = getFinancialInstitution(
             message.block4.MT53A?.IdnCd?.content, message.block4.MT53D?.Nm, message.block4.MT53A?.PrtyIdn, message.block4.MT53B?.PrtyIdn,
             message.block4.MT53D?.PrtyIdn, (), message.block4.MT53D?.AdrsLine,
@@ -573,6 +575,7 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
 isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
     returns pacsIsoRecord:Pacs004Envelope|error => let
     [string?, string?, string?] [_, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
+    string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
     string? receiver = getMessageReceiver(message.block1?.logicalTerminal, message.block2.receiverAddress),
     pacsIsoRecord:ChargeBearerType1Code chargeBearer = check getDetailsChargesCd(message.block4.MT71A.Cd)
         .ensureType(pacsIsoRecord:ChargeBearerType1Code),
@@ -609,7 +612,8 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
                     CreDtTm: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                             true).ensureType(string),
                     SttlmInf: {
-                        SttlmMtd: getSettlementMethod(message.block4.MT53A, message.block4.MT53B, message.block4.MT53D),
+                        SttlmMtd: getCBPRPlusMTtoMXSettlementMethod(message.block4.MT53A, message.block4.MT53B, (), 
+                                message.block4.MT54A, (), (), sender, receiver),
                         SttlmAcct: getCashAccount(message.block4.MT53B?.PrtyIdn, ())
                     },
                     NbOfTxs: DEFAULT_NUM_OF_TX,
