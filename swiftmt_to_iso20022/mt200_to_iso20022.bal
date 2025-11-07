@@ -101,8 +101,8 @@ isolated function transformMT200ToPacs009(swiftmt:MT200Message message) returns 
                         DbtrAcct: getCashAccount(message.block4.MT53B?.PrtyIdn, ()),
                         IntrmyAgt1: intrmyAgt,
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn),
-                        InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72, 2))[1],
-                        InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72, 2))[0]
+                        InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72, (), 2))[1],
+                        InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72, (), 2))[0]
                     }
                 ]
             }

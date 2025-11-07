@@ -77,7 +77,7 @@ isolated function transformMT204ToPacs010(swiftmt:MT204Message message) returns 
                         CdtrAgtAcct: getCashAccount(message.block4.MT57A?.PrtyIdn, message.block4.MT57B?.PrtyIdn,
                                 message.block4.MT57D?.PrtyIdn),
                         CdtId: message.block4.MT20.msgId.content,
-                        InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72))[0],
+                        InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(message.block4.MT72, ()))[0],
                         DrctDbtTxInf: check getMT204CreditTransferTransactionInfo(message.block4, message.block3, sender)
                     }
                 ]

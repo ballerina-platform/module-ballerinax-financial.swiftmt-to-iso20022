@@ -1499,10 +1499,12 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
 # Extracts the Sender to Receiver Information (MT72) from the given SWIFT MT2XX message.
 #
 # + sndRcvInfo - The SWIFT MT2XX `swiftmt:MT72` structure containing sender-to-receiver information.
+# + serviceTypeIdentifier - An optional string representing the service type identifier.
 # + sndCdNum - The number which defines the code array which is used to verify the code given in the message.
 # + return - A tuple with specific values extracted based on the message content, or nulls 
 # if no match.
-isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int sndCdNum = 1) returns
+isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, string? serviceTypeIdentifier, 
+    int sndCdNum = 1) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
@@ -1572,7 +1574,24 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int snd
         }
 
         log:printDebug("Extracted codes: " + code.toString() + ", additional info: " + additionalInfo.toString());
-        return check getMT2XXSenderToReceiverInfoForAgts(code, additionalInfo);
+        return check getMT2XXSenderToReceiverInfoForAgts(code, serviceTypeIdentifier, additionalInfo);
+    }
+    pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
+    string:RegExp reg = re `^00[1-9]{1}`;
+    if serviceTypeIdentifier is string {
+        if reg.isFullMatch(serviceTypeIdentifier) {
+            pacsIsoRecord:ServiceLevel8Choice svclvl = {
+                Cd: string `G${serviceTypeIdentifier}`
+            };
+            serviceLevel.push(svclvl);
+            log:printDebug("Added service type identifier to service level: " + string `G${serviceTypeIdentifier}`);
+        } else {
+            log:printDebug(string `Service type identifier $${serviceTypeIdentifier} does not match expected pattern.`);
+        }
+    }
+    if serviceLevel.length() > 0 {
+        log:printDebug("No sender-to-receiver information provided, returning service level only");
+        return [[], [], (), (), serviceLevel, (), (), (), ()];
     }
 
     log:printDebug("No sender-to-receiver information provided, returning empty tuple");
@@ -1582,10 +1601,12 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, int snd
 # Extracts and returns instructions and related information for agents from the provided MT2XX sender-to-receiver details.
 #
 # + code - An array of strings representing the codes for sender-to-receiver information.
+# + serviceTypeIdentifier - An optional string representing the service type identifier.
 # + additionalInfo - An optional array of strings containing additional information corresponding to the codes.
 # + return - Returns a tuple with extracted information based on the content in code and addtionalinfo array.
 # If an error occurs during processing, it returns the corresponding error.
-isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] additionalInfo = []) returns
+isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? serviceTypeIdentifier, 
+    string?[] additionalInfo = []) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
@@ -1601,6 +1622,19 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string?[] a
     [pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?,
             pacsIsoRecord:Purpose2Choice?] [lclInstrm, catPurpose, remmitanceInfo, purpose] = [(), (), (), ()];
     pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
+
+    string:RegExp reg = re `^00[1-9]{1}`;
+    if serviceTypeIdentifier is string {
+        if reg.isFullMatch(serviceTypeIdentifier) {
+            pacsIsoRecord:ServiceLevel8Choice svclvl = {
+                Cd: string `G${serviceTypeIdentifier}`
+            };
+            serviceLevel.push(svclvl);
+            log:printDebug("Added service type identifier to service level: " + string `G${serviceTypeIdentifier}`);
+        } else {
+            log:printDebug(string `Service type identifier $${serviceTypeIdentifier} does not match expected pattern.`);
+        }
+    }
 
     foreach int i in 0 ... code.length() - 1 {
         log:printDebug("Processing code[" + i.toString() + "]: " + code[i]);
