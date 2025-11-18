@@ -1344,10 +1344,10 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with Name: " + additionalInfo[i].toString());
-                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i]}};
+                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         } else {
                             log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
-                            intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
+                            intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         }
                     }
                 } else {
@@ -1676,7 +1676,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
                             prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         } else {
                             log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
-                            intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i]}};
+                            intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         }
                     }
                 } else {
