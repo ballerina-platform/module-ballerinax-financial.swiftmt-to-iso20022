@@ -1663,10 +1663,10 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
-                            prvsInstgAgts[i] = {FinInstnId: {BICFI: additionalInfo[i]}};
+                            prvsInstgAgts.push({FinInstnId: {BICFI: additionalInfo[i]}});
                         } else {
                             log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
-                            intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                            prvsInstgAgts.push({FinInstnId: {BICFI: additionalInfo[i]}});
                         }
                     } else {
                         log:printDebug("Additional info is not a valid BIC, using as Name");
@@ -4443,10 +4443,10 @@ isolated function extractStatusReason(swiftmt:Nrtv[]? narrativeArray) returns [s
 isolated function getPacs009MessageType(swiftmt:MT53A? field53A, swiftmt:MT53B? field53B, swiftmt:MT53D? field53D) returns string {
 
     if field53A is swiftmt:MT53A || field53D is swiftmt:MT53D {
-        return "swift.cbprplus.adv.02";
+        return "swift.cbprplus.adv.03";
     }
 
-    return "swift.cbprplus.02";
+    return "swift.cbprplus.03";
 }
 
 # Removes trailing occurrences of specified characters from the end of a string.

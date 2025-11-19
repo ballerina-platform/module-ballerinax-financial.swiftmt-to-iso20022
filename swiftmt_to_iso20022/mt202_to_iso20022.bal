@@ -263,7 +263,7 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
         [undrlygCstmrCdtTrfInstrFrCdtrAgt, undrlygCstmrCdtTrfInstrFrNxtAgt, undrlygCstmrCdtTrfPrvsInstgAgts, 
             undrlygCstmrCdtTrfIntrmyAgt2, undrlygCstmrCdtTrfServiceLevel, undrlygCstmrCdtTrfLclInstrm, 
             undrlygCstmrCdtTrfCatPurpose, undrlygCstmrCdtTrfRemmitanceInfo, undrlygCstmrCdtTrfPurpose] = 
-            check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier);
+            check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier);
 
     cdtTrfTxInfArray.push({
         Cdtr: getFinancialInstitution(block4.MT58A?.IdnCd?.content, block4.MT58D?.Nm, block4.MT58A?.PrtyIdn,
