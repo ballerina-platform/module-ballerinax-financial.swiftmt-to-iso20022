@@ -35,7 +35,7 @@
         </head:To>
         <head:BizMsgIdr>pcs008bzmsgidr-1</head:BizMsgIdr>
         <head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
-        <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+        <head:BizSvc>swift.cbprplus.03</head:BizSvc>
         <head:CreDt>2022-10-20T09:25:00+00:00</head:CreDt>
     </head:AppHdr>
     <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
@@ -79,12 +79,13 @@
                     </pacs:FinInstnId>
                 </pacs:InstdAgt>
                 <pacs:Dbtr>
-                    <pacs:Nm>A Debiter</pacs:Nm>
-                    <pacs:PstlAdr>
-                        <pacs:AdrLine>2/High Street</pacs:AdrLine>
-                        <pacs:AdrLine>3/GB/Epping</pacs:AdrLine>
-                    </pacs:PstlAdr>
-                </pacs:Dbtr>
+					<pacs:Nm>A Debiter</pacs:Nm>
+					<pacs:PstlAdr>
+                        <pacs:TwnNm>Epping</pacs:TwnNm>
+                        <pacs:Ctry>GB</pacs:Ctry>
+						<pacs:AdrLine>High Street</pacs:AdrLine>
+					</pacs:PstlAdr>
+				</pacs:Dbtr>
                 <pacs:DbtrAcct>
                     <pacs:Id>
                         <pacs:Othr>
@@ -105,9 +106,10 @@
                 <pacs:Cdtr>
                     <pacs:Nm>B Creditor Co</pacs:Nm>
                     <pacs:PstlAdr>
-                        <pacs:AdrLine>2/Las Ramblas</pacs:AdrLine>
-                        <pacs:AdrLine>3/ES/Barcelona</pacs:AdrLine>
-                    </pacs:PstlAdr>
+                        <pacs:TwnNm>Barcelona</pacs:TwnNm>
+                        <pacs:Ctry>ES</pacs:Ctry>
+						<pacs:AdrLine>Las Ramblas</pacs:AdrLine>
+					</pacs:PstlAdr>
                 </pacs:Cdtr>
                 <pacs:CdtrAcct>
                     <pacs:Id>
