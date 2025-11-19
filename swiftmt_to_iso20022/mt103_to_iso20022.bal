@@ -58,7 +58,9 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
         message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn, 
         message.block4.MT57D?.PrtyIdn),
     pacsIsoRecord:ChargeBearerType1Code chargeBearer = 
-        check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code)
+        check getDetailsChargesCd(message.block4.MT71A.Cd).ensureType(pacsIsoRecord:ChargeBearerType1Code),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] prvsInstgAgts = 
+        (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2]
     in {
         AppHdr: {
             Fr: {
@@ -178,7 +180,9 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
                                 message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
                         DbtrAcct: getCashAccount2(message.block4.MT50A?.Acc, message.block4.MT50K?.Acc, (),
                                 message.block4.MT50F?.PrtyIdn),
-                        PrvsInstgAgt1: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
+                        PrvsInstgAgt1: prvsInstgAgts.length() > 0 ? prvsInstgAgts[0] : (),
+                        PrvsInstgAgt2: prvsInstgAgts.length() > 1 ? prvsInstgAgts[1] : (),
+                        PrvsInstgAgt3: prvsInstgAgts.length() > 2 ? prvsInstgAgts[2] : (),
                         IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content,
                                 message.block4.MT56D?.Nm, message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
                                 message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),
@@ -242,6 +246,8 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
     pacsIsoRecord:CashAccount40? thrdRmbrmntAcct = getCashAccount(message.block4.MT55A?.PrtyIdn, ()),
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), (),
             message.block4.MT57A?.PrtyIdn, (), ()),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] prvsInstgAgts = 
+        (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
     pacsIsoRecord:ChargeBearerType1Code chargeBearer = check getDetailsChargesCd(message.block4.MT71A.Cd)
         .ensureType(pacsIsoRecord:ChargeBearerType1Code)
     in {
@@ -361,7 +367,9 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
                                 message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
                         DbtrAcct: getCashAccount2(message.block4.MT50A?.Acc, message.block4.MT50K?.Acc, (),
                                 message.block4.MT50F?.PrtyIdn),
-                        PrvsInstgAgt1: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
+                        PrvsInstgAgt1: prvsInstgAgts.length() > 0 ? prvsInstgAgts[0] : (),
+                        PrvsInstgAgt2: prvsInstgAgts.length() > 1 ? prvsInstgAgts[1] : (),
+                        PrvsInstgAgt3: prvsInstgAgts.length() > 2 ? prvsInstgAgts[2] : (),
                         IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content, (),
                                 message.block4.MT56A?.PrtyIdn, ()),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, ()),
@@ -422,7 +430,9 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
             message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, message.block4.MT57C?.PrtyIdn,
             message.block4.MT57D?.PrtyIdn),
     pacsIsoRecord:ChargeBearerType1Code chargeBearer = check getDetailsChargesCd(message.block4.MT71A.Cd)
-        .ensureType(pacsIsoRecord:ChargeBearerType1Code)
+        .ensureType(pacsIsoRecord:ChargeBearerType1Code),
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] prvsInstgAgts = 
+        (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2]
     in {
         AppHdr: {
             Fr: {
@@ -542,7 +552,9 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
                                 message.block4.MT50F?.CntyNTw, true, message.block4.MT77B?.Nrtv),
                         DbtrAcct: getCashAccount2(message.block4.MT50A?.Acc, message.block4.MT50K?.Acc, (),
                                 message.block4.MT50F?.PrtyIdn),
-                        PrvsInstgAgt1: (check getMT1XXSenderToReceiverInformation(message.block4.MT72))[2],
+                        PrvsInstgAgt1: prvsInstgAgts.length() > 0 ? prvsInstgAgts[0] : (),
+                        PrvsInstgAgt2: prvsInstgAgts.length() > 1 ? prvsInstgAgts[1] : (),
+                        PrvsInstgAgt3: prvsInstgAgts.length() > 2 ? prvsInstgAgts[2] : (),
                         IntrmyAgt1: getFinancialInstitution(message.block4.MT56A?.IdnCd?.content,
                                 message.block4.MT56D?.Nm, message.block4.MT56A?.PrtyIdn, message.block4.MT56C?.PrtyIdn,
                                 message.block4.MT56D?.PrtyIdn, (), message.block4.MT56D?.AdrsLine),
