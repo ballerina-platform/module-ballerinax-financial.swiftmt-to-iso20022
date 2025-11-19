@@ -1334,7 +1334,8 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
-                            prvsInstgAgt[i] = {FinInstnId: {BICFI: additionalInfo[i]}};
+                            prvsInstgAgt[i] = isValidBic(additionalInfo[i]) ? {FinInstnId: {BICFI: additionalInfo[i]}} :
+                                {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         } else {
                             log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
                             intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
@@ -1663,10 +1664,14 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
-                            prvsInstgAgts.push({FinInstnId: {BICFI: additionalInfo[i]}});
+                            prvsInstgAgts.push(isValidBic(additionalInfo[i]) ? 
+                                {FinInstnId: {BICFI: additionalInfo[i]}} : 
+                                {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}});
                         } else {
                             log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
-                            prvsInstgAgts.push({FinInstnId: {BICFI: additionalInfo[i]}});
+                            prvsInstgAgts.push(isValidBic(additionalInfo[i]) ? 
+                                {FinInstnId: {BICFI: additionalInfo[i]}} : 
+                                {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}});
                         }
                     } else {
                         log:printDebug("Additional info is not a valid BIC, using as Name");
@@ -4566,4 +4571,15 @@ isolated function getCBPRPlusMTtoMXSettlementMethod(swiftmt:MT53A? mt53A = (), s
     }
     log:printDebug("No matching conditions found, returning INDA");
     return camtIsoRecord:INDA;
+}
+
+# Validates if the provided BIC code matches the standard BIC format.
+# + bic - The BIC code string to validate.
+# + return - Returns true if the BIC code is valid, false otherwise.
+isolated function isValidBic(string? bic) returns boolean {
+    if bic is () {
+        return false;
+    }
+    log:printDebug("Starting isValidBic with bic: " + bic);
+    return bic.matches(re `^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$`);
 }
