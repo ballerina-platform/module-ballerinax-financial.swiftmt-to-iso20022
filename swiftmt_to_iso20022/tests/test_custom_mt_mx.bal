@@ -44,7 +44,12 @@ function dataProvider_custom() returns map<[string, xml]>|error {
         "205_pacs004_with_CHGS": [finMessage_205RETN_pacs004_4, check io:fileReadXml("./tests/custom/mt205_pacs_004_4.xml")],
         "camt106_muliple1": [finMessage_camt106_multiple_1, check io:fileReadXml("./tests/custom/camt106_multiple1.xml")],
         "205_pacscamt106_muliple2": [finMessage_camt106_multiple_2, check io:fileReadXml("./tests/custom/camt106_multiple2.xml")],
-        "103_pacs008_test_pmtTpInf": [finMessage_pacs008_test_pmtTpInf, check io:fileReadXml("./tests/custom/mt103_pacs008.xml")]
+        "103_pacs008_test_pmtTpInf": [finMessage_pacs008_test_pmtTpInf, check io:fileReadXml("./tests/custom/mt103_pacs008.xml")],
+        "custom_a_2014":[a_2014, check io:fileReadXml("./tests/custom/mt103_a_2014.xml")],
+        "custom_a_2015":[a_2015, check io:fileReadXml("./tests/custom/mt103_a_2015.xml")],
+        "custom_a_2016":[a_2016, check io:fileReadXml("./tests/custom/mt103_a_2016.xml")],
+        "custom_fin1":[fin1, check io:fileReadXml("./tests/custom/mt103_fin1.xml")],
+        "custom_fin2":[fin2, check io:fileReadXml("./tests/custom/mt103_fin2.xml")]
     };
     return dataSet;
 }
@@ -127,7 +132,7 @@ string finMessage_camt106_multiple_2 = "{1:F01CBRLGB2LXXXX0000000000}{2:O1910000
     ":72:/CHRQ/RBOSGBCHXXX\r\n" +
     "-}{5:{CHK:F4A951119A8F}}";
 
-string finMessage_pacs008_test_pmtTpInf = "{1:F01PABSLKL0XXXX0000000000}{2:I103HANYUS33XXXXN}{3:{111:001}{121:8403c004-66b2-40fc-acba-9f11d1a4ad84}}{4:\r\n" +
+string finMessage_pacs008_test_pmtTpInf = "{1:F01ABCDLKL0XXXX0000000000}{2:I103HANYUS33XXXXN}{3:{111:001}{121:8403c004-66b2-40fc-acba-9f11d1a4ad84}}{4:\r\n" +
     ":20:990OTT250827000\r\n" +
     ":23B:CRED\r\n" +
     ":23E:SDVA\r\n" +
@@ -136,12 +141,12 @@ string finMessage_pacs008_test_pmtTpInf = "{1:F01PABSLKL0XXXX0000000000}{2:I103H
     ":32A:250827USD7138,40\r\n" +
     ":33B:USD7138,40\r\n" +
     ":50K:/100811000148\r\n" +
-    "UNITED ENGINEERING SERVICES (PVT) L\r\n" +
+    "RASA ENGINEERING SERVICES (PVT) L\r\n" +
     "NO 852-60\r\n" +
-    "SUSITHA PURA\r\n" +
+    "SHARUK PURA\r\n" +
     "SRI LANKA\r\n" +
-    ":52A:/NUGEGODA BRANCH\r\n" +
-    "PABSLKLXXXX\r\n" +
+    ":52A:/NAGODA BRANCH\r\n" +
+    "ABCDLKLXXXX\r\n" +
     ":57A:SMBCTHBKXXX\r\n" +
     ":59:/2110144802\r\n" +
     "KATAYAMA CHAIN THAILAND\r\n" +
@@ -153,3 +158,125 @@ string finMessage_pacs008_test_pmtTpInf = "{1:F01PABSLKL0XXXX0000000000}{2:I103H
     ":72:/SVCLVL/SDVAa\r\n" +
     "/LOCINS/0090\r\n" +
     "-}}";
+
+string a_2014 = "{1:F01ABCDLKLXAXXX0000000000}{2:I103MHCBJPJTXXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736402}}{4:\r\n" +
+    ":20:990OTT250922014\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:250922JPY100,\r\n" +
+    ":33B:JPY100,\r\n" +
+    ":50K:/100811000148\r\n" +
+    "RASA ENGINEERING SERVICES (PVT) L\r\n" +
+    "NO 852-60\r\n" +
+    "SHARUK PURA\r\n" +
+    "SRI LANKA\r\n" +
+    ":52A:/CGC BRANHC\r\n" +
+    "ABCDLKLXXXX\r\n" +
+    ":57A:ICBKCNBJZJP\r\n" +
+    ":59:/2563529\r\n" +
+    "SHASHU LANXI SHANYE\r\n" +
+    "MACHINERY CO LTD\r\n" +
+    "MACHINERY CO LTD\r\n" +
+    ":70:IMPORT OF GOOD\r\n" +
+    "INV NO : 1526395\r\n" +
+    "INV DATE : 10.10.2025\r\n" +
+    "LKMIOP\r\n" +
+    ":71A:BEN\r\n" +
+    ":72:/INS/JKKILKOKSIKF\r\n" +
+    "-}";
+
+string a_2015 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736400}}{4:\r\n" +
+    ":20:990OTT250922015\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:250922USD100,\r\n" +
+    ":33B:USD100,\r\n" +
+    ":50K:/100811000148\r\n" +
+    "RASA ENGINEERING SERVICES (PVT) L\r\n" +
+    "NO 852-60\r\n" +
+    "SHARUK PURA\r\n" +
+    "SRI LANKA\r\n" +
+    ":52A:/NAGODA BRANCH\r\n" +
+    "PABSLKLXXXX\r\n" +
+    ":57A:ICBKCNBJZJP\r\n" +
+    ":59:/15236859635\r\n" +
+    "ZHEJIANG LANXI SHANYE\r\n" +
+    "ZHEJIANG LANXI SHANYE\r\n" +
+    "ZHEJIANG LANXI SHANYE\r\n" +
+    ":70:IMPORT OF GOOD\r\n" +
+    "INV NO :14255639\r\n" +
+    "INV DATE : 24225236589\r\n" +
+    "PURPOSE CODE : GDI\r\n" +
+    ":71A:OUR\r\n" +
+    ":72:/INS/NHMJKIIIIJMKIOLLPOUJI\r\n" +
+    "/INS/NHMJKIIIIJMKIOLLPOUJI\r\n" +
+    "/INS/NHMJKIIIIJMKIOLLPOUJI\r\n" +
+    "-}";
+
+string a_2016 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736401}}{4:\r\n" +
+    ":20:990OTT250922016\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:250922USD100,\r\n" +
+    ":33B:USD100,\r\n" +
+    ":50K:/100811000148\r\n" +
+    "UNITED ENGINEERING SERVICES (PVT) L\r\n" +
+    "NO 852-60\r\n" +
+    "SUSITHA PURA\r\n" +
+    "SRI LANKA\r\n" +
+    ":52A:/CGC BRANHC\r\n" +
+    "PABSLKLXXXX\r\n" +
+    ":57A:ICBKCNBJZJP\r\n" +
+    ":59:/256352896\r\n" +
+    "XZHEJIANG LANXI SHANYE\r\n" +
+    "XZHEJIANG LANXI SHANYE\r\n" +
+    "XZHEJIANG LANXI SHANYE\r\n" +
+    ":70:IMPORT OF GOOD\r\n" +
+    "INV NO : 1523659\r\n" +
+    "INV DATE : 10.10.2025\r\n" +
+    "GDI PURPOSE\r\n" +
+    ":71A:OUR\r\n" +
+    ":72:/INS/HUJIKKOLOOOIWHUJDI\r\n" +
+    "-}";
+
+string fin1 = string `{1:F01PABSLKLXXXXX0000000000}{2:I202BCEYIN5MXXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736510}}{4:
+:20:IBPPAB049250002
+:21:C-123-456
+:32A:250924USD100,
+:56A:/123
+BOTKJPJT
+:57A:CITIUS33XXX
+:58D:/MUFG LTD/
+INTERNATIONAL BANKING DEPARTME
+FEDERAL TOWERS MARINE DRIVE
+ERNAKULAM 682031
+:72:/INS/BILL PROCEEDS
+-}`;
+
+string fin2 = string `{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736305}}{4:
+:20:925OTT250922015
+:23B:CRED
+:32A:250922USD700,
+:33B:USD700,
+:50K:/100611002421
+OPTIMA TECHNOLOGIES (PVT) LTD
+NO 740 COTTA ROAD
+SRI LANKA
+:52A:/KOL BRANCH
+PABSLKLXXXX
+:56A:/123456
+CITIUS33XXX
+:57D:/KOL BRANCH
+COMMERCIAL BANK
+GALLE RD COLOMBO 03
+:59:/LK123456
+LNM
+NO450
+GALLE RD COLOMBO 03 SL
+123456
+:70:TEST
+123
+456
+789
+:71A:OUR
+:72:/INS/FUL PAY
+/INS/CHGS
+/INS/PAY
+-}`;

@@ -36,7 +36,7 @@
 		</head:To>
 		<head:BizMsgIdr>990OTT250827000</head:BizMsgIdr>
 		<head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
-		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:BizSvc>swift.cbprplus.03</head:BizSvc>
 		<head:CreDt>CURRENT_TIME</head:CreDt>
 	</head:AppHdr>
 	<pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
@@ -69,7 +69,7 @@
 						<pacs:Cd>0090</pacs:Cd>
 					</pacs:LclInstrm>
 					<pacs:CtgyPurp>
-						<pacs:Prtry>CORT INTC</pacs:Prtry>
+						<pacs:Prtry>INTC CORT</pacs:Prtry>
 					</pacs:CtgyPurp>
 				</pacs:PmtTpInf>
 				<pacs:IntrBkSttlmAmt
