@@ -15,7 +15,7 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-  
+
 <!--?xml version="1.0" encoding="UTF-8"?-->
 <Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
@@ -90,8 +90,9 @@
                     <pacs:Dbtr>
                         <pacs:Nm>Debtor Co</pacs:Nm>
                         <pacs:PstlAdr>
-                            <pacs:AdrLine>2/High Street</pacs:AdrLine>
-                            <pacs:AdrLine>3/GB/Epping</pacs:AdrLine>
+                            <pacs:TwnNm>Epping</pacs:TwnNm>
+                            <pacs:Ctry>GB</pacs:Ctry>
+                            <pacs:AdrLine>High Street</pacs:AdrLine>
                         </pacs:PstlAdr>
                     </pacs:Dbtr>
                     <pacs:DbtrAcct>
@@ -114,8 +115,9 @@
                     <pacs:Cdtr>
                         <pacs:Nm>Ardent Finance</pacs:Nm>
                         <pacs:PstlAdr>
-                            <pacs:AdrLine>2/Main Street</pacs:AdrLine>
-                            <pacs:AdrLine>3/RO/Bucharest</pacs:AdrLine>
+                            <pacs:TwnNm>Bucharest</pacs:TwnNm>
+                            <pacs:Ctry>RO</pacs:Ctry>
+                            <pacs:AdrLine>Main Street</pacs:AdrLine>
                         </pacs:PstlAdr>
                     </pacs:Cdtr>
                     <pacs:CdtrAcct>
