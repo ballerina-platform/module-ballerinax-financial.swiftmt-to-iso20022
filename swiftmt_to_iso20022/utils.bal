@@ -1227,7 +1227,7 @@ isolated function getTimeIndication(swiftmt:MT13C? tmInd) returns [string?, stri
 # - If no conditions match, it returns a tuple of `null` values.
 isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?]|error {
@@ -1295,7 +1295,7 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
 # If no conditions match, it returns a tuple with empty arrays and `null` values for optional fields.
 isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, string?[] additionalInfo = []) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?] {
     log:printDebug("Starting getMT1XXSenderToReceiverInformationForAgts with codes: " + code.toString() +
@@ -1304,7 +1304,7 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
     pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
     pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? intrmyAgt2 = ();
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8? prvsInstgAgt1 = ();
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] prvsInstgAgt = [];
     pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
     [pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?]
             [lclInstrm, purpose] = [(), ()];
@@ -1334,7 +1334,7 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
-                            prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                            prvsInstgAgt[i] = {FinInstnId: {BICFI: additionalInfo[i]}};
                         } else {
                             log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
                             intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
@@ -1344,7 +1344,7 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with Name: " + additionalInfo[i].toString());
-                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
+                            prvsInstgAgt[i] = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         } else {
                             log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
                             intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
@@ -1379,13 +1379,13 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
 
     log:printDebug("Returning extracted information - instrFrCdtrAgt: " + instrFrCdtrAgt.toString() +
                 ", instrFrNxtAgt: " + instrFrNxtAgt.toString() +
-                ", prvsInstgAgt1: " + prvsInstgAgt1.toString() +
+                ", prvsInstgAgts: " + prvsInstgAgt.toString() +
                 ", intrmyAgt2: " + intrmyAgt2.toString() +
                 ", serviceLevel: " + serviceLevel.toString() +
                 ", localInstrument: " + lclInstrm.toString() +
                 ", purpose: " + purpose.toString());
 
-    return [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, purpose];
+    return [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt, intrmyAgt2, serviceLevel, lclInstrm, purpose];
 }
 
 # Extracts and returns instructions and related information for agents based on the provided MT23E and MT72 records.
@@ -1506,7 +1506,7 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
 isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, string? serviceTypeIdentifier, 
     int sndCdNum = 1) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
@@ -1591,7 +1591,7 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, string?
     }
     if serviceLevel.length() > 0 {
         log:printDebug("No sender-to-receiver information provided, returning service level only");
-        return [[], [], (), (), serviceLevel, (), (), (), ()];
+        return [[], [], [], (), serviceLevel, (), (), (), ()];
     }
 
     log:printDebug("No sender-to-receiver information provided, returning empty tuple");
@@ -1608,7 +1608,7 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, string?
 isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? serviceTypeIdentifier, 
     string?[] additionalInfo = []) returns
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]|error {
@@ -1617,8 +1617,8 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 
     pacsIsoRecord:InstructionForCreditorAgent3[] instrFrCdtrAgt = [];
     pacsIsoRecord:InstructionForNextAgent1[] instrFrNxtAgt = [];
-    [pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?]
-            [intrmyAgt2, prvsInstgAgt1] = [(), ()];
+    [pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]]
+            [intrmyAgt2, prvsInstgAgts] = [(), []];
     [pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?,
             pacsIsoRecord:Purpose2Choice?] [lclInstrm, catPurpose, remmitanceInfo, purpose] = [(), (), (), ()];
     pacsIsoRecord:ServiceLevel8Choice[] serviceLevel = [];
@@ -1663,7 +1663,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with BIC: " + additionalInfo[i].toString());
-                            prvsInstgAgt1 = {FinInstnId: {BICFI: additionalInfo[i]}};
+                            prvsInstgAgts[i] = {FinInstnId: {BICFI: additionalInfo[i]}};
                         } else {
                             log:printDebug("Setting intermediary agent with BIC: " + additionalInfo[i].toString());
                             intrmyAgt2 = {FinInstnId: {BICFI: additionalInfo[i]}};
@@ -1673,7 +1673,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 
                         if code[i].toString().equalsIgnoreCaseAscii("INS") {
                             log:printDebug("Setting previous instructing agent with Name: " + additionalInfo[i].toString());
-                            prvsInstgAgt1 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
+                            prvsInstgAgts[i] = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
                         } else {
                             log:printDebug("Setting intermediary agent with Name: " + additionalInfo[i].toString());
                             intrmyAgt2 = {FinInstnId: {Nm: additionalInfo[i], PstlAdr: {AdrLine: ["NOTPROVIDED"]}}};
@@ -1715,7 +1715,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
 
     log:printDebug("Returning extracted information - instrFrCdtrAgt: " + instrFrCdtrAgt.toString() +
                 ", instrFrNxtAgt: " + instrFrNxtAgt.toString() +
-                ", prvsInstgAgt1: " + prvsInstgAgt1.toString() +
+                ", prvsInstgAgts: " + prvsInstgAgts.toString() +
                 ", intrmyAgt2: " + intrmyAgt2.toString() +
                 ", serviceLevel: " + serviceLevel.toString() +
                 ", lclInstrm: " + lclInstrm.toString() +
@@ -1726,7 +1726,7 @@ isolated function getMT2XXSenderToReceiverInfoForAgts(string[] code, string? ser
     return [
         instrFrCdtrAgt,
         instrFrNxtAgt,
-        prvsInstgAgt1,
+        prvsInstgAgts,
         intrmyAgt2,
         serviceLevel,
         lclInstrm,
