@@ -79,7 +79,7 @@ isolated function transformMT103REMITToPacs008(swiftmt:MT103REMITMessage message
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.008.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -268,7 +268,7 @@ isolated function transformMT103STPToPacs008(swiftmt:MT103STPMessage message)
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.008.001.08",
-            BizSvc: "swift.cbprplus.stp.02",
+            BizSvc: "swift.cbprplus.stp.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -451,7 +451,7 @@ isolated function transformMT103ToPacs008(swiftmt:MT103Message message)
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.008.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -614,7 +614,7 @@ isolated function transformMT103ToPacs004(swiftmt:MT103Message message)
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.004.001.09",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -719,7 +719,7 @@ isolated function transformMT103ToPacs002(swiftmt:MT103Message message)
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.002.001.10",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
