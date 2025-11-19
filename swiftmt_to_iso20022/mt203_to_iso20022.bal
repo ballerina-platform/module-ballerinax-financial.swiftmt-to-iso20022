@@ -100,11 +100,11 @@ isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Block4 bloc
     foreach swiftmt:MT203Transaction transaxion in block4.Transaction {
         swiftmt:MT72? sndToRcvrInfo = getMT203RepeatingFields(block4, transaxion.MT72, "72");
         [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
-                pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-                pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[],
-                pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?,
-                pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
-                [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose,
+                pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
+                pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?|(), pacsIsoRecord:ServiceLevel8Choice[],
+                pacsIsoRecord:LocalInstrument2Choice|(), pacsIsoRecord:CategoryPurpose1Choice|(),
+                pacsIsoRecord:RemittanceInformation2|(), pacsIsoRecord:Purpose2Choice|()]
+                [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, catPurpose,
                 remmitanceInfo, purpose] = check getMT2XXSenderToReceiverInfo(sndToRcvrInfo, serviceTypeIdentifier);
 
         cdtTrfTxInfArray.push({
@@ -139,7 +139,12 @@ isolated function getMT203CreditTransferTransactionInfo(swiftmt:MT203Block4 bloc
                     transaxion.MT56A?.PrtyIdn, transaxion.MT56D?.PrtyIdn, (), (), transaxion.MT56D?.AdrsLine),
             IntrmyAgt1Acct: getCashAccount(transaxion.MT56A?.PrtyIdn, transaxion.MT56D?.PrtyIdn),
             IntrmyAgt2: intrmyAgt2,
-            PrvsInstgAgt1: prvsInstgAgt1,
+            PrvsInstgAgt1: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+                prvsInstgAgts.length() > 0 ? prvsInstgAgts[0] : () : (),
+            PrvsInstgAgt2: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+                prvsInstgAgts.length() > 1 ? prvsInstgAgts[1] : () : (),
+            PrvsInstgAgt3: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+                prvsInstgAgts.length() > 2 ? prvsInstgAgts[2] : () : (),
             InstrForNxtAgt: instrFrNxtAgt,
             InstrForCdtrAgt: instrFrCdtrAgt,
             RmtInf: remmitanceInfo,

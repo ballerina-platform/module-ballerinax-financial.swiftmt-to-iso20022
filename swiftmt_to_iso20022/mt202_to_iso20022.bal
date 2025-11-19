@@ -31,11 +31,11 @@ isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pa
     let
     string? serviceTypeIdentifier = message.block3?.ServiceTypeIdentifier?.value,
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[],
-    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
+    pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[],
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
-    [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
+    [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
     purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier),
     string? sender = getMessageSender(message.block1?.logicalTerminal, message.block2.MIRLogicalTerminal),
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
@@ -144,7 +144,9 @@ isolated function transformMT202Pacs009(swiftmt:MT202Message message) returns pa
                                 message.block4.MT56D?.AdrsLine),
                         IntrmyAgt1Acct: getCashAccount(message.block4.MT56A?.PrtyIdn, message.block4.MT56D?.PrtyIdn),
                         IntrmyAgt2: intrmyAgt2,
-                        PrvsInstgAgt1: prvsInstgAgt1,
+                        PrvsInstgAgt1: prvsInstgAgts.length() > 0 ? prvsInstgAgts[0] : (),
+                        PrvsInstgAgt2: prvsInstgAgts.length() > 1 ? prvsInstgAgts[1] : (),
+                        PrvsInstgAgt3: prvsInstgAgts.length() > 2 ? prvsInstgAgts[2] : (),
                         InstrForNxtAgt: instrFrNxtAgt,
                         InstrForCdtrAgt: instrFrCdtrAgt,
                         RmtInf: remmitanceInfo,
@@ -184,7 +186,7 @@ isolated function transformMT202COVToPacs009(swiftmt:MT202COVMessage message)
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.009.001.08",
-            BizSvc: "swift.cbprplus.cov.02",
+            BizSvc: "swift.cbprplus.cov.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -244,15 +246,24 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
             block4.UndrlygCstmrCdtTrf.MT57B, (), block4.UndrlygCstmrCdtTrf.MT52D, block4)[3].ensureType();
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
-        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
-        pacsIsoRecord:LocalInstrument2Choice?,
-        pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
-        [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(), pacsIsoRecord:ServiceLevel8Choice[], 
+        pacsIsoRecord:LocalInstrument2Choice|(),
+        pacsIsoRecord:CategoryPurpose1Choice|(), pacsIsoRecord:RemittanceInformation2|(), pacsIsoRecord:Purpose2Choice|()]
+        [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
         purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier);
     string remmitanceInfo2 = getRemmitanceInformation(block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content);
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
         message.block4.MT56D?.PrtyIdn, message.block4.MT57A?.PrtyIdn, (), message.block4.MT57D?.PrtyIdn);
+    [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
+        pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(), pacsIsoRecord:ServiceLevel8Choice[], 
+        pacsIsoRecord:LocalInstrument2Choice|(),
+        pacsIsoRecord:CategoryPurpose1Choice|(), pacsIsoRecord:RemittanceInformation2|(), pacsIsoRecord:Purpose2Choice|()]
+        [undrlygCstmrCdtTrfInstrFrCdtrAgt, undrlygCstmrCdtTrfInstrFrNxtAgt, undrlygCstmrCdtTrfPrvsInstgAgts, 
+            undrlygCstmrCdtTrfIntrmyAgt2, undrlygCstmrCdtTrfServiceLevel, undrlygCstmrCdtTrfLclInstrm, 
+            undrlygCstmrCdtTrfCatPurpose, undrlygCstmrCdtTrfRemmitanceInfo, undrlygCstmrCdtTrfPurpose] = 
+            check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier);
 
     cdtTrfTxInfArray.push({
         Cdtr: getFinancialInstitution(block4.MT58A?.IdnCd?.content, block4.MT58D?.Nm, block4.MT58A?.PrtyIdn,
@@ -301,7 +312,12 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
                 block4.MT56D?.PrtyIdn, (), (), block4.MT56D?.AdrsLine),
         IntrmyAgt1Acct: getCashAccount(block4.MT56A?.PrtyIdn, block4.MT56D?.PrtyIdn),
         IntrmyAgt2: intrmyAgt2,
-        PrvsInstgAgt1: prvsInstgAgt1,
+        PrvsInstgAgt1: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ? 
+            prvsInstgAgts.length() > 0 ? prvsInstgAgts[0] : () : (),
+        PrvsInstgAgt2: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+            prvsInstgAgts.length() > 1 ? prvsInstgAgts[1] : () : (),
+        PrvsInstgAgt3: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+            prvsInstgAgts.length() > 2 ? prvsInstgAgts[2] : () : (),
         InstrForNxtAgt: instrFrNxtAgt,
         InstrForCdtrAgt: instrFrCdtrAgt,
         RmtInf: remmitanceInfo,
@@ -339,7 +355,12 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
             CdtrAcct: getCashAccount2(block4.UndrlygCstmrCdtTrf.MT59?.Acc, block4.UndrlygCstmrCdtTrf.MT59A?.Acc,
                     block4.UndrlygCstmrCdtTrf.MT59F?.Acc),
             IntrmyAgt2: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier))[3],
-            PrvsInstgAgt1: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier))[2],
+            PrvsInstgAgt1: undrlygCstmrCdtTrfPrvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ? 
+                undrlygCstmrCdtTrfPrvsInstgAgts.length() > 0 ? undrlygCstmrCdtTrfPrvsInstgAgts[0] : () : (),
+            PrvsInstgAgt2: undrlygCstmrCdtTrfPrvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+                undrlygCstmrCdtTrfPrvsInstgAgts.length() > 1 ? undrlygCstmrCdtTrfPrvsInstgAgts[1] : () : (),
+            PrvsInstgAgt3: undrlygCstmrCdtTrfPrvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ?
+                undrlygCstmrCdtTrfPrvsInstgAgts.length() > 2 ? undrlygCstmrCdtTrfPrvsInstgAgts[2] : () : (),
             InstrForNxtAgt: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier))[1],
             InstrForCdtrAgt: (check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier))[0],
             RmtInf: remmitanceInfo2 == "" ? () : {
@@ -395,7 +416,7 @@ isolated function transformMT202ToPacs004(swiftmt:MT202Message message) returns 
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.004.001.09",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },

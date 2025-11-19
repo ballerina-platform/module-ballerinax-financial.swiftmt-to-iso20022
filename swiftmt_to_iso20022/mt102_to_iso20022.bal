@@ -46,7 +46,7 @@ isolated function transformMT102STPToPacs008(swiftmt:MT102STPMessage message)
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.008.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -104,10 +104,10 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
     pacsIsoRecord:CreditTransferTransaction64[] cdtTrfTxInfArray = [];
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(block4.MT13C);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
-            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,  pacsIsoRecord:ServiceLevel8Choice[], 
-            pacsIsoRecord:LocalInstrument2Choice?, pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, 
-            instrFrNxtAgt, prvsInstgAgt1, intrmyAgt1,
+            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
+            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(),  pacsIsoRecord:ServiceLevel8Choice[], 
+            pacsIsoRecord:LocalInstrument2Choice|(), pacsIsoRecord:CategoryPurpose1Choice|()] [instrFrCdtrAgt, 
+            instrFrNxtAgt, prvsInstgAgts, intrmyAgt1,
             serviceLevel, lclInstrm, purpose] = check getMT1XXSenderToReceiverInformation(block4.MT72);
     foreach swiftmt:MT102STPTransaction transaxion in block4.Transaction {
         swiftmt:MT26T? trnsTyp = check getMT102STPRepeatingFields(block4, transaxion.MT26T, "26T").ensureType();
@@ -168,7 +168,7 @@ isolated function getMT102STPCreditTransferTransactionInfo(swiftmt:MT102STPBlock
             Dbtr: getDebtorOrCreditor(ordgCstm50A?.IdnCd, ordgCstm50A?.Acc, ordgCstm50K?.Acc, (),
                     ordgCstm50F?.PrtyIdn, ordgCstm50F?.Nm, ordgCstm50K?.Nm, ordgCstm50F?.AdrsLine,
                     ordgCstm50K?.AdrsLine, ordgCstm50F?.CntyNTw, true, rgltyRptg?.Nrtv),
-            PrvsInstgAgt1: prvsInstgAgt1,
+            PrvsInstgAgt1: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ? prvsInstgAgts[0] : (),
             IntrmyAgt1: intrmyAgt1,
             ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver, "CRED" == chargeBearer),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),
@@ -211,7 +211,7 @@ isolated function transformMT102ToPcs008(swiftmt:MT102Message message) returns p
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.008.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -268,10 +268,10 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
     pacsIsoRecord:CreditTransferTransaction64[] cdtTrfTxInfArray = [];
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(block4.MT13C);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
-            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?,
-            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
-            pacsIsoRecord:LocalInstrument2Choice?,
-            pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgt1, intrmyAgt1,
+            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
+            pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(),  pacsIsoRecord:ServiceLevel8Choice[], 
+            pacsIsoRecord:LocalInstrument2Choice|(), pacsIsoRecord:CategoryPurpose1Choice|()] [instrFrCdtrAgt, 
+            instrFrNxtAgt, prvsInstgAgts, intrmyAgt1,
             serviceLevel, lclInstrm, purpose] = check getMT1XXSenderToReceiverInformation(block4.MT72);
     foreach swiftmt:MT102Transaction transaxion in block4.Transaction {
         swiftmt:MT26T? trnsTyp = check getMT102RepeatingFields(block4, transaxion.MT26T, "26T").ensureType();
@@ -335,7 +335,7 @@ isolated function getMT102CreditTransferTransactionInfo(swiftmt:MT102Block4 bloc
             Dbtr: getDebtorOrCreditor(ordgCstm50A?.IdnCd, ordgCstm50A?.Acc, ordgCstm50K?.Acc, (),
                     ordgCstm50F?.PrtyIdn, ordgCstm50F?.Nm, ordgCstm50K?.Nm, ordgCstm50F?.AdrsLine,
                     ordgCstm50K?.AdrsLine, ordgCstm50F?.CntyNTw, true, rgltyRptg?.Nrtv),
-            PrvsInstgAgt1: prvsInstgAgt1,
+            PrvsInstgAgt1: prvsInstgAgts is pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[] ? prvsInstgAgts[0] : (),
             IntrmyAgt1: intrmyAgt1,
             ChrgsInf: check getChargesInformation(transaxion.MT71F, transaxion.MT71G, receiver, "CRED" == chargeBearer),
             RgltryRptg: getRegulatoryReporting(rgltyRptg?.Nrtv?.content),

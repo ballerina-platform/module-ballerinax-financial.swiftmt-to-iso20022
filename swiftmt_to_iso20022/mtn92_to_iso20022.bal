@@ -46,7 +46,7 @@ isolated function transformMTn92ToCamt055(swiftmt:MTn92Message message) returns 
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "camt.055.001.12",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
@@ -137,7 +137,7 @@ isolated function transformMTn92ToCamt056(swiftmt:MTn92Message message) returns 
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "camt.056.001.08",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },

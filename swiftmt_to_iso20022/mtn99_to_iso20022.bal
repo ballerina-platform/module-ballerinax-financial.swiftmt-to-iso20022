@@ -45,7 +45,7 @@ isolated function transformMTn99Pacs002(swiftmt:MTn99Message message) returns pa
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pacs.002.001.10",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },

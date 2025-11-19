@@ -34,7 +34,7 @@
 		</head:To>
 		<head:BizMsgIdr>11FF99RR</head:BizMsgIdr>
 		<head:MsgDefIdr>pain.001.001.09</head:MsgDefIdr>
-		<head:BizSvc>swift.cbprplus.02</head:BizSvc>
+		<head:BizSvc>swift.cbprplus.03</head:BizSvc>
 		<head:CreDt>2022-10-20T08:25:00+00:00</head:CreDt>
 	</head:AppHdr>
 	<pain:Document xmlns:pain="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09">
