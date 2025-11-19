@@ -1,7 +1,7 @@
 [package]
 org = "ballerinax"
 name = "financial.swiftmtToIso20022"
-version = "1.0.7"
+version = "2.0.0"
 distribution = "2201.10.5"
 authors=["Ballerina"]
 keywords=["Financial", "SWIFT MT", "ISO 20022", "Conversion"]
