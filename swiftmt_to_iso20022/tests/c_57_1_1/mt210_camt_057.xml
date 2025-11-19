@@ -35,7 +35,7 @@
         </head:To>
         <head:BizMsgIdr>camt57bizmsgidr1</head:BizMsgIdr>
         <head:MsgDefIdr>camt.057.001.06</head:MsgDefIdr>
-        <head:BizSvc>swift.cbprplus.02</head:BizSvc>
+        <head:BizSvc>swift.cbprplus.03</head:BizSvc>
         <head:CreDt>2020-11-30T08:00:00+00:00</head:CreDt>
     </head:AppHdr>
     <camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.057.001.06">
@@ -69,9 +69,10 @@
                     <camt:Pty>
                         <camt:Nm>ABC Ltd</camt:Nm>
                         <camt:PstlAdr>
-                            <camt:AdrLine>2/10 Broad Street</camt:AdrLine>
-                            <camt:AdrLine>3/GB/London</camt:AdrLine>
-                        </camt:PstlAdr>
+                            <camt:TwnNm>London</camt:TwnNm>
+                            <camt:Ctry>GB</camt:Ctry>
+							<camt:AdrLine>10 Broad Street</camt:AdrLine>
+						</camt:PstlAdr>
                     </camt:Pty>
                 </camt:Dbtr>
                 <camt:DbtrAgt>
