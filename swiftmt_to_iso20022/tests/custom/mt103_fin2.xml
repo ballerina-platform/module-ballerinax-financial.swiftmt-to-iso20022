@@ -1,0 +1,169 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+        <head:Fr>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>PABSLKLXXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:Fr>
+        <head:To>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>HANYUS33XXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:To>
+        <head:BizMsgIdr>925OTT250922015</head:BizMsgIdr>
+        <head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
+        <head:BizSvc>swift.cbprplus.03</head:BizSvc>
+        <head:CreDt>9999-12-31T00:00:00+00:00</head:CreDt>
+    </head:AppHdr>
+    <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
+        <pacs:FIToFICstmrCdtTrf>
+            <pacs:GrpHdr>
+                <pacs:MsgId>925OTT250922015</pacs:MsgId>
+                <pacs:CreDtTm>9999-12-31T00:00:00+00:00</pacs:CreDtTm>
+                <pacs:NbOfTxs>1</pacs:NbOfTxs>
+                <pacs:SttlmInf>
+                    <pacs:SttlmMtd>INDA</pacs:SttlmMtd>
+                </pacs:SttlmInf>
+            </pacs:GrpHdr>
+            <pacs:CdtTrfTxInf>
+                <pacs:PmtId>
+                    <pacs:InstrId>925OTT250922015</pacs:InstrId>
+                    <pacs:EndToEndId>NOTPROVIDED</pacs:EndToEndId>
+                    <pacs:UETR>09797101-a670-4e81-98ed-34b409736305</pacs:UETR>
+                </pacs:PmtId>
+                <pacs:IntrBkSttlmAmt Ccy="USD">700</pacs:IntrBkSttlmAmt>
+                <pacs:IntrBkSttlmDt>2025-09-22</pacs:IntrBkSttlmDt>
+                <pacs:InstdAmt Ccy="USD">700</pacs:InstdAmt>
+                <pacs:ChrgBr>DEBT</pacs:ChrgBr>
+                <pacs:PrvsInstgAgt1>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>FUL PAY</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt1>
+                <pacs:PrvsInstgAgt2>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>CHGS</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt2>
+                <pacs:PrvsInstgAgt3>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>PAY</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt3>
+                <pacs:InstgAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstgAgt>
+                <pacs:InstdAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>HANYUS33XXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstdAgt>
+                <pacs:IntrmyAgt1>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>CITIUS33XXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:IntrmyAgt1>
+                <pacs:IntrmyAgt1Acct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>123456</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:IntrmyAgt1Acct>
+                <pacs:Dbtr>
+                    <pacs:Nm>OPTIMA TECHNOLOGIES (PVT) LTD</pacs:Nm>
+                    <pacs:PstlAdr>
+                        <pacs:AdrLine>NO 740 COTTA ROAD</pacs:AdrLine>
+                        <pacs:AdrLine>SRI LANKA</pacs:AdrLine>
+                    </pacs:PstlAdr>
+                </pacs:Dbtr>
+                <pacs:DbtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>100611002421</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAcct>
+                <pacs:DbtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:DbtrAgt>
+                <pacs:DbtrAgtAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>KOL BRANCH</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAgtAcct>
+                <pacs:CdtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>COMMERCIAL BANK</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>GALLE RD COLOMBO 03</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:CdtrAgt>
+                <pacs:CdtrAgtAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>KOL BRANCH</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:CdtrAgtAcct>
+                <pacs:Cdtr>
+                    <pacs:Nm>LNM</pacs:Nm>
+                    <pacs:PstlAdr>
+                        <pacs:AdrLine>NO450</pacs:AdrLine>
+                        <pacs:AdrLine>GALLE RD COLOMBO 03 SL</pacs:AdrLine>
+                        <pacs:AdrLine>123456</pacs:AdrLine>
+                    </pacs:PstlAdr>
+                </pacs:Cdtr>
+                <pacs:CdtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>LK123456</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:CdtrAcct>
+                <pacs:RmtInf>
+                    <pacs:Ustrd>TEST 123 456 789</pacs:Ustrd>
+                </pacs:RmtInf>
+            </pacs:CdtTrfTxInf>
+        </pacs:FIToFICstmrCdtTrf>
+    </pacs:Document>
+</Envelope>

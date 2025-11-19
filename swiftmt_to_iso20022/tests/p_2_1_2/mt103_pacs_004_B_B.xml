@@ -108,9 +108,10 @@
                         <pacs:Pty>
                             <pacs:Nm>GB Engineering </pacs:Nm>
                             <pacs:PstlAdr>
-                                <pacs:AdrLine>2/Industrial Park</pacs:AdrLine>
-                                <pacs:AdrLine>3/GB/Cambridge</pacs:AdrLine>
-                            </pacs:PstlAdr>
+							    <pacs:TwnNm>Cambridge</pacs:TwnNm>
+							    <pacs:Ctry>GB</pacs:Ctry>
+								<pacs:AdrLine>Industrial Park</pacs:AdrLine>
+							</pacs:PstlAdr>
                             <pacs:Id>
                                 <pacs:OrgId>
                                     <pacs:Othr>

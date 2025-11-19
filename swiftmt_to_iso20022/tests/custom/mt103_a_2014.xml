@@ -22,27 +22,27 @@
         <head:Fr>
             <head:FIId>
                 <head:FinInstnId>
-                    <head:BICFI>WPACAU2SXXX</head:BICFI>
+                    <head:BICFI>PABSLKLXXXX</head:BICFI>
                 </head:FinInstnId>
             </head:FIId>
         </head:Fr>
         <head:To>
             <head:FIId>
                 <head:FinInstnId>
-                    <head:BICFI>DBSSSGSGXXX</head:BICFI>
+                    <head:BICFI>MHCBJPJTXXX</head:BICFI>
                 </head:FinInstnId>
             </head:FIId>
         </head:To>
-        <head:BizMsgIdr>pacs8bizmsgidr01</head:BizMsgIdr>
+        <head:BizMsgIdr>990OTT250922014</head:BizMsgIdr>
         <head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
         <head:BizSvc>swift.cbprplus.03</head:BizSvc>
-        <head:CreDt>2020-08-05T09:05:00+00:00</head:CreDt>
+        <head:CreDt>9999-12-31T00:00:00+00:00</head:CreDt>
     </head:AppHdr>
     <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
         <pacs:FIToFICstmrCdtTrf>
             <pacs:GrpHdr>
-                <pacs:MsgId>pacs8bizmsgidr01</pacs:MsgId>
-                <pacs:CreDtTm>2020-08-05T09:05:00+00:00</pacs:CreDtTm>
+                <pacs:MsgId>990OTT250922014</pacs:MsgId>
+                <pacs:CreDtTm>9999-12-31T00:00:00+00:00</pacs:CreDtTm>
                 <pacs:NbOfTxs>1</pacs:NbOfTxs>
                 <pacs:SttlmInf>
                     <pacs:SttlmMtd>INDA</pacs:SttlmMtd>
@@ -50,70 +50,80 @@
             </pacs:GrpHdr>
             <pacs:CdtTrfTxInf>
                 <pacs:PmtId>
-                    <pacs:InstrId>pacs8bizmsgidr01</pacs:InstrId>
-                    <pacs:EndToEndId>E2E04044506271305</pacs:EndToEndId>
-                    <pacs:UETR>174c245f-2682-4291-ad67-2a41e530cd27</pacs:UETR>
+                    <pacs:InstrId>990OTT250922014</pacs:InstrId>
+                    <pacs:EndToEndId>NOTPROVIDED</pacs:EndToEndId>
+                    <pacs:UETR>09797101-a670-4e81-98ed-34b409736402</pacs:UETR>
                 </pacs:PmtId>
-                <pacs:IntrBkSttlmAmt Ccy="SGD">500000</pacs:IntrBkSttlmAmt>
-                <pacs:IntrBkSttlmDt>2020-08-05</pacs:IntrBkSttlmDt>
-                <pacs:ChrgBr>DEBT</pacs:ChrgBr>
+                <pacs:IntrBkSttlmAmt Ccy="JPY">100</pacs:IntrBkSttlmAmt>
+                <pacs:IntrBkSttlmDt>2025-09-22</pacs:IntrBkSttlmDt>
+                <pacs:InstdAmt Ccy="JPY">100</pacs:InstdAmt>
+                <pacs:ChrgBr>CRED</pacs:ChrgBr>
+                <pacs:PrvsInstgAgt1>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>JKKILKOKSIKF</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt1>
                 <pacs:InstgAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>WPACAU2SXXX</pacs:BICFI>
+                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:InstgAgt>
                 <pacs:InstdAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>DBSSSGSGXXX</pacs:BICFI>
+                        <pacs:BICFI>MHCBJPJTXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:InstdAgt>
-                <pacs:IntrmyAgt1>
-                    <pacs:FinInstnId>
-                        <pacs:BICFI>DBSSSGSG</pacs:BICFI>
-                    </pacs:FinInstnId>
-                </pacs:IntrmyAgt1>
                 <pacs:Dbtr>
-                    <pacs:Nm>Australian Submarine</pacs:Nm>
+                    <pacs:Nm>UNITED ENGINEERING SERVICES (PVT) L</pacs:Nm>
                     <pacs:PstlAdr>
-                        <pacs:TwnNm>Adelaide</pacs:TwnNm>
-                        <pacs:Ctry>AU</pacs:Ctry>
-                        <pacs:AdrLine>694 Mersey Rd</pacs:AdrLine>
-					</pacs:PstlAdr>
+                        <pacs:AdrLine>NO 852-60</pacs:AdrLine>
+                        <pacs:AdrLine>SUSITHA PURA</pacs:AdrLine>
+                        <pacs:AdrLine>SRI LANKA</pacs:AdrLine>
+                    </pacs:PstlAdr>
                 </pacs:Dbtr>
                 <pacs:DbtrAcct>
                     <pacs:Id>
                         <pacs:Othr>
-                            <pacs:Id>458756241</pacs:Id>
+                            <pacs:Id>100811000148</pacs:Id>
                         </pacs:Othr>
                     </pacs:Id>
                 </pacs:DbtrAcct>
                 <pacs:DbtrAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>WPACAU2S</pacs:BICFI>
+                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:DbtrAgt>
+                <pacs:DbtrAgtAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>CGC BRANHC</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAgtAcct>
                 <pacs:CdtrAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>UOVBSGSG</pacs:BICFI>
+                        <pacs:BICFI>ICBKCNBJZJP</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:CdtrAgt>
                 <pacs:Cdtr>
-                    <pacs:Nm>Agoda Company</pacs:Nm>
+                    <pacs:Nm>ZHEJIANG LANXI SHANYE</pacs:Nm>
                     <pacs:PstlAdr>
-					    <pacs:TwnNm>Singapore</pacs:TwnNm>
-					    <pacs:Ctry>SG</pacs:Ctry>
-						<pacs:AdrLine>30 Cecil Street</pacs:AdrLine>
-					</pacs:PstlAdr>
+                        <pacs:AdrLine>MACHINERY CO LTD</pacs:AdrLine>
+                        <pacs:AdrLine>MACHINERY CO LTD</pacs:AdrLine>
+                    </pacs:PstlAdr>
                 </pacs:Cdtr>
                 <pacs:CdtrAcct>
                     <pacs:Id>
                         <pacs:Othr>
-                            <pacs:Id>985412687</pacs:Id>
+                            <pacs:Id>2563529</pacs:Id>
                         </pacs:Othr>
                     </pacs:Id>
                 </pacs:CdtrAcct>
                 <pacs:RmtInf>
-                    <pacs:Ustrd>/ROC/E2E04044506271305</pacs:Ustrd>
+                    <pacs:Ustrd>IMPORT OF GOOD INV NO : 1526395 INV DATE : 10.10.2025 LKMIOP</pacs:Ustrd>
                 </pacs:RmtInf>
             </pacs:CdtTrfTxInf>
         </pacs:FIToFICstmrCdtTrf>

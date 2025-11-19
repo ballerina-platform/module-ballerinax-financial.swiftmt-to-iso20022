@@ -76,9 +76,10 @@
                 <pacs:Dbtr>
                     <pacs:Nm>GB Engineering </pacs:Nm>
                     <pacs:PstlAdr>
-                        <pacs:AdrLine>2/Industrial Park</pacs:AdrLine>
-                        <pacs:AdrLine>3/GB/Cambridge</pacs:AdrLine>
-                    </pacs:PstlAdr>
+					    <pacs:TwnNm>Cambridge</pacs:TwnNm>
+					    <pacs:Ctry>GB</pacs:Ctry>
+						<pacs:AdrLine>Industrial Park</pacs:AdrLine>
+					</pacs:PstlAdr>
                 </pacs:Dbtr>
                 <pacs:DbtrAcct>
                     <pacs:Id>
@@ -100,9 +101,10 @@
                 <pacs:Cdtr>
                     <pacs:Nm>US Engines</pacs:Nm>
                     <pacs:PstlAdr>
-                        <pacs:AdrLine>2/20 Main St</pacs:AdrLine>
-                        <pacs:AdrLine>3/US/Casper WY</pacs:AdrLine>
-                    </pacs:PstlAdr>
+					    <pacs:TwnNm>Casper WY</pacs:TwnNm>
+					    <pacs:Ctry>US</pacs:Ctry>
+						<pacs:AdrLine>20 Main St</pacs:AdrLine>
+					</pacs:PstlAdr>
                 </pacs:Cdtr>
                 <pacs:CdtrAcct>
                     <pacs:Id>
