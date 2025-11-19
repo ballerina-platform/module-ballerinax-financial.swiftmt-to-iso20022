@@ -69,7 +69,7 @@
 						<pacs:Cd>0090</pacs:Cd>
 					</pacs:LclInstrm>
 					<pacs:CtgyPurp>
-						<pacs:Prtry>INTC CORT</pacs:Prtry>
+						<pacs:Prtry>CORT INTC</pacs:Prtry>
 					</pacs:CtgyPurp>
 				</pacs:PmtTpInf>
 				<pacs:IntrBkSttlmAmt
