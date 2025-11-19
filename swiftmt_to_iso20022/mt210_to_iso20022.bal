@@ -33,7 +33,7 @@ isolated function transformMT210ToCamt057(swiftmt:MT210Message message) returns 
             To: {FIId: {FinInstnId: {BICFI: receiver}}},
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "camt.057.001.06",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },

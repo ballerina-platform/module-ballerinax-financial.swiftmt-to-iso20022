@@ -169,7 +169,7 @@ isolated function transformMT205COVToPacs009(swiftmt:MT205COVMessage message)
         },
         BizMsgIdr: message.block4.MT20.msgId.content,
         MsgDefIdr: "pacs.009.001.08",
-        BizSvc: "swift.cbprplus.cov.02",
+        BizSvc: "swift.cbprplus.cov.03",
         CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                 true).ensureType(string)
     },

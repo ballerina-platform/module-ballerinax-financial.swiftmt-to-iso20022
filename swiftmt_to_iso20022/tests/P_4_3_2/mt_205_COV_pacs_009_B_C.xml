@@ -35,7 +35,7 @@
         </head:To>
         <head:BizMsgIdr>pacs9bizmsgidr02</head:BizMsgIdr>
         <head:MsgDefIdr>pacs.009.001.08</head:MsgDefIdr>
-        <head:BizSvc>swift.cbprplus.cov.02</head:BizSvc>
+        <head:BizSvc>swift.cbprplus.cov.03</head:BizSvc>
         <head:CreDt>2099-12-31T00:00:00+00:00</head:CreDt>
     </head:AppHdr>
     <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.009.001.08">

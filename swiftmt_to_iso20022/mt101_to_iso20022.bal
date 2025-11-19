@@ -45,7 +45,7 @@ isolated function transformMT101ToPain001(swiftmt:MT101Message message) returns 
             },
             BizMsgIdr: message.block4.MT20.msgId.content,
             MsgDefIdr: "pain.001.001.09",
-            BizSvc: "swift.cbprplus.02",
+            BizSvc: "swift.cbprplus.03",
             CreDt: check convertToISOStandardDateTime(message.block2.MIRDate, message.block2.senderInputTime,
                     true).ensureType(string)
         },
