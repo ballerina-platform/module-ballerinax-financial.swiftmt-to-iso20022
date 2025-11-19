@@ -68,9 +68,10 @@
           <camt:Pty>
             <camt:Nm>NT Asset Management</camt:Nm>
             <camt:PstlAdr>
-              <camt:AdrLine>2/50 Bank Street</camt:AdrLine>
-              <camt:AdrLine>3/GB/London</camt:AdrLine>
-            </camt:PstlAdr>
+              <camt:TwnNm>London</camt:TwnNm>
+              <camt:Ctry>GB</camt:Ctry>
+							<camt:AdrLine>50 Bank Street</camt:AdrLine>
+						</camt:PstlAdr>
           </camt:Pty>
         </camt:Dbtr>
         <camt:DbtrAgt>

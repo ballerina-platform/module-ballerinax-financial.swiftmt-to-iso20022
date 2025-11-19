@@ -79,12 +79,13 @@
                     </pacs:FinInstnId>
                 </pacs:InstdAgt>
                 <pacs:Dbtr>
-                    <pacs:Nm>A Debiter</pacs:Nm>
-                    <pacs:PstlAdr>
-                        <pacs:AdrLine>2/High Street</pacs:AdrLine>
-                        <pacs:AdrLine>3/GB/Epping</pacs:AdrLine>
-                    </pacs:PstlAdr>
-                </pacs:Dbtr>
+					<pacs:Nm>A Debiter</pacs:Nm>
+					<pacs:PstlAdr>
+                        <pacs:TwnNm>Epping</pacs:TwnNm>
+                        <pacs:Ctry>GB</pacs:Ctry>
+						<pacs:AdrLine>High Street</pacs:AdrLine>
+					</pacs:PstlAdr>
+				</pacs:Dbtr>
                 <pacs:DbtrAcct>
                     <pacs:Id>
                         <pacs:Othr>
@@ -105,9 +106,10 @@
                 <pacs:Cdtr>
                     <pacs:Nm>B Creditor Co</pacs:Nm>
                     <pacs:PstlAdr>
-                        <pacs:AdrLine>2/Las Ramblas</pacs:AdrLine>
-                        <pacs:AdrLine>3/ES/Barcelona</pacs:AdrLine>
-                    </pacs:PstlAdr>
+                        <pacs:TwnNm>Barcelona</pacs:TwnNm>
+                        <pacs:Ctry>ES</pacs:Ctry>
+						<pacs:AdrLine>Las Ramblas</pacs:AdrLine>
+					</pacs:PstlAdr>
                 </pacs:Cdtr>
                 <pacs:CdtrAcct>
                     <pacs:Id>

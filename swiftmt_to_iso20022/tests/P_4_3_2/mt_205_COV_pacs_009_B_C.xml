@@ -104,9 +104,10 @@
                     <pacs:Dbtr>
                         <pacs:Nm>A Investor</pacs:Nm>
                         <pacs:PstlAdr>
-                            <pacs:AdrLine>2/Long Street</pacs:AdrLine>
-                            <pacs:AdrLine>3/GB/Glasgow</pacs:AdrLine>
-                        </pacs:PstlAdr>
+                            <pacs:TwnNm>Glasgow</pacs:TwnNm>
+                            <pacs:Ctry>GB</pacs:Ctry>
+						    <pacs:AdrLine>Long Street</pacs:AdrLine>
+					</pacs:PstlAdr>
                     </pacs:Dbtr>
                     <pacs:DbtrAcct>
                         <pacs:Id>
@@ -128,9 +129,10 @@
                     <pacs:Cdtr>
                         <pacs:Nm>Spanish Investor</pacs:Nm>
                         <pacs:PstlAdr>
-                            <pacs:AdrLine>2/Las Ramblas</pacs:AdrLine>
-                            <pacs:AdrLine>3/ES/Barcelona</pacs:AdrLine>
-                        </pacs:PstlAdr>
+                            <pacs:TwnNm>Barcelona</pacs:TwnNm>
+                            <pacs:Ctry>ES</pacs:Ctry>
+                            <pacs:AdrLine>Las Ramblas</pacs:AdrLine>
+					</pacs:PstlAdr>
                     </pacs:Cdtr>
                     <pacs:CdtrAcct>
                         <pacs:Id>
