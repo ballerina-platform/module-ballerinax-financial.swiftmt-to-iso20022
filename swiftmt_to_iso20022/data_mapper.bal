@@ -17,8 +17,6 @@
 import ballerina/data.xmldata;
 import ballerinax/financial.swift.mt as swiftmt;
 
-configurable boolean isAddPrefix = true;
-
 # Converts a SWIFT message in string format to its corresponding ISO 20022 XML format.
 #
 # The function uses a map of transformation functions corresponding to different SWIFT MT message types 
