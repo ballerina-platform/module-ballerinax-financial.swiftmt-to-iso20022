@@ -36,13 +36,13 @@
         <head:BizMsgIdr>990OTT250922014</head:BizMsgIdr>
         <head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
         <head:BizSvc>swift.cbprplus.03</head:BizSvc>
-        <head:CreDt>9999-12-31T00:00:00+00:00</head:CreDt>
+        <head:CreDt>CURRENT_TIME</head:CreDt>
     </head:AppHdr>
     <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
         <pacs:FIToFICstmrCdtTrf>
             <pacs:GrpHdr>
                 <pacs:MsgId>990OTT250922014</pacs:MsgId>
-                <pacs:CreDtTm>9999-12-31T00:00:00+00:00</pacs:CreDtTm>
+                <pacs:CreDtTm>CURRENT_TIME</pacs:CreDtTm>
                 <pacs:NbOfTxs>1</pacs:NbOfTxs>
                 <pacs:SttlmInf>
                     <pacs:SttlmMtd>INDA</pacs:SttlmMtd>
