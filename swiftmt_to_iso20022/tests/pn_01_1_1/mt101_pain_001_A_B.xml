@@ -60,7 +60,7 @@
 				<pain:Dbtr>
 					<pain:Nm>FINPETROL INC.</pain:Nm>
 					<pain:PstlAdr>
-						<pain:StrtNm>ANDRELAE SPINKATU 7</pain:StrtNm>
+						<pain:AdrLine>ANDRELAE SPINKATU 7</pain:AdrLine>
 						<pain:TwnNm>HELSINKI</pain:TwnNm>
 						<pain:Ctry>FI</pain:Ctry>
 					</pain:PstlAdr>
@@ -110,7 +110,7 @@
 					<pain:Cdtr>
 						<pain:Nm>SOFTEASE PC GRAPHICS</pain:Nm>
 						<pain:PstlAdr>
-							<pain:StrtNm>34 BRENTWOOD ROAD</pain:StrtNm>
+							<pain:AdrLine>34 BRENTWOOD ROAD</pain:AdrLine>
 							<pain:TwnNm>SEAFORD, NEW YORK, 11246</pain:TwnNm>
 							<pain:Ctry>US</pain:Ctry>
 						</pain:PstlAdr>

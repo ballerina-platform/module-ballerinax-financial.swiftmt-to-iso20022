@@ -187,7 +187,7 @@ final readonly & map<isolated function> transformFunctionMap =
     "996": transformMTn96ToCamt029
 };
 
-const COUNTRY_CODES = [
+final isolated string[] COUNTRY_CODES = [
     "AD",
     "AE",
     "AF",

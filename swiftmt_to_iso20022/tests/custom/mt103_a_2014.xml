@@ -16,7 +16,8 @@
   ~ under the License.
   -->
 
-<!--?xml version="1.0" encoding="UTF-8"?-->
+<!--?xml
+version="1.0" encoding="UTF-8"?-->
 <Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
         <head:Fr>
@@ -58,6 +59,17 @@
                 <pacs:IntrBkSttlmDt>2025-09-22</pacs:IntrBkSttlmDt>
                 <pacs:InstdAmt Ccy="JPY">100</pacs:InstdAmt>
                 <pacs:ChrgBr>CRED</pacs:ChrgBr>
+                <pacs:ChrgsInf>
+                    <pacs:Amt Ccy="USD">0</pacs:Amt>
+                    <pacs:Agt>
+                        <pacs:FinInstnId>
+                            <pacs:Nm>NOTPROVIDED</pacs:Nm>
+                            <pacs:PstlAdr>
+                                <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                            </pacs:PstlAdr>
+                        </pacs:FinInstnId>
+                    </pacs:Agt>
+                </pacs:ChrgsInf>
                 <pacs:PrvsInstgAgt1>
                     <pacs:FinInstnId>
                         <pacs:Nm>JKKILKOKSIKF</pacs:Nm>

@@ -629,6 +629,11 @@ isolated function getPartyIdentifierOrAccount2(swiftmt:PrtyIdn? prtyIdn1, swiftm
         return [(), ...validateAccountNumber(prtyIdn = prtyIdn3)];
     }
 
+    if prtyIdn4 is swiftmt:PrtyIdn && isValidAccountNumber(prtyIdn4.content) {
+        log:printDebug("prtyIdn4 is valid account number: " + prtyIdn4.content);
+        return [(), ...validateAccountNumber(prtyIdn = prtyIdn4)];
+    }
+
     log:printDebug("No valid party identifier or account number found, returning empty tuple");
     return [];
 }
@@ -824,18 +829,20 @@ isolated function getFirstValidAccount(
 isolated function validateIBAN(string account) returns [string?, string?] {
     log:printDebug("Starting validateIBAN with account: " + account);
 
-    foreach string country in COUNTRY_CODES {
-        if !account.substring(0, COUNTRY_CODE_LENGTH).equalsIgnoreCaseAscii(country) {
-            continue;
-        }
+    lock {
+        foreach string country in COUNTRY_CODES {
+            if !account.substring(0, COUNTRY_CODE_LENGTH).equalsIgnoreCaseAscii(country) {
+                continue;
+            }
 
-        log:printDebug("Found matching country code: " + country);
-        string|error result = processIBANValidation(account);
-        if result is string {
-            log:printDebug("IBAN validation successful");
-            return [account, ()];
+            log:printDebug("Found matching country code: " + country);
+            string|error result = processIBANValidation(account);
+            if result is string {
+                log:printDebug("IBAN validation successful");
+                return [account, ()];
+            }
+            log:printDebug("IBAN validation failed: " + result.message());
         }
-        log:printDebug("IBAN validation failed: " + result.message());
     }
 
     log:printDebug("No country code match or IBAN validation failed, returning as non-IBAN account");
@@ -3582,8 +3589,15 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
                 ", field59F: " + field59F.toString() +
                 ", regulatoryReport: " + regulatoryReport.toString());
 
+    [string[], string?, string?][adrsLine, townName, cntry] = [];
+
     if field59?.Acc?.content == "/NOTPROVIDED" {
         log:printDebug("Account is '/NOTPROVIDED', returning Agent information");
+        boolean isHybrid = isHybridAddress(getAddressLine(field59?.AdrsLine));
+        if isHybrid {
+            log:printDebug("Detected hybrid address format, adjusting address lines accordingly");
+            [adrsLine, townName, cntry] = getTownNameCountyFromAddressLines(adrsLine);
+        }
         pacsIsoRecord:Party50Choice result = {
             Agt: {
                 FinInstnId: {
@@ -3593,12 +3607,17 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
                             Cd: getName(field59?.Nm)
                         }
                     },
-                    PstlAdr: {
-                        AdrLine: getAddressLine(field59?.AdrsLine)
+                    PstlAdr: 
+                         isHybrid ? {
+                            AdrLine: adrsLine,
+                            TwnNm: townName,
+                            Ctry: cntry
+                        } : {
+                            AdrLine: getAddressLine(field59?.AdrsLine)
+                        }
                     }
                 }
-            }
-        };
+            };
         log:printDebug("Returning creditor as Agent: " + result.toString());
         return result;
     }
@@ -3607,6 +3626,11 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
     string? name = getName(field59F?.Nm, field59?.Nm);
     string[]? addressLine = getAddressLineForDbtrOrCdtr(field59F?.AdrsLine, field59?.AdrsLine, field59F?.CntyNTw);
     string? ctryOfRes = getCountryOfResidence(regulatoryReport, false);
+    boolean isHybrid = isHybridAddress(addressLine);
+    if isHybrid {
+        log:printDebug("Detected hybrid address format, adjusting address lines accordingly");
+        [adrsLine, townName, cntry] = getTownNameCountyFromAddressLines(addressLine);
+    }
 
     pacsIsoRecord:Party50Choice result = {
         Pty: {
@@ -3618,8 +3642,13 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
             },
             Nm: name,
             CtryOfRes: ctryOfRes,
-            PstlAdr: {
-                AdrLine: addressLine
+            PstlAdr: 
+                isHybrid ? {
+                AdrLine: adrsLine,
+                TwnNm: townName,
+                Ctry: cntry
+            } : {
+                AdrLine: getAddressLine(field59?.AdrsLine)
             }
         }
     };
@@ -4084,6 +4113,12 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
     string? ctryOfRes = getCountryOfResidence(narrative?.content, isDebtor);
     log:printDebug("Retrieved country of residence: " + ctryOfRes.toString());
 
+    boolean isHybrid = isHybridAddress(adrsLine);
+    if isHybrid {
+        log:printDebug("Detected hybrid address format, adjusting address lines accordingly");
+        [adrsLine, townName, cntry] = getTownNameCountyFromAddressLines(adrsLine);
+    }
+
     pacsIsoRecord:PartyIdentification272 result = {
         Id: identifierCode?.content is () && otherId is () && partyIdentifier is () ? () : {
                 OrgId: identifierCode?.content is () && otherId is () ? () : {
@@ -4104,8 +4139,8 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
             },
         CtryOfRes: ctryOfRes,
         Nm: nameStr,
-        PstlAdr: adrsLine is () ? () : isMt101 ? {
-                StrtNm: streetName,
+        PstlAdr: adrsLine is () ? () : isMt101 || isHybrid ? {
+                AdrLine: adrsLine,
                 TwnNm: townName,
                 Ctry: cntry
             } : {
@@ -4582,4 +4617,63 @@ isolated function isValidBic(string? bic) returns boolean {
     }
     log:printDebug("Starting isValidBic with bic: " + bic);
     return bic.matches(re `^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$`);
+}
+
+# Checks if any line in the provided address lines indicates a hybrid address format.
+# + addressLines - An array of address lines to check.
+# + return - Returns true if a hybrid address line is found, false otherwise.
+isolated function isHybridAddress(string[]? addressLines) returns boolean {
+
+    if addressLines is () {
+        log:printDebug("No address lines provided, returning false");
+        return false;
+    }
+    foreach string line in addressLines {
+        if line.startsWith("3/") && line.length() > 4 {
+            
+            lock {
+                if COUNTRY_CODES.some(n => n == line.substring(2,4)) {
+                    log:printDebug("Found hybrid address line: " + line);
+                    return true;
+                }
+            }
+        }
+    }
+
+    log:printDebug("No hybrid address lines found");
+    return false;
+}
+
+isolated function getTownNameCountyFromAddressLines(string[]? addressLines) returns [string[], string?, string?] {
+
+    if addressLines is () {
+        log:printDebug("No address lines provided, returning null values");
+        return [];
+    }
+
+    string? townName = ();
+    string? country = ();
+    string[] addressLine = [];
+
+    foreach string line in addressLines {
+        log:printDebug("Processing address line: " + line);
+
+        if line.startsWith("2/") {
+            addressLine.push(line.substring(2));
+            log:printDebug("Extracted address line: " + addressLine.toString());
+        }
+
+        if line.startsWith("3/") && line.length() > 2 {
+            country = line.substring(2,4);
+            log:printDebug("Extracted country code: " + country.toString());
+        }
+        if line.startsWith("3/") && line.length() > 4 {
+            townName = line.substring(5);
+            log:printDebug("Extracted town name: " + townName.toString());
+        }
+        
+    }
+
+    log:printDebug("Returning townName: " + townName.toString() + ", country: " + country.toString());
+    return [addressLine, townName, country];
 }
