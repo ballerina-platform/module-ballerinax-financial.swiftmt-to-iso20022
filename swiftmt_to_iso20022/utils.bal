@@ -1414,7 +1414,7 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
                 ", sndRcvInfo: " + sndRcvInfo.toString());
 
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
-            pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose] = [];
+            pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, _, finalPurpose] = [];
 
     log:printDebug("Getting instruction codes from MT103InstructionCode");
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
@@ -1471,7 +1471,7 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
     }
     if instnCd is swiftmt:MT23E[] {
         foreach swiftmt:MT23E code in instnCd {
-            if code.InstrnCd.content is string && code.InstrnCd.content == "SDVA" {
+            if code.InstrnCd.content == "SDVA" {
                 pacsIsoRecord:ServiceLevel8Choice svclvl = {
                     Cd: code.InstrnCd.content
                 };
