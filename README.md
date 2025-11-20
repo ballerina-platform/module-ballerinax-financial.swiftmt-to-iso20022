@@ -50,7 +50,7 @@ Add the following configuration settings to the `Config.Toml` file:
 
 ```ballerina
 [ballerinax.financial.swiftmtToIso20022]
-additionalSenderToReceiverInfoCodes = []
+isAddPrefix = false
 ```
 #### Supporting additional Sender to Receiver Information Codes
 The library allows users to specify additional Sender to Receiver Information Codes that may not be included in the 
