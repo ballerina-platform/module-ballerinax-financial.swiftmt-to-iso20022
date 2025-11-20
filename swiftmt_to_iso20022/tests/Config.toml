@@ -1,0 +1,2 @@
+# Config related to test: custom_fin3
+additionalSenderToReceiverInfoCodes = ["REC"]

@@ -50,7 +50,17 @@ Add the following configuration settings to the `Config.Toml` file:
 
 ```ballerina
 [ballerinax.financial.swiftmtToIso20022]
-isAddPrefix = false
+additionalSenderToReceiverInfoCodes = []
+```
+#### Supporting additional Sender to Receiver Information Codes
+The library allows users to specify additional Sender to Receiver Information Codes that may not be included in the 
+default mapping as  mentioned in 
+[SWIFT MT Message Reference Guide](https://www2.swift.com/knowledgecentre/publications/us1m_20250718/2.0?topic=con_sfld_urKfazOPEe-xOcuh4UlrlA_953496319fld.htm). 
+You can add the custom supported codes using the `Config.Toml` file:
+
+```ballerina
+[ballerinax.financial.swiftmtToIso20022]
+additionalSenderToReceiverInfoCodes = []
 ```
 #### Supporting additional Sender to Receiver Information Codes
 The library allows users to specify additional Sender to Receiver Information Codes that may not be included in the 
