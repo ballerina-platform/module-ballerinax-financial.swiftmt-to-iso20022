@@ -3589,8 +3589,15 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
                 ", field59F: " + field59F.toString() +
                 ", regulatoryReport: " + regulatoryReport.toString());
 
+    [string[], string?, string?][adrsLine, townName, cntry] = [];
+
     if field59?.Acc?.content == "/NOTPROVIDED" {
         log:printDebug("Account is '/NOTPROVIDED', returning Agent information");
+        boolean isHybrid = isHybridAddress(getAddressLine(field59?.AdrsLine));
+        if isHybrid {
+            log:printDebug("Detected hybrid address format, adjusting address lines accordingly");
+            [adrsLine, townName, cntry] = getTownNameCountyFromAddressLines(adrsLine);
+        }
         pacsIsoRecord:Party50Choice result = {
             Agt: {
                 FinInstnId: {
@@ -3600,12 +3607,17 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
                             Cd: getName(field59?.Nm)
                         }
                     },
-                    PstlAdr: {
-                        AdrLine: getAddressLine(field59?.AdrsLine)
+                    PstlAdr: 
+                         isHybrid ? {
+                            AdrLine: adrsLine,
+                            TwnNm: townName,
+                            Ctry: cntry
+                        } : {
+                            AdrLine: getAddressLine(field59?.AdrsLine)
+                        }
                     }
                 }
-            }
-        };
+            };
         log:printDebug("Returning creditor as Agent: " + result.toString());
         return result;
     }
@@ -3614,6 +3626,11 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
     string? name = getName(field59F?.Nm, field59?.Nm);
     string[]? addressLine = getAddressLineForDbtrOrCdtr(field59F?.AdrsLine, field59?.AdrsLine, field59F?.CntyNTw);
     string? ctryOfRes = getCountryOfResidence(regulatoryReport, false);
+    boolean isHybrid = isHybridAddress(addressLine);
+    if isHybrid {
+        log:printDebug("Detected hybrid address format, adjusting address lines accordingly");
+        [adrsLine, townName, cntry] = getTownNameCountyFromAddressLines(addressLine);
+    }
 
     pacsIsoRecord:Party50Choice result = {
         Pty: {
@@ -3625,8 +3642,13 @@ isolated function getCreditorForPacs004(swiftmt:MT59? field59, swiftmt:MT59A? fi
             },
             Nm: name,
             CtryOfRes: ctryOfRes,
-            PstlAdr: {
-                AdrLine: addressLine
+            PstlAdr: 
+                isHybrid ? {
+                AdrLine: adrsLine,
+                TwnNm: townName,
+                Ctry: cntry
+            } : {
+                AdrLine: getAddressLine(field59?.AdrsLine)
             }
         }
     };
