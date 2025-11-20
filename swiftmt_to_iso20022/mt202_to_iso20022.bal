@@ -250,7 +250,7 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(), pacsIsoRecord:ServiceLevel8Choice[], 
         pacsIsoRecord:LocalInstrument2Choice|(),
         pacsIsoRecord:CategoryPurpose1Choice|(), pacsIsoRecord:RemittanceInformation2|(), pacsIsoRecord:Purpose2Choice|()]
-        [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
+        [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, _, remmitanceInfo,
         purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier);
     string remmitanceInfo2 = getRemmitanceInformation(block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content);
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
@@ -258,11 +258,9 @@ isolated function getMT202COVCreditTransfer(swiftmt:MT202COVMessage message, swi
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(), pacsIsoRecord:ServiceLevel8Choice[], 
-        pacsIsoRecord:LocalInstrument2Choice|(),
-        pacsIsoRecord:CategoryPurpose1Choice|(), pacsIsoRecord:RemittanceInformation2|(), pacsIsoRecord:Purpose2Choice|()]
-        [undrlygCstmrCdtTrfInstrFrCdtrAgt, undrlygCstmrCdtTrfInstrFrNxtAgt, undrlygCstmrCdtTrfPrvsInstgAgts, 
-            undrlygCstmrCdtTrfIntrmyAgt2, undrlygCstmrCdtTrfServiceLevel, undrlygCstmrCdtTrfLclInstrm, 
-            undrlygCstmrCdtTrfCatPurpose, undrlygCstmrCdtTrfRemmitanceInfo, undrlygCstmrCdtTrfPurpose] = 
+        pacsIsoRecord:LocalInstrument2Choice|(), pacsIsoRecord:CategoryPurpose1Choice|(), 
+        pacsIsoRecord:RemittanceInformation2|(), pacsIsoRecord:Purpose2Choice|()]
+        [_, _, undrlygCstmrCdtTrfPrvsInstgAgts, _, _, _, _, _, _] = 
             check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, serviceTypeIdentifier);
 
     cdtTrfTxInfArray.push({

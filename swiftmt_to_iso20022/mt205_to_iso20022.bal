@@ -30,7 +30,7 @@ isolated function transformMT205ToPacs009(swiftmt:MT205Message message) returns 
     pacsIsoRecord:BranchAndFinancialInstitutionIdentification8?, pacsIsoRecord:ServiceLevel8Choice[], 
     pacsIsoRecord:LocalInstrument2Choice?,
     pacsIsoRecord:CategoryPurpose1Choice?, pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice?]
-    [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
+    [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, _, remmitanceInfo,
     purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier),
     [string?, string?, string?] [clsTime, crdtTime, dbitTime] = getTimeIndication(message.block4.MT13C),
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), 
@@ -227,17 +227,16 @@ isolated function getMT205COVCreditTransfer(swiftmt:MT205COVMessage message, swi
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(), pacsIsoRecord:ServiceLevel8Choice[], 
         pacsIsoRecord:LocalInstrument2Choice|(),
         pacsIsoRecord:CategoryPurpose1Choice|(), pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice|()]
-        [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, catPurpose, remmitanceInfo,
+        [instrFrCdtrAgt, instrFrNxtAgt, prvsInstgAgts, intrmyAgt2, serviceLevel, lclInstrm, _, remmitanceInfo,
         purpose] = check getMT2XXSenderToReceiverInfo(message.block4.MT72, serviceTypeIdentifier);
     [InstructionForCreditorAgentArray, InstructionForNextAgent1Array,
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8[]|(),
         pacsIsoRecord:BranchAndFinancialInstitutionIdentification8|(), pacsIsoRecord:ServiceLevel8Choice[], 
-        pacsIsoRecord:LocalInstrument2Choice|(),
-        pacsIsoRecord:CategoryPurpose1Choice|(), pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice|()]
+        pacsIsoRecord:LocalInstrument2Choice|(), pacsIsoRecord:CategoryPurpose1Choice|(), 
+        pacsIsoRecord:RemittanceInformation2?, pacsIsoRecord:Purpose2Choice|()]
         [undrlygCstmrCdtTrfInstrFrCdtrAgt, undrlygCstmrCdtTrfInstrFrNxtAgt, undrlygCstmrCdtTrfPrvsInstgAgts, 
-            undrlygCstmrCdtTrfIntrmyAgt2, undrlygCstmrCdtTrfServiceLevel, undrlygCstmrCdtTrfLclInstrm, 
-            undrlygCstmrCdtTrfCatPurpose, undrlygCstmrCdtTrfRemmitanceInfo,
-            undrlygCstmrCdtTrfPurpose] = check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, ());
+            undrlygCstmrCdtTrfIntrmyAgt2, _, _, _, _,_] 
+                = check getMT2XXSenderToReceiverInfo(block4.UndrlygCstmrCdtTrf.MT72, ());
     string remmitanceInfo2 = getRemmitanceInformation(block4.UndrlygCstmrCdtTrf.MT70?.Nrtv?.content);
     boolean isRTGS = isRTGSTransaction(message.block4.MT56A?.PrtyIdn, (), message.block4.MT56D?.PrtyIdn, 
         message.block4.MT57A?.PrtyIdn, (), message.block4.MT57D?.PrtyIdn);

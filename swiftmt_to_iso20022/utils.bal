@@ -1249,7 +1249,8 @@ isolated function getMT1XXSenderToReceiverInformation(swiftmt:MT72? sndRcvInfo) 
         log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
 
         foreach int i in 0 ... infoArray.length() - 1 {
-            foreach string item in MT_1XX_SNDR_CODE {
+            string[] codes = [...MT_1XX_SNDR_CODE, ...additionalSenderToReceiverInfoCodes];
+            foreach string item in codes {
                 if i == 0 && item.equalsIgnoreCaseAscii(infoArray[i]) {
                     code.push(item);
                     isAddtnlInfoPresent = false;
@@ -1380,7 +1381,8 @@ isolated function getMT1XXSenderToReceiverInformationForAgts(string[] code, stri
                 purpose = {Cd: code[i]};
             }
             _ => {
-                log:printDebug("Unrecognized code: " + code[i]);
+                log:printDebug("Unrecognized code: " + code[i] + ", adding to instruction for next agent");
+                instrFrNxtAgt.push({Cd: (), InstrInf: "/" + code[i].toString() + "/" + additionalInfo[i].toString()});
             }
         }
     }
@@ -1412,7 +1414,7 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
                 ", sndRcvInfo: " + sndRcvInfo.toString());
 
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
-            pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, finalServiceLevel, finalPurpose] = [];
+            pacsIsoRecord:CategoryPurpose1Choice?] [instrFrCdtrAgt, instrFrNxtAgt, _, finalPurpose] = [];
 
     log:printDebug("Getting instruction codes from MT103InstructionCode");
     [pacsIsoRecord:InstructionForCreditorAgent3[], pacsIsoRecord:InstructionForNextAgent1[], string?,
@@ -1469,7 +1471,7 @@ isolated function getInformationForAgents(swiftmt:MT23E[]? instnCd, swiftmt:MT72
     }
     if instnCd is swiftmt:MT23E[] {
         foreach swiftmt:MT23E code in instnCd {
-            if code.InstrnCd.content is string && code.InstrnCd.content == "SDVA" {
+            if code.InstrnCd.content == "SDVA" {
                 pacsIsoRecord:ServiceLevel8Choice svclvl = {
                     Cd: code.InstrnCd.content
                 };
@@ -1537,6 +1539,7 @@ isolated function getMT2XXSenderToReceiverInfo(swiftmt:MT72? sndRcvInfo, string?
             codeArray = MT_2XX_SNDR_CODE3;
             log:printDebug("Using code array MT_2XX_SNDR_CODE3");
         }
+        codeArray = [...codeArray, ...additionalSenderToReceiverInfoCodes];
 
         string[] infoArray = getCodeAndAddtnlInfo(sndRcvInfo.Cd.content);
         log:printDebug("Parsed info array from sender-to-receiver information: " + infoArray.toString());
@@ -4104,7 +4107,6 @@ isolated function getDebtorOrCreditor(swiftmt:IdnCd? identifierCode, swiftmt:Acc
 
     string[]? adrsLine = getAddressLineForDbtrOrCdtr(address1, address2, country);
     log:printDebug("Retrieved address lines: " + adrsLine.toString());
-    string? streetName = getStreetName(address1, address2);
     [string?, string?] [cntry, townName] = getCountryAndTown(country, address1, address2);
 
     string? nameStr = getName(name1, name2);
