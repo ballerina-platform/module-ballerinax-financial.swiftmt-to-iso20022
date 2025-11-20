@@ -22,7 +22,7 @@
         <head:Fr>
             <head:FIId>
                 <head:FinInstnId>
-                    <head:BICFI>PABSLKLXXXX</head:BICFI>
+                    <head:BICFI>ABCDLKLXXXX</head:BICFI>
                 </head:FinInstnId>
             </head:FIId>
         </head:Fr>
@@ -68,7 +68,7 @@
                 </pacs:PrvsInstgAgt1>
                 <pacs:InstgAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                        <pacs:BICFI>ABCDLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:InstgAgt>
                 <pacs:InstdAgt>
@@ -77,10 +77,10 @@
                     </pacs:FinInstnId>
                 </pacs:InstdAgt>
                 <pacs:Dbtr>
-                    <pacs:Nm>UNITED ENGINEERING SERVICES (PVT) L</pacs:Nm>
+                    <pacs:Nm>RASA ENGINEERING SERVICES (PVT) L</pacs:Nm>
                     <pacs:PstlAdr>
                         <pacs:AdrLine>NO 852-60</pacs:AdrLine>
-                        <pacs:AdrLine>SUSITHA PURA</pacs:AdrLine>
+                        <pacs:AdrLine>SHARUK PURA</pacs:AdrLine>
                         <pacs:AdrLine>SRI LANKA</pacs:AdrLine>
                     </pacs:PstlAdr>
                 </pacs:Dbtr>
@@ -93,7 +93,7 @@
                 </pacs:DbtrAcct>
                 <pacs:DbtrAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                        <pacs:BICFI>ABCDLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:DbtrAgt>
                 <pacs:DbtrAgtAcct>
@@ -109,7 +109,7 @@
                     </pacs:FinInstnId>
                 </pacs:CdtrAgt>
                 <pacs:Cdtr>
-                    <pacs:Nm>ZHEJIANG LANXI SHANYE</pacs:Nm>
+                    <pacs:Nm>SHASHU LANXI SHANYE</pacs:Nm>
                     <pacs:PstlAdr>
                         <pacs:AdrLine>MACHINERY CO LTD</pacs:AdrLine>
                         <pacs:AdrLine>MACHINERY CO LTD</pacs:AdrLine>

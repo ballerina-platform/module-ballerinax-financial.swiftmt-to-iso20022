@@ -15,10 +15,10 @@
 // under the License.
 
 import ballerina/io;
-import ballerina/test;
-import ballerina/xmldata;
-import ballerina/time;
 import ballerina/lang.regexp;
+import ballerina/test;
+import ballerina/time;
+import ballerina/xmldata;
 
 @test:Config {
     groups: ["mt_mx"],
@@ -32,7 +32,7 @@ isolated function testCustom(string finMessage, xml mxXml) returns error? {
     string time = time:utcToString(time:utcNow()).substring(0, 19) + "+00:00";
     json dateFormattedJson = check regexp:replaceAll(re `CURRENT_TIME`, expectedResult.toString(), time).fromJsonString();
 
-    test:assertEquals(actualResult, dateFormattedJson, string`Invalid transformation of MT to MX ${time}`);
+    test:assertEquals(actualResult, dateFormattedJson, string `Invalid transformation of MT to MX ${time}`);
 }
 
 function dataProvider_custom() returns map<[string, xml]>|error {
@@ -45,15 +45,14 @@ function dataProvider_custom() returns map<[string, xml]>|error {
         "camt106_muliple1": [finMessage_camt106_multiple_1, check io:fileReadXml("./tests/custom/camt106_multiple1.xml")],
         "205_pacscamt106_muliple2": [finMessage_camt106_multiple_2, check io:fileReadXml("./tests/custom/camt106_multiple2.xml")],
         "103_pacs008_test_pmtTpInf": [finMessage_pacs008_test_pmtTpInf, check io:fileReadXml("./tests/custom/mt103_pacs008.xml")],
-        "custom_a_2014":[a_2014, check io:fileReadXml("./tests/custom/mt103_a_2014.xml")],
-        "custom_a_2015":[a_2015, check io:fileReadXml("./tests/custom/mt103_a_2015.xml")],
-        "custom_a_2016":[a_2016, check io:fileReadXml("./tests/custom/mt103_a_2016.xml")],
-        "custom_fin1":[fin1, check io:fileReadXml("./tests/custom/mt103_fin1.xml")],
-        "custom_fin2":[fin2, check io:fileReadXml("./tests/custom/mt103_fin2.xml")]
+        "custom_a_2014": [a_2014, check io:fileReadXml("./tests/custom/mt103_a_2014.xml")],
+        "custom_a_2015": [a_2015, check io:fileReadXml("./tests/custom/mt103_a_2015.xml")],
+        "custom_a_2016": [a_2016, check io:fileReadXml("./tests/custom/mt103_a_2016.xml")],
+        "custom_fin1": [fin1, check io:fileReadXml("./tests/custom/mt103_fin1.xml")],
+        "custom_fin2": [fin2, check io:fileReadXml("./tests/custom/mt103_fin2.xml")]
     };
     return dataSet;
 }
-
 
 string finMessage_205RETN_pacs004 = "{1:F01CHASUS33XXXX0000000000}{2:O2050653210511ANBTUS44XXXX00000000002105110653N}{3:{121:174c245f-2682-4291-ad67-2a41e530cd27}}{4:\r\n" +
     ":20:P4C2B-005\r\n" +
@@ -67,7 +66,6 @@ string finMessage_205RETN_pacs004 = "{1:F01CHASUS33XXXX0000000000}{2:O2050653210
     "/MREF/B2C0506272708\r\n" +
     "/TREF/E2E040445062713+\r\n" +
     "-}";
-
 
 string finMessage_205RETN_pacs004_2 = "{1:F01CHASUS33XXXX0000000000}{2:O2050653210511ANBTUS44XXXX00000000002105110653N}{3:{121:174c245f-2682-4291-ad67-2a41e530cd27}}{4:\r\n" +
     ":20:P4C2B-005\r\n" +
@@ -110,7 +108,6 @@ string finMessage_205RETN_pacs004_4 = "{1:F01CHASUS33XXXX0000000000}{2:O20506532
     "/MREF/B2C0506272708\r\n" +
     "/TREF/E2E040445062713+\r\n" +
     "-}";
-
 
 string finMessage_camt106_multiple_1 = "{1:F01CBRLGB2LXXXX0000000000}{2:O1910000991231RBOSGBCHXXXX00000000009912310000N}{3:{121:7a562c67-ca16-48ba-b074-65581be6f001}}{4:\r\n" +
     ":20:camt106chrgid1\r\n" +
@@ -184,7 +181,7 @@ string a_2014 = "{1:F01ABCDLKLXAXXX0000000000}{2:I103MHCBJPJTXXXXN}{3:{121:09797
     ":72:/INS/JKKILKOKSIKF\r\n" +
     "-}";
 
-string a_2015 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736400}}{4:\r\n" +
+string a_2015 = "{1:F01AABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736400}}{4:\r\n" +
     ":20:990OTT250922015\r\n" +
     ":23B:CRED\r\n" +
     ":32A:250922USD100,\r\n" +
@@ -195,7 +192,7 @@ string a_2015 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797
     "SHARUK PURA\r\n" +
     "SRI LANKA\r\n" +
     ":52A:/NAGODA BRANCH\r\n" +
-    "PABSLKLXXXX\r\n" +
+    "AABSLKLXXXX\r\n" +
     ":57A:ICBKCNBJZJP\r\n" +
     ":59:/15236859635\r\n" +
     "ZHEJIANG LANXI SHANYE\r\n" +
@@ -211,7 +208,7 @@ string a_2015 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797
     "/INS/NHMJKIIIIJMKIOLLPOUJI\r\n" +
     "-}";
 
-string a_2016 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736401}}{4:\r\n" +
+string a_2016 = "{1:F01AABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736401}}{4:\r\n" +
     ":20:990OTT250922016\r\n" +
     ":23B:CRED\r\n" +
     ":32A:250922USD100,\r\n" +
@@ -222,7 +219,7 @@ string a_2016 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797
     "SUSITHA PURA\r\n" +
     "SRI LANKA\r\n" +
     ":52A:/CGC BRANHC\r\n" +
-    "PABSLKLXXXX\r\n" +
+    "AABSLKLXXXX\r\n" +
     ":57A:ICBKCNBJZJP\r\n" +
     ":59:/256352896\r\n" +
     "XZHEJIANG LANXI SHANYE\r\n" +
@@ -236,47 +233,47 @@ string a_2016 = "{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797
     ":72:/INS/HUJIKKOLOOOIWHUJDI\r\n" +
     "-}";
 
-string fin1 = string `{1:F01PABSLKLXXXXX0000000000}{2:I202BCEYIN5MXXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736510}}{4:
-    :20:IBPPAB049250002
-    :21:C-123-456
-    :32A:250924USD100,
-    :56A:/123
-    BOTKJPJT
-    :57A:CITIUS33XXX
-    :58D:/MUFG LTD/
-    INTERNATIONAL BANKING DEPARTME
-    FEDERAL TOWERS MARINE DRIVE
-    ERNAKULAM 682031
-    :72:/INS/BILL PROCEEDS
-    -}`;
+string fin1 = "{1:ABCDLKLXXXXX0000000000}{2:I202BCEYIN5MXXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736510}}{4:\r\n" +
+    ":20:IBPPAB049250002\r\n" +
+    ":21:C-123-456\r\n" +
+    ":32A:250924USD100,\r\n" +
+    ":56A:/123\r\n" +
+    "BOTKJPJT\r\n" +
+    ":57A:CITIUS33XXX\r\n" +
+    ":58D:/MUFG LTD/\r\n" +
+    "INTERNATIONAL BANKING DEPARTME\r\n" +
+    "FEDERAL TOWERS MARINE DRIVE\r\n" +
+    "ERNAKULAM 682031\r\n" +
+    ":72:/INS/BILL PROCEEDS\r\n" +
+    "-}";
 
-string fin2 = string `{1:F01PABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736305}}{4:
-    :20:925OTT250922015
-    :23B:CRED
-    :32A:250922USD700,
-    :33B:USD700,
-    :50K:/100611002421
-    OPTIMA TECHNOLOGIES (PVT) LTD
-    NO 740 COTTA ROAD
-    SRI LANKA
-    :52A:/KOL BRANCH
-    PABSLKLXXXX
-    :56A:/123456
-    CITIUS33XXX
-    :57D:/KOL BRANCH
-    COMMERCIAL BANK
-    GALLE RD COLOMBO 03
-    :59:/LK123456
-    LNM
-    NO450
-    GALLE RD COLOMBO 03 SL
-    123456
-    :70:TEST
-    123
-    456
-    789
-    :71A:OUR
-    :72:/INS/FUL PAY
-    /INS/CHGS
-    /INS/PAY
-    -}`;
+string fin2 = "{1:F01AABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736305}}{4:\r\n" +
+    ":20:925OTT250922015\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:250922USD700,\r\n" +
+    ":33B:USD700,\r\n" +
+    ":50K:/100611002421\r\n" +
+    "OPTIMA TECHNOLOGIES (PVT) LTD\r\n" +
+    "NO 740 COTTA ROAD\r\n" +
+    "SRI LANKA\r\n" +
+    ":52A:/KOL BRANCH\r\n" +
+    "AABSLKLXXXX\r\n" +
+    ":56A:/123456\r\n" +
+    "CITIUS33XXX\r\n" +
+    ":57D:/KOL BRANCH\r\n" +
+    "COMMERCIAL BANK\r\n" +
+    "GALLE RD COLOMBO 03\r\n" +
+    ":59:/LK123456\r\n" +
+    "LNM\r\n" +
+    "NO450\r\n" +
+    "GALLE RD COLOMBO 03 SL\r\n" +
+    "123456\r\n" +
+    ":70:TEST\r\n" +
+    "123\r\n" +
+    "456\r\n" +
+    "789\r\n" +
+    ":71A:OUR\r\n" +
+    ":72:/INS/FUL PAY\r\n" +
+    "/INS/CHGS\r\n" +
+    "/INS/PAY\r\n" +
+    "-}";
