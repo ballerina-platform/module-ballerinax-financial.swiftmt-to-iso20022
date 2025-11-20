@@ -52,9 +52,10 @@
         <camt:Pyer>
           <camt:Nm>Debtor Co</camt:Nm>
           <camt:PstlAdr>
-            <camt:AdrLine>2/High Street</camt:AdrLine>
-            <camt:AdrLine>3/GB/Epping</camt:AdrLine>
-          </camt:PstlAdr>
+              <camt:TwnNm>Epping</camt:TwnNm>
+              <camt:Ctry>GB</camt:Ctry>
+							<camt:AdrLine>High Street</camt:AdrLine>
+						</camt:PstlAdr>
         </camt:Pyer>
         <camt:PyerAcct>
           <camt:Id>
@@ -66,9 +67,10 @@
         <camt:Pyee>
           <camt:Nm>Ardent Finance</camt:Nm>
           <camt:PstlAdr>
-            <camt:AdrLine>2/Main Street</camt:AdrLine>
-            <camt:AdrLine>3/GB/London</camt:AdrLine>
-          </camt:PstlAdr>
+              <camt:TwnNm>London</camt:TwnNm>
+              <camt:Ctry>GB</camt:Ctry>
+							<camt:AdrLine>Main Street</camt:AdrLine>
+						</camt:PstlAdr>
           <camt:Id>
             <camt:OrgId>
               <camt:Othr>

@@ -22,7 +22,7 @@
         <head:Fr>
             <head:FIId>
                 <head:FinInstnId>
-                    <head:BICFI>PABSLKLXXXX</head:BICFI>
+                    <head:BICFI>AABSLKLXXXX</head:BICFI>
                 </head:FinInstnId>
             </head:FIId>
         </head:Fr>
@@ -84,7 +84,7 @@
                 </pacs:PrvsInstgAgt3>
                 <pacs:InstgAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                        <pacs:BICFI>AABSLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:InstgAgt>
                 <pacs:InstdAgt>
@@ -93,10 +93,10 @@
                     </pacs:FinInstnId>
                 </pacs:InstdAgt>
                 <pacs:Dbtr>
-                    <pacs:Nm>UNITED ENGINEERING SERVICES (PVT) L</pacs:Nm>
+                    <pacs:Nm>RASA ENGINEERING SERVICES (PVT) L</pacs:Nm>
                     <pacs:PstlAdr>
                         <pacs:AdrLine>NO 852-60</pacs:AdrLine>
-                        <pacs:AdrLine>SUSITHA PURA</pacs:AdrLine>
+                        <pacs:AdrLine>SHARUK PURA</pacs:AdrLine>
                         <pacs:AdrLine>SRI LANKA</pacs:AdrLine>
                     </pacs:PstlAdr>
                 </pacs:Dbtr>
@@ -109,13 +109,13 @@
                 </pacs:DbtrAcct>
                 <pacs:DbtrAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                        <pacs:BICFI>AABSLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:DbtrAgt>
                 <pacs:DbtrAgtAcct>
                     <pacs:Id>
                         <pacs:Othr>
-                            <pacs:Id>CGC BRANCH</pacs:Id>
+                            <pacs:Id>NAGODA BRANCH</pacs:Id>
                         </pacs:Othr>
                     </pacs:Id>
                 </pacs:DbtrAgtAcct>

@@ -69,9 +69,10 @@
                     <camt:Pty>
                         <camt:Nm>ABC Ltd</camt:Nm>
                         <camt:PstlAdr>
-                            <camt:AdrLine>2/10 Broad Street</camt:AdrLine>
-                            <camt:AdrLine>3/GB/London</camt:AdrLine>
-                        </camt:PstlAdr>
+                            <camt:TwnNm>London</camt:TwnNm>
+                            <camt:Ctry>GB</camt:Ctry>
+							<camt:AdrLine>10 Broad Street</camt:AdrLine>
+						</camt:PstlAdr>
                     </camt:Pty>
                 </camt:Dbtr>
                 <camt:DbtrAgt>

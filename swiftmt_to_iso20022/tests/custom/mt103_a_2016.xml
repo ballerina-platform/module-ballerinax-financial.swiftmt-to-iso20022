@@ -22,7 +22,7 @@
         <head:Fr>
             <head:FIId>
                 <head:FinInstnId>
-                    <head:BICFI>PABSLKLXXXX</head:BICFI>
+                    <head:BICFI>AABSLKLXXXX</head:BICFI>
                 </head:FinInstnId>
             </head:FIId>
         </head:Fr>
@@ -68,7 +68,7 @@
                 </pacs:PrvsInstgAgt1>
                 <pacs:InstgAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                        <pacs:BICFI>AABSLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:InstgAgt>
                 <pacs:InstdAgt>
@@ -93,7 +93,7 @@
                 </pacs:DbtrAcct>
                 <pacs:DbtrAgt>
                     <pacs:FinInstnId>
-                        <pacs:BICFI>PABSLKLXXXX</pacs:BICFI>
+                        <pacs:BICFI>AABSLKLXXXX</pacs:BICFI>
                     </pacs:FinInstnId>
                 </pacs:DbtrAgt>
                 <pacs:DbtrAgtAcct>

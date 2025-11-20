@@ -38,27 +38,27 @@ function dataProvider_mt101() returns map<[string, xml]>|error {
 }
 
 string finMessage_00111_mt101_A_B = "{1:F01BOFSGB2LXXXX0000000000}{2:O1010825221020NDEADKK2XXXX00000000002210200825N}{3:{121:7a562c67-ca16-48ba-b074-65581be6f001}}{4:\r\n" +
-":20:11FF99RR\r\n" +
-":28D:1/1\r\n" +
-":30:090327\r\n" +
-":21:REF501\r\n" +
-":21F:UKNOWIT1234\r\n" +
-":32B:USD90000,\r\n" +
-":50F:/9020123100\r\n" +
-"1/FINPETROL INC.\r\n" +
-"2/ANDRELAE SPINKATU 7\r\n" +
-"3/FI/HELSINKI\r\n" +
-":57C://CP999\r\n" +
-":59F:/756-857489-21\r\n" +
-"1/SOFTEASE PC GRAPHICS\r\n" +
-"2/34 BRENTWOOD ROAD\r\n" +
-"3/US/SEAFORD, NEW YORK, 11246\r\n" +
-":70:/INV/19S95\r\n" +
-":77B:/BENEFRES/US\r\n" +
-"//34 BRENTWOOD ROAD\r\n" +
-"//SEAFORD, NEW YORK 11246\r\n" +
-":33B:EUR100000,\r\n" +
-":71A:SHA\r\n" +
-":25A:/9101000123\r\n" +
-":36:0,90\r\n" +
-"-}";
+    ":20:11FF99RR\r\n" +
+    ":28D:1/1\r\n" +
+    ":30:090327\r\n" +
+    ":21:REF501\r\n" +
+    ":21F:UKNOWIT1234\r\n" +
+    ":32B:USD90000,\r\n" +
+    ":50F:/9020123100\r\n" +
+    "1/FINPETROL INC.\r\n" +
+    "2/ANDRELAE SPINKATU 7\r\n" +
+    "3/FI/HELSINKI\r\n" +
+    ":57C://CP999\r\n" +
+    ":59F:/756-857489-21\r\n" +
+    "1/SOFTEASE PC GRAPHICS\r\n" +
+    "2/34 BRENTWOOD ROAD\r\n" +
+    "3/US/SEAFORD, NEW YORK, 11246\r\n" +
+    ":70:/INV/19S95\r\n" +
+    ":77B:/BENEFRES/US\r\n" +
+    "//34 BRENTWOOD ROAD\r\n" +
+    "//SEAFORD, NEW YORK 11246\r\n" +
+    ":33B:EUR100000,\r\n" +
+    ":71A:SHA\r\n" +
+    ":25A:/9101000123\r\n" +
+    ":36:0,90\r\n" +
+    "-}";
