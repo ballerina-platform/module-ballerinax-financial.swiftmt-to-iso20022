@@ -49,7 +49,8 @@ function dataProvider_custom() returns map<[string, xml]>|error {
         "custom_a_2015": [a_2015, check io:fileReadXml("./tests/custom/mt103_a_2015.xml")],
         "custom_a_2016": [a_2016, check io:fileReadXml("./tests/custom/mt103_a_2016.xml")],
         "custom_fin1": [fin1, check io:fileReadXml("./tests/custom/mt103_fin1.xml")],
-        "custom_fin2": [fin2, check io:fileReadXml("./tests/custom/mt103_fin2.xml")]
+        "custom_fin2": [fin2, check io:fileReadXml("./tests/custom/mt103_fin2.xml")],
+        "custom_fin3": [fin3, check io:fileReadXml("./tests/custom/mt103_fin3.xml")]
     };
     return dataSet;
 }
@@ -276,4 +277,31 @@ string fin2 = "{1:F01AABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:0979710
     ":72:/INS/FUL PAY\r\n" +
     "/INS/CHGS\r\n" +
     "/INS/PAY\r\n" +
+    "-}";
+
+string fin3 = "{1:F01AABSLKLXAXXX0000000000}{2:I103HANYUS33XXXXN}{3:{121:09797101-a670-4e81-98ed-34b409736400}}{4:\r\n" +
+    ":20:990OTT250922015\r\n" +
+    ":23B:CRED\r\n" +
+    ":32A:250922USD100,\r\n" +
+    ":33B:USD100,\r\n" +
+    ":50K:/100811000148\r\n" +
+    "RASA ENGINEERING SERVICES (PVT) L\r\n" +
+    "NO 852-60\r\n" +
+    "SHARUK PURA\r\n" +
+    "SRI LANKA\r\n" +
+    ":52A:/NAGODA BRANCH\r\n" +
+    "AABSLKLXXXX\r\n" +
+    ":57A:ICBKCNBJZJP\r\n" +
+    ":59:/15236859635\r\n" +
+    "ZHEJIANG LANXI SHANYE\r\n" +
+    "ZHEJIANG LANXI SHANYE\r\n" +
+    "ZHEJIANG LANXI SHANYE\r\n" +
+    ":70:IMPORT OF GOOD\r\n" +
+    "INV NO :14255639\r\n" +
+    "INV DATE : 24225236589\r\n" +
+    "PURPOSE CODE : GDI\r\n" +
+    ":71A:OUR\r\n" +
+    ":72:/INS/NHMJKIIIIJMKIOLLPOUJI\r\n" +
+    "/INS/NHMJKIIIIJMKIOLLPOUJI\r\n" +
+    "/REC/HELLO\r\n" +
     "-}";

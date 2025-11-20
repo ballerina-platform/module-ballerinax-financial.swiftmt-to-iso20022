@@ -1,0 +1,142 @@
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<Envelope xmlns="urn:swift:xsd:envelope" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <head:AppHdr xmlns:head="urn:iso:std:iso:20022:tech:xsd:head.001.001.02">
+        <head:Fr>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>AABSLKLXXXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:Fr>
+        <head:To>
+            <head:FIId>
+                <head:FinInstnId>
+                    <head:BICFI>HANYUS33XXX</head:BICFI>
+                </head:FinInstnId>
+            </head:FIId>
+        </head:To>
+        <head:BizMsgIdr>990OTT250922015</head:BizMsgIdr>
+        <head:MsgDefIdr>pacs.008.001.08</head:MsgDefIdr>
+        <head:BizSvc>swift.cbprplus.03</head:BizSvc>
+        <head:CreDt>CURRENT_TIME</head:CreDt>
+    </head:AppHdr>
+    <pacs:Document xmlns:pacs="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
+        <pacs:FIToFICstmrCdtTrf>
+            <pacs:GrpHdr>
+                <pacs:MsgId>990OTT250922015</pacs:MsgId>
+                <pacs:CreDtTm>CURRENT_TIME</pacs:CreDtTm>
+                <pacs:NbOfTxs>1</pacs:NbOfTxs>
+                <pacs:SttlmInf>
+                    <pacs:SttlmMtd>INDA</pacs:SttlmMtd>
+                </pacs:SttlmInf>
+            </pacs:GrpHdr>
+            <pacs:CdtTrfTxInf>
+                <pacs:PmtId>
+                    <pacs:InstrId>990OTT250922015</pacs:InstrId>
+                    <pacs:EndToEndId>NOTPROVIDED</pacs:EndToEndId>
+                    <pacs:UETR>09797101-a670-4e81-98ed-34b409736400</pacs:UETR>
+                </pacs:PmtId>
+                <pacs:IntrBkSttlmAmt Ccy="USD">100</pacs:IntrBkSttlmAmt>
+                <pacs:IntrBkSttlmDt>2025-09-22</pacs:IntrBkSttlmDt>
+                <pacs:InstdAmt Ccy="USD">100</pacs:InstdAmt>
+                <pacs:ChrgBr>DEBT</pacs:ChrgBr>
+                <pacs:PrvsInstgAgt1>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>NHMJKIIIIJMKIOLLPOUJI</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt1>
+                <pacs:PrvsInstgAgt2>
+                    <pacs:FinInstnId>
+                        <pacs:Nm>NHMJKIIIIJMKIOLLPOUJI</pacs:Nm>
+                        <pacs:PstlAdr>
+                            <pacs:AdrLine>NOTPROVIDED</pacs:AdrLine>
+                        </pacs:PstlAdr>
+                    </pacs:FinInstnId>
+                </pacs:PrvsInstgAgt2>
+                <pacs:InstgAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>AABSLKLXXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstgAgt>
+                <pacs:InstdAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>HANYUS33XXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:InstdAgt>
+                <pacs:Dbtr>
+                    <pacs:Nm>RASA ENGINEERING SERVICES (PVT) L</pacs:Nm>
+                    <pacs:PstlAdr>
+                        <pacs:AdrLine>NO 852-60</pacs:AdrLine>
+                        <pacs:AdrLine>SHARUK PURA</pacs:AdrLine>
+                        <pacs:AdrLine>SRI LANKA</pacs:AdrLine>
+                    </pacs:PstlAdr>
+                </pacs:Dbtr>
+                <pacs:DbtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>100811000148</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAcct>
+                <pacs:DbtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>AABSLKLXXXX</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:DbtrAgt>
+                <pacs:DbtrAgtAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>NAGODA BRANCH</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:DbtrAgtAcct>
+                <pacs:CdtrAgt>
+                    <pacs:FinInstnId>
+                        <pacs:BICFI>ICBKCNBJZJP</pacs:BICFI>
+                    </pacs:FinInstnId>
+                </pacs:CdtrAgt>
+                <pacs:Cdtr>
+                    <pacs:Nm>ZHEJIANG LANXI SHANYE</pacs:Nm>
+                    <pacs:PstlAdr>
+                        <pacs:AdrLine>ZHEJIANG LANXI SHANYE</pacs:AdrLine>
+                        <pacs:AdrLine>ZHEJIANG LANXI SHANYE</pacs:AdrLine>
+                    </pacs:PstlAdr>
+                </pacs:Cdtr>
+                <pacs:CdtrAcct>
+                    <pacs:Id>
+                        <pacs:Othr>
+                            <pacs:Id>15236859635</pacs:Id>
+                        </pacs:Othr>
+                    </pacs:Id>
+                </pacs:CdtrAcct>
+                <pacs:InstrForNxtAgt>
+                    <pacs:InstrInf>/REC/HELLO</pacs:InstrInf>
+                </pacs:InstrForNxtAgt>
+                <pacs:RmtInf>
+                    <pacs:Ustrd>IMPORT OF GOOD INV NO :14255639 INV DATE : 24225236589 PURPOSE CODE : GDI</pacs:Ustrd>
+                </pacs:RmtInf>
+            </pacs:CdtTrfTxInf>
+        </pacs:FIToFICstmrCdtTrf>
+    </pacs:Document>
+</Envelope>
