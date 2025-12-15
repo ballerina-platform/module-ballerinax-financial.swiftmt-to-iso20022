@@ -871,8 +871,14 @@ isolated function processIBANValidation(string account) returns string|error {
         numericAccount += character;
     }
 
-    decimal accountNumber = check decimal:fromString(numericAccount);
-    if (accountNumber % MOD_97).ensureType(int) == 1 {
+    // Process mod 97 in chunks to avoid overflow issues
+    int remainder = 0;
+    foreach int i in 0 ..< numericAccount.length() {
+        int digit = check int:fromString(numericAccount.substring(i, i + 1));
+        remainder = (remainder * 10 + digit) % MOD_97;
+    }
+
+    if remainder == 1 {
         return account;
     }
 
